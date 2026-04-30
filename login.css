@@ -1,0 +1,36 @@
+body {
+    margin: 0;
+    font-family: Arial;
+}
+
+.container {
+    background-image: url("background_1.png");
+    background-size: cover;
+    background-position: center;
+
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo {
+    width: 150px;
+}
+
+input {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    width: 200px;
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}

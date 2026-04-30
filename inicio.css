@@ -1,0 +1,30 @@
+body {
+    margin: 0;
+    font-family: Arial;
+}
+
+/* FONDO */
+.container {
+    background-image: url("background_1.png");
+    background-size: cover;
+    background-position: center;
+
+    height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+}
+
+.logo {
+    width: 300px;
+}
+
+button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
