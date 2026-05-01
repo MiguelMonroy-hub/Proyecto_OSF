@@ -1,0 +1,147 @@
+/* Personalizar pato */
+.page-customize {
+  min-height: 100vh;
+  padding: 16px 16px 32px;
+  color: #1a2d16;
+}
+
+.page-customize h1 {
+  margin: 0 0 8px;
+  font-size: 1.4rem;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.7);
+}
+
+.page-customize .sub {
+  text-align: center;
+  margin: 0 0 20px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.preview-wrap {
+  max-width: 320px;
+  margin: 0 auto 24px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 16px;
+  padding: 16px;
+  backdrop-filter: blur(6px);
+}
+
+.duck-stack {
+  position: relative;
+  width: min(260px, 75vw);
+  height: min(260px, 75vw);
+  margin: 0 auto;
+}
+
+.duck-stack .stack-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.duck-stack .z-base {
+  z-index: 1;
+}
+
+.duck-stack .z-shoes {
+  z-index: 2;
+}
+
+.duck-stack .z-neck {
+  z-index: 3;
+}
+
+.duck-stack .z-face {
+  z-index: 4;
+}
+
+.duck-stack .z-head {
+  z-index: 5;
+}
+
+.panel {
+  max-width: 640px;
+  margin: 0 auto 20px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 14px;
+  padding: 14px 16px;
+  backdrop-filter: blur(4px);
+}
+
+.panel h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: #0d2818;
+}
+
+.panel-hint {
+  font-size: 0.85rem;
+  margin: 0 0 10px;
+  color: #3d2914;
+  line-height: 1.35;
+}
+
+.opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.opt {
+  padding: 0;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.opt:hover {
+  filter: brightness(1.05);
+}
+
+.opt.selected {
+  border-color: #2f855a;
+  box-shadow: 0 0 0 2px #f6e05e;
+}
+
+.opt img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  display: block;
+  padding: 4px;
+}
+
+.opt-none {
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  background: rgba(200, 200, 200, 0.5);
+  cursor: pointer;
+}
+
+.opt-none.selected {
+  border-color: #2f855a;
+}
+
+.actions-custom {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.actions-custom a {
+  display: inline-block;
+  margin: 0 8px;
+  font-weight: bold;
+  color: #14532d;
+}

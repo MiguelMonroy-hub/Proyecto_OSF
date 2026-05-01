@@ -1,0 +1,50 @@
+/* Estilos comunes para todas las pantallas */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+/* Botón genérico */
+.btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn-blue {
+  background: linear-gradient(180deg, #4da3ff, #1e6fd9);
+  color: #fff;
+}
+
+.btn-green {
+  background: linear-gradient(180deg, #5ecf7a, #2fa84d);
+  color: #fff;
+}
+
+/* Enlace simple tipo botón secundario */
+.link-back {
+  display: inline-block;
+  margin: 12px;
+  color: #333;
+  font-size: 0.9rem;
+}

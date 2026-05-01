@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elegir tema</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/game-bg.css">
+  <link rel="stylesheet" href="../css/topics.css">
+</head>
+<body class="page-topics">
+  <header class="topics-hero">
+    <div>
+      <h1>Elige tu tema</h1>
+      <p class="topics-lead">Vectores en el plano: coordenadas, representación y operaciones. ¡Elige por dónde empezar! El <strong>nivel difícil</strong> se abre cuando termines el <strong>fácil</strong> de ese tema.</p>
+    </div>
+    <div class="topics-actions">
+      <a class="btn btn-green topics-pill" href="customize.html">Mi pato</a>
+      <a class="btn btn-blue topics-pill" href="shop.html">Tienda</a>
+      <a class="topics-logout" href="index.html">Cerrar sesión</a>
+    </div>
+  </header>
+
+  <div class="topic-grid">
+    <article class="topic-card c-tema1" data-tema="1">
+      <div class="topic-visual" aria-hidden="true">
+        <span class="topic-emoji">📐</span>
+        <span class="topic-deco"></span>
+      </div>
+      <div class="topic-body">
+        <h2>Tema 1</h2>
+        <p class="topic-title">Ubicación de puntos en el plano cartesiano</p>
+        <p class="topic-tagline">Coordenadas, ejes y cuadrantes</p>
+        <div class="levels">
+          <a href="quiz.html?tema=1&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">F</span><span class="lvl-label">Nivel fácil</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=1&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">D</span><span class="lvl-label">Nivel difícil</span><span class="lvl-go">Jugar →</span></a>
+        </div>
+      </div>
+    </article>
+
+    <article class="topic-card c-tema2" data-tema="2">
+      <div class="topic-visual" aria-hidden="true">
+        <span class="topic-emoji">📍</span>
+        <span class="topic-deco"></span>
+      </div>
+      <div class="topic-body">
+        <h2>Tema 2</h2>
+        <p class="topic-title">Dibujo y representación de vectores</p>
+        <p class="topic-tagline">Módulo, dirección y sentido</p>
+        <div class="levels">
+          <a href="quiz.html?tema=2&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">F</span><span class="lvl-label">Nivel fácil</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=2&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">D</span><span class="lvl-label">Nivel difícil</span><span class="lvl-go">Jugar →</span></a>
+        </div>
+      </div>
+    </article>
+
+    <article class="topic-card c-tema3" data-tema="3">
+      <div class="topic-visual" aria-hidden="true">
+        <span class="topic-emoji">➕</span>
+        <span class="topic-deco"></span>
+      </div>
+      <div class="topic-body">
+        <h2>Tema 3</h2>
+        <p class="topic-title">Suma y resta de vectores</p>
+        <p class="topic-tagline">Método del paralelogramo y del triángulo</p>
+        <div class="levels">
+          <a href="quiz.html?tema=3&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">F</span><span class="lvl-label">Nivel fácil</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=3&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">D</span><span class="lvl-label">Nivel difícil</span><span class="lvl-go">Jugar →</span></a>
+        </div>
+      </div>
+    </article>
+
+    <article class="topic-card c-tema4" data-tema="4">
+      <div class="topic-visual" aria-hidden="true">
+        <span class="topic-emoji">✖️</span>
+        <span class="topic-deco"></span>
+      </div>
+      <div class="topic-body">
+        <h2>Tema 4</h2>
+        <p class="topic-title">Multiplicación por escalar</p>
+        <p class="topic-tagline">Amplía o invierte un vector</p>
+        <div class="levels">
+          <a href="quiz.html?tema=4&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">F</span><span class="lvl-label">Nivel fácil</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=4&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">D</span><span class="lvl-label">Nivel difícil</span><span class="lvl-go">Jugar →</span></a>
+        </div>
+      </div>
+    </article>
+  </div>
+
+  <script src="../js/topic-progress.js"></script>
+  <script>
+    function refrescarBloqueos() {
+      if (typeof aplicarBloqueosTarjetas === "function") {
+        aplicarBloqueosTarjetas();
+      }
+    }
+    document.addEventListener("DOMContentLoaded", refrescarBloqueos);
+    window.addEventListener("pageshow", refrescarBloqueos);
+  </script>
+</body>
+</html>

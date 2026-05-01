@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crear cuenta</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/signup.css">
+</head>
+<body class="page-signup-new">
+  <a class="link-back" href="index.html">← Inicio</a>
+
+  <div class="modal-signup">
+    <h1>Crear cuenta</h1>
+
+    <label for="nombre">Nombre</label>
+    <input type="text" id="nombre" name="nombre" autocomplete="given-name">
+
+    <label for="apellido">Apellido</label>
+    <input type="text" id="apellido" name="apellido" autocomplete="family-name">
+
+    <label for="email">Correo</label>
+    <input type="email" id="email" name="email" autocomplete="email" placeholder="tu@correo.com">
+
+    <button type="button" class="btn-submit" onclick="crearCuenta()">Registrarse</button>
+
+    <p class="switch">¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a></p>
+  </div>
+
+  <script src="../js/register.js"></script>
+</body>
+</html>
