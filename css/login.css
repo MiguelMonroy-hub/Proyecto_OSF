@@ -1,0 +1,112 @@
+/* Login — modal nuevo sobre fondo del juego */
+.page-login-new {
+  min-height: 100vh;
+  margin: 0;
+  background-image: url("../background_1.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+.page-login-new::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.page-login-new > * {
+  position: relative;
+  z-index: 1;
+}
+
+.page-login-new .link-back {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+}
+
+.modal-login {
+  background: #1a2f4a;
+  color: #fff;
+  padding: 28px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.modal-login h1 {
+  margin: 0 0 20px;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.modal-login label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
+.modal-login input[type="email"],
+.modal-login input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  border-radius: 8px;
+  border: none;
+  box-sizing: border-box;
+}
+
+.modal-login .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modal-login .row a {
+  color: #7ec8ff;
+}
+
+.modal-login .btn-submit {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(180deg, #4da3ff, #1e6fd9);
+  color: #fff;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.modal-login .btn-submit:active {
+  transform: translateY(2px);
+}
+
+.modal-login .switch {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 0.9rem;
+}
+
+.modal-login .switch a {
+  color: #7ec8ff;
+}

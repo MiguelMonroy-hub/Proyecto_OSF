@@ -1,0 +1,49 @@
+/*
+  Mismo fondo (background_1.png) en pantallas de juego.
+  Cada pantalla añade su ::before para legibilidad.
+*/
+body.page-topics,
+body.page-levels,
+body.page-quiz,
+body.page-shop {
+  background-image: url("../background_1.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  position: relative;
+}
+
+body.page-topics::before,
+body.page-levels::before,
+body.page-quiz::before,
+body.page-shop::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.page-topics > *,
+body.page-levels > *,
+body.page-quiz > *,
+body.page-shop > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.page-topics::before {
+  background: rgba(160, 210, 140, 0.45);
+}
+
+body.page-levels::before {
+  background: rgba(20, 30, 55, 0.78);
+}
+
+body.page-quiz::before {
+  background: rgba(60, 40, 90, 0.72);
+}
+
+body.page-shop::before {
+  background: rgba(90, 55, 30, 0.55);
+}

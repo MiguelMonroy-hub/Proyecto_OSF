@@ -1,0 +1,173 @@
+/* Tienda */
+.page-shop {
+  min-height: 100vh;
+  padding: 16px 16px 32px;
+  color: #fffeeb;
+}
+
+.shop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto 20px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.shop-title {
+  font-size: 1.2rem;
+}
+
+.shop-coins {
+  padding: 8px 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 220, 150, 0.35);
+}
+
+.shop-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.item-card {
+  background: rgba(40, 25, 15, 0.65);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  border: 2px solid rgba(255, 220, 150, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.item-card.owned {
+  border-color: #f6e05e;
+  box-shadow: 0 0 12px rgba(246, 224, 94, 0.35);
+}
+
+.item-card img {
+  width: 100%;
+  height: 110px;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.item-card h3 {
+  margin: 0 0 6px;
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.item-card .price {
+  font-weight: bold;
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.item-card .btn-buy {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  background: linear-gradient(180deg, #5ecf7a, #2fa84d);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+.item-card .btn-buy:hover {
+  filter: brightness(1.05);
+}
+
+.item-card .btn-buy:disabled {
+  background: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.item-card .owned-label {
+  font-size: 0.85rem;
+  color: #f6e05e;
+  font-weight: bold;
+  margin: 0;
+}
+
+.shop-footer {
+  max-width: 900px;
+  margin: 24px auto 0;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+  font-weight: bold;
+}
+
+.shop-intro {
+  max-width: 900px;
+  margin: 0 auto 14px;
+  font-size: 0.9rem;
+  opacity: 0.95;
+  text-align: center;
+}
+
+/* Botones arriba: personalizar + volver a temas */
+.shop-top-nav {
+  max-width: 900px;
+  margin: 0 auto 22px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  align-items: center;
+}
+
+.shop-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  border-radius: 16px;
+  border: 3px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.2),
+    0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;
+}
+
+.shop-nav-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-3px);
+  box-shadow:
+    0 6px 0 rgba(0, 0, 0, 0.18),
+    0 14px 28px rgba(0, 0, 0, 0.3);
+}
+
+.shop-nav-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+
+.shop-nav-btn-mipato {
+  color: #fff !important;
+  background: linear-gradient(180deg, #48bb78, #2f855a);
+}
+
+.shop-nav-btn-temas {
+  color: #422006 !important;
+  background: linear-gradient(180deg, #fef3c7, #f59e0b);
+  border-color: rgba(120, 53, 15, 0.35);
+  min-width: 200px;
+}

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quiz</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/game-bg.css">
+  <link rel="stylesheet" href="../css/quiz.css">
+</head>
+<body class="page-quiz">
+  <div class="quiz-top">
+    <div class="quiz-top-left">
+      <span id="quiz-context" class="quiz-context"></span>
+      <span id="quiz-progress" class="progress">—</span>
+      <span id="quiz-saldo" class="quiz-saldo" aria-live="polite"></span>
+    </div>
+    <span id="quiz-hearts" class="hearts" aria-label="Vidas">❤️❤️❤️</span>
+  </div>
+
+  <div class="quiz-box">
+    <p class="question" id="quiz-question-text"></p>
+    <div class="options" id="quiz-options"></div>
+    <p id="quiz-reward-msg" class="quiz-reward-msg" hidden></p>
+    <button type="button" id="quiz-siguiente" class="quiz-siguiente" hidden>Siguiente pregunta</button>
+    <p id="quiz-gameover" class="quiz-gameover" hidden></p>
+  </div>
+
+  <p class="quiz-nav">
+    <a href="topics.html">← Temas</a>
+    ·
+    <a href="shop.html">Tienda</a>
+  </p>
+
+  <script src="../js/duck-catalog.js"></script>
+  <script src="../js/topic-progress.js"></script>
+  <script src="../js/quiz-data.js"></script>
+  <script src="../js/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tienda</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/game-bg.css">
+  <link rel="stylesheet" href="../css/shop.css">
+</head>
+<body class="page-shop">
+  <div class="shop-header">
+    <span class="shop-title">Tienda</span>
+    <span id="shop-coins" class="shop-coins">🪙 <span id="coins-value">725</span></span>
+  </div>
+
+  <p class="shop-intro">
+    Todo lo que compres aquí se desbloquea en <strong>Mi pato</strong>.
+  </p>
+
+  <nav class="shop-top-nav" aria-label="Navegación de la tienda">
+    <a href="customize.html" class="shop-nav-btn shop-nav-btn-mipato">Personalizar pato</a>
+    <a href="topics.html" class="shop-nav-btn shop-nav-btn-temas">← Volver a temas</a>
+  </nav>
+
+  <div class="shop-items" id="shop-grid"></div>
+
+  <div class="shop-footer">
+    Tu saldo: 🪙 <span id="saldo-value">725</span>
+  </div>
+
+  <script src="../js/duck-catalog.js"></script>
+  <script src="../js/shop.js"></script>
+</body>
+</html>
