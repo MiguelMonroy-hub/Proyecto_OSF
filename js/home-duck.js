@@ -1,4 +1,3 @@
-/* Muestra en el inicio el mismo outfit que guarda Mi pato (tec_duck_personaje) */
 var CLAVE_OUTFIT = "tec_duck_personaje";
 
 function outfitPorDefecto() {
