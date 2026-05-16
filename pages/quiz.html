@@ -19,8 +19,12 @@
   </div>
 
   <div class="quiz-box">
+    <figure id="quiz-figure" class="quiz-figure" hidden>
+      <img id="quiz-image" class="quiz-image" alt="" decoding="async" />
+    </figure>
     <p class="question" id="quiz-question-text"></p>
     <div class="options" id="quiz-options"></div>
+    <div id="quiz-feedback" class="quiz-feedback" hidden></div>
     <p id="quiz-reward-msg" class="quiz-reward-msg" hidden></p>
     <button type="button" id="quiz-siguiente" class="quiz-siguiente" hidden>Siguiente pregunta</button>
     <p id="quiz-gameover" class="quiz-gameover" hidden></p>
@@ -31,6 +35,14 @@
     ·
     <a href="shop.html">Tienda</a>
   </p>
+
+  <div id="quiz-img-lightbox" class="quiz-img-lightbox" hidden aria-modal="true" role="dialog" aria-label="Imagen ampliada">
+    <button type="button" class="quiz-img-lightbox-backdrop" id="quiz-img-lightbox-backdrop" tabindex="-1" aria-label="Cerrar"></button>
+    <div class="quiz-img-lightbox-panel">
+      <button type="button" class="quiz-img-lightbox-close" id="quiz-img-lightbox-close" aria-label="Cerrar vista ampliada">&times;</button>
+      <img id="quiz-img-lightbox-img" class="quiz-img-lightbox-img" alt="" decoding="async" />
+    </div>
+  </div>
 
   <script src="../js/duck-catalog.js"></script>
   <script src="../js/topic-progress.js"></script>

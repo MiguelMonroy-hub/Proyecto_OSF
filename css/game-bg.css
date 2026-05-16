@@ -24,10 +24,10 @@ body.page-shop::before {
   z-index: 0;
 }
 
-body.page-topics > *,
-body.page-levels > *,
-body.page-quiz > *,
-body.page-shop > * {
+body.page-topics > *:not(.quiz-img-lightbox),
+body.page-levels > *:not(.quiz-img-lightbox),
+body.page-quiz > *:not(.quiz-img-lightbox),
+body.page-shop > *:not(.quiz-img-lightbox) {
   position: relative;
   z-index: 1;
 }

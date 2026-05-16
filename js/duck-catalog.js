@@ -1,12 +1,7 @@
-/**
- * Catálogo único: tienda (todos los ítems) + personalización (solo comprados).
- * IDs: "CATEGORIA:archivo.png"  ej. FACE:F_glasses.png
- */
 var TEC_DUCK_STORAGE_COINS = "tec_duck_monedas";
 var TEC_DUCK_STORAGE_INV = "tec_duck_inventario";
 var TEC_DUCK_INV_FORMAT = "tec_duck_inv_format";
 
-/* Siempre usable sin comprar (solo esta base) */
 function duckIdsSiempreGratis() {
   return ["BASE:MAIN DUCK.png"];
 }
@@ -51,7 +46,6 @@ var DUCK_CATALOG = [
   { id: "SHOES:S_silver.png", cat: "shoes", sub: "SHOES", file: "S_silver.png", label: "Zapatos plateados", price: 120 }
 ];
 
-/** Saldo de monedas (misma clave que la tienda). */
 function duckObtenerSaldoMonedas() {
   var g = localStorage.getItem(TEC_DUCK_STORAGE_COINS);
   if (g === null) {
@@ -67,12 +61,10 @@ function duckAgregarMonedas(cantidad) {
   return total;
 }
 
-/**
- * Precio medio solo de ítems de pago (sin gratis).
- * Recompensa por acierto repartida según preguntas por nivel (2 fácil / 2 difícil).
- */
-var DUCK_QUIZ_PREGUNTAS_FACIL = 2;
-var DUCK_QUIZ_PREGUNTAS_DIFICIL = 2;
+
+/* Cantidad de preguntas por intento (debe coincidir con quiz-data.js). */
+var DUCK_QUIZ_PREGUNTAS_FACIL = 10;
+var DUCK_QUIZ_PREGUNTAS_DIFICIL = 7;
 
 function duckPrecioPromedioCatalogoPagado() {
   var sum = 0;

@@ -11,6 +11,9 @@
   var partidaTerminada = false;
   var respondidaBien = false;
   var monedaPagada = false;
+  /* Guardamos los datos de las opciones de la pregunta actual para no depender
+     de leer atributos del DOM al renderizar la retroalimentación. */
+  var opcionesActuales = [];
 
   function barajar(arr) {
     var copia = arr.slice();
@@ -70,6 +73,110 @@
     }
   }
 
+  function ocultarFeedback() {
+    var fb = document.getElementById("quiz-feedback");
+    if (fb) {
+      fb.hidden = true;
+      fb.textContent = "";
+    }
+  }
+
+  function pintarFiguraQuiz(urlImg, textoAlt) {
+    cerrarLightboxQuiz();
+    var fig = document.getElementById("quiz-figure");
+    var im = document.getElementById("quiz-image");
+    if (!fig || !im) return;
+    if (urlImg) {
+      im.alt = textoAlt ? String(textoAlt).slice(0, 220) : "Ilustración de la pregunta";
+      im.src = urlImg;
+      im.title = "Pulsa para ver en grande";
+      fig.hidden = false;
+      fig.setAttribute("tabindex", "0");
+      fig.setAttribute("role", "button");
+      fig.setAttribute(
+        "aria-label",
+        "Ampliar ilustración de la pregunta"
+      );
+    } else {
+      im.removeAttribute("src");
+      im.alt = "";
+      im.removeAttribute("title");
+      fig.hidden = true;
+      fig.removeAttribute("tabindex");
+      fig.removeAttribute("role");
+      fig.removeAttribute("aria-label");
+    }
+  }
+
+  function quizLightboxOnEscape(ev) {
+    if (ev.key === "Escape") {
+      cerrarLightboxQuiz();
+    }
+  }
+
+  function cerrarLightboxQuiz() {
+    var lb = document.getElementById("quiz-img-lightbox");
+    var big = document.getElementById("quiz-img-lightbox-img");
+    if (!lb) return;
+    lb.hidden = true;
+    if (big) {
+      big.removeAttribute("src");
+      big.alt = "";
+    }
+    document.body.style.overflow = "";
+    document.removeEventListener("keydown", quizLightboxOnEscape);
+  }
+
+  function abrirLightboxQuiz(url, textoAlt) {
+    var lb = document.getElementById("quiz-img-lightbox");
+    var big = document.getElementById("quiz-img-lightbox-img");
+    if (!lb || !big || !url) return;
+    big.alt = textoAlt ? String(textoAlt).slice(0, 220) : "";
+    big.src = url;
+    lb.hidden = false;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", quizLightboxOnEscape);
+  }
+
+  function registrarLightboxImagenQuiz() {
+    var fig = document.getElementById("quiz-figure");
+    if (!fig || fig.getAttribute("data-lightbox-hook") === "1") return;
+    fig.setAttribute("data-lightbox-hook", "1");
+    fig.addEventListener("click", function () {
+      if (fig.hidden) return;
+      var sm = document.getElementById("quiz-image");
+      if (!sm || !sm.getAttribute("src")) return;
+      abrirLightboxQuiz(sm.src, sm.alt || "");
+    });
+    fig.addEventListener("keydown", function (ev) {
+      if (ev.key !== "Enter" && ev.key !== " ") return;
+      if (fig.hidden) return;
+      var sm = document.getElementById("quiz-image");
+      if (!sm || !sm.getAttribute("src")) return;
+      ev.preventDefault();
+      abrirLightboxQuiz(sm.src, sm.alt || "");
+    });
+
+    var c = document.getElementById("quiz-img-lightbox-close");
+    var bd = document.getElementById("quiz-img-lightbox-backdrop");
+    if (c) c.addEventListener("click", cerrarLightboxQuiz);
+    if (bd) bd.addEventListener("click", cerrarLightboxQuiz);
+  }
+
+  function mostrarFeedback(texto) {
+    var fb = document.getElementById("quiz-feedback");
+    if (!fb) return;
+    fb.innerHTML = "";
+    var titulo = document.createElement("span");
+    titulo.className = "quiz-feedback-title";
+    titulo.textContent = "Retroalimentación";
+    var cuerpo = document.createElement("span");
+    cuerpo.textContent = texto;
+    fb.appendChild(titulo);
+    fb.appendChild(cuerpo);
+    fb.hidden = false;
+  }
+
   function mostrarGameOver() {
     partidaTerminada = true;
     var go = document.getElementById("quiz-gameover");
@@ -79,7 +186,13 @@
       go.hidden = false;
     }
     var sig = document.getElementById("quiz-siguiente");
-    if (sig) sig.hidden = true;
+    if (sig) {
+      sig.textContent = "Salir";
+      sig.hidden = false;
+      sig.onclick = function () {
+        window.location.href = "topics.html";
+      };
+    }
     deshabilitarOpciones();
     pintarSaldo();
   }
@@ -99,6 +212,8 @@
     document.getElementById("quiz-question-text").textContent =
       "¡Completaste el quiz! Monedas guardadas.";
     document.getElementById("quiz-options").innerHTML = "";
+    pintarFiguraQuiz("");
+    ocultarFeedback();
     partidaTerminada = true;
     pintarSaldo();
   }
@@ -110,12 +225,15 @@
     var btn = ev.currentTarget;
     if (btn.disabled) return;
 
-    var ok = btn.getAttribute("data-ok") === "1";
+    var idx = parseInt(btn.getAttribute("data-idx"), 10);
+    var opt = opcionesActuales[idx];
+    if (!opt) return;
 
-    if (ok) {
+    if (opt.ok) {
       btn.classList.add("correct");
       respondidaBien = true;
       deshabilitarOpciones();
+      ocultarFeedback();
       if (!monedaPagada) {
         monedaPagada = true;
         var n = duckMonedasPorPregunta(modo);
@@ -123,30 +241,34 @@
       }
       var sig = document.getElementById("quiz-siguiente");
       if (sig) {
-        if (indice + 1 >= lista.length) {
-          sig.textContent = "Finalizar";
-        } else {
-          sig.textContent = "Siguiente pregunta";
-        }
+        sig.textContent =
+          indice + 1 >= lista.length ? "Finalizar" : "Siguiente pregunta";
         sig.hidden = false;
         sig.onclick = onSiguiente;
       }
       pintarSaldo();
-    } else {
-      btn.classList.add("wrong");
-      vidas -= 1;
-      pintarVidas();
-      if (vidas <= 0) {
-        deshabilitarOpciones();
-        mostrarGameOver();
-      } else {
-        setTimeout(function () {
-          if (partidaTerminada || respondidaBien) return;
-          limpiarClasesOpciones();
-          habilitarOpciones();
-        }, 600);
-      }
+      return;
     }
+
+    btn.classList.add("wrong");
+    vidas -= 1;
+    pintarVidas();
+
+    if (opt.fb) {
+      mostrarFeedback(opt.fb);
+    } else {
+      ocultarFeedback();
+    }
+
+    if (vidas <= 0) {
+      deshabilitarOpciones();
+      mostrarGameOver();
+      return;
+    }
+
+    /* Deshabilitamos solo esta opción para que el usuario pueda releer la
+       retroalimentación y elegir otra sin volver a sumar el mismo error. */
+    btn.disabled = true;
   }
 
   function onSiguiente() {
@@ -170,16 +292,24 @@
     document.getElementById("quiz-question-text").textContent = p.q;
     pintarProgreso();
     pintarSaldo();
+    ocultarFeedback();
+
+    var urlImg =
+      typeof quizImagenParaPregunta === "function"
+        ? quizImagenParaPregunta(p)
+        : "";
+    pintarFiguraQuiz(urlImg, p.q);
+
+    opcionesActuales = barajar(p.opts);
 
     var cont = document.getElementById("quiz-options");
     cont.innerHTML = "";
-    var ops = barajar(p.a);
-    for (var i = 0; i < ops.length; i++) {
+    for (var i = 0; i < opcionesActuales.length; i++) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "option";
-      b.textContent = ops[i].t;
-      b.setAttribute("data-ok", ops[i].ok ? "1" : "0");
+      b.textContent = opcionesActuales[i].t;
+      b.setAttribute("data-idx", String(i));
       b.addEventListener("click", onOpcionClick);
       cont.appendChild(b);
     }
@@ -194,15 +324,18 @@
   }
 
   function iniciar() {
+    registrarLightboxImagenQuiz();
+
     var ctx = document.getElementById("quiz-context");
     if (ctx) {
       ctx.textContent =
-        "Tema " + temaId + " · " + (modo === "dificil" ? "Difícil" : "Fácil");
+        "Tema " + temaId + " · " + (modo === "dificil" ? "Avanzado" : "Básico");
     }
     lista = quizObtenerPreguntas(temaId, modo);
     if (!lista.length) {
       document.getElementById("quiz-question-text").textContent =
         "No hay preguntas para este tema.";
+      pintarFiguraQuiz("");
       return;
     }
     indice = 0;

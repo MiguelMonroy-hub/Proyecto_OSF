@@ -1,5 +1,5 @@
 /**
- * Progreso por tema: el nivel difícil se desbloquea al completar el fácil (localStorage).
+ * Progreso por tema: el nivel avanzado se desbloquea al completar el básico (localStorage).
  */
 var PROGRESO_TEMATICA = "tec_duck_progreso_temas";
 
@@ -53,12 +53,12 @@ function crearEnlaceDificil(tema) {
   a.href = "quiz.html?tema=" + encodeURIComponent(tema) + "&modo=dificil";
   a.className = "level-btn level-btn-2 level-dificil";
   a.innerHTML =
-    '<span class="lvl-badge">D</span><span class="lvl-label">Nivel difícil</span><span class="lvl-go">Jugar →</span>';
+    '<span class="lvl-badge">A</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span>';
   return a;
 }
 
 /**
- * En temas: bloquea o desbloquea el nivel difícil según progreso (sirve también con bfcache).
+ * En temas: bloquea o desbloquea el nivel avanzado según progreso
  */
 function aplicarBloqueosTarjetas() {
   var cards = document.querySelectorAll(".topic-card[data-tema]");
@@ -82,7 +82,7 @@ function aplicarBloqueosTarjetas() {
       span.innerHTML = diffLink.innerHTML;
       var go = span.querySelector(".lvl-go");
       if (go) {
-        go.textContent = "Completa el nivel fácil para desbloquear";
+        go.textContent = "Completa el nivel básico para desbloquear";
       }
       var badge = span.querySelector(".lvl-badge");
       if (badge) {

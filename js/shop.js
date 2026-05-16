@@ -1,4 +1,3 @@
-/* Tienda: catálogo completo en duck-catalog.js */
 function obtenerMonedas() {
   var guardado = localStorage.getItem(TEC_DUCK_STORAGE_COINS);
   if (guardado === null) {
