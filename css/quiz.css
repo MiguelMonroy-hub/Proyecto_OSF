@@ -228,12 +228,32 @@
 
 .quiz-nav {
   margin-top: 20px;
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 24px;
 }
 
 .quiz-nav a {
   color: #fef3c7;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.quiz-nav-retry {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  color: #fef3c7;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  text-decoration: underline;
+}
+
+.quiz-nav-retry:hover {
+  color: #fff;
 }
 
 .quiz-siguiente {

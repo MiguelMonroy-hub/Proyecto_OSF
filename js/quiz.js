@@ -14,6 +14,15 @@
   /* Guardamos los datos de las opciones de la pregunta actual para no depender
      de leer atributos del DOM al renderizar la retroalimentación. */
   var opcionesActuales = [];
+  /** Incorrectas dadas ya en esta pregunta antes del primer acierto (se reinicia cada pregunta). */
+  var erroresOpcionIncorrectaEstaPregunta = 0;
+
+  /** 10 monedas al acertar a la primera; 5 tras 1 fallo; 2 a partir del 2º fallo antes de acertar. */
+  function monedasQuizSiAhoraAcierta(numFallosYa) {
+    if (numFallosYa <= 0) return 10;
+    if (numFallosYa === 1) return 5;
+    return 2;
+  }
 
   function barajar(arr) {
     var copia = arr.slice();
@@ -46,7 +55,7 @@
     var base = duckObtenerSaldoMonedas();
     var extra = "";
     if (!respondidaBien && !partidaTerminada && lista.length) {
-      var n = duckMonedasPorPregunta(modo);
+      var n = monedasQuizSiAhoraAcierta(erroresOpcionIncorrectaEstaPregunta);
       extra = " (+" + n + " si aciertas)";
     }
     el.textContent = "Monedas: " + base + extra;
@@ -236,8 +245,9 @@
       ocultarFeedback();
       if (!monedaPagada) {
         monedaPagada = true;
-        var n = duckMonedasPorPregunta(modo);
-        duckAgregarMonedas(n);
+        duckAgregarMonedas(
+          monedasQuizSiAhoraAcierta(erroresOpcionIncorrectaEstaPregunta)
+        );
       }
       var sig = document.getElementById("quiz-siguiente");
       if (sig) {
@@ -251,6 +261,7 @@
     }
 
     btn.classList.add("wrong");
+    erroresOpcionIncorrectaEstaPregunta += 1;
     vidas -= 1;
     pintarVidas();
 
@@ -265,6 +276,8 @@
       mostrarGameOver();
       return;
     }
+
+    pintarSaldo();
 
     /* Deshabilitamos solo esta opción para que el usuario pueda releer la
        retroalimentación y elegir otra sin volver a sumar el mismo error. */
@@ -289,6 +302,7 @@
 
   function mostrarPregunta() {
     var p = lista[indice];
+    erroresOpcionIncorrectaEstaPregunta = 0;
     document.getElementById("quiz-question-text").textContent = p.q;
     pintarProgreso();
     pintarSaldo();
@@ -323,21 +337,42 @@
     }
   }
 
-  function iniciar() {
-    registrarLightboxImagenQuiz();
+  function registrarBotonReiniciarQuiz() {
+    var b = document.getElementById("quiz-reiniciar");
+    if (!b || b.getAttribute("data-hook") === "1") return;
+    b.setAttribute("data-hook", "1");
+    b.addEventListener("click", reiniciarNivelQuiz);
+  }
 
-    var ctx = document.getElementById("quiz-context");
-    if (ctx) {
-      ctx.textContent =
-        "Tema " + temaId + " · " + (modo === "dificil" ? "Avanzado" : "Básico");
+  function reiniciarNivelQuiz() {
+    cerrarLightboxQuiz();
+    ocultarFeedback();
+    var go = document.getElementById("quiz-gameover");
+    if (go) go.hidden = true;
+    var sig = document.getElementById("quiz-siguiente");
+    if (sig) {
+      sig.hidden = true;
+      sig.onclick = null;
     }
+
     lista = quizObtenerPreguntas(temaId, modo);
     if (!lista.length) {
       document.getElementById("quiz-question-text").textContent =
         "No hay preguntas para este tema.";
+      document.getElementById("quiz-options").innerHTML = "";
       pintarFiguraQuiz("");
+      var prog = document.getElementById("quiz-progress");
+      if (prog) prog.textContent = "—";
+      indice = 0;
+      vidas = 3;
+      partidaTerminada = false;
+      respondidaBien = false;
+      monedaPagada = false;
+      pintarVidas();
+      pintarSaldo();
       return;
     }
+
     indice = 0;
     vidas = 3;
     partidaTerminada = false;
@@ -345,6 +380,19 @@
     monedaPagada = false;
     pintarVidas();
     mostrarPregunta();
+    pintarSaldo();
+  }
+
+  function iniciar() {
+    registrarLightboxImagenQuiz();
+    registrarBotonReiniciarQuiz();
+
+    var ctx = document.getElementById("quiz-context");
+    if (ctx) {
+      ctx.textContent =
+        "Tema " + temaId + " · " + (modo === "dificil" ? "Avanzado" : "Básico");
+    }
+    reiniciarNivelQuiz();
   }
 
   if (document.readyState === "loading") {

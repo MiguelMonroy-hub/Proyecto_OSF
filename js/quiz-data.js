@@ -2,6 +2,7 @@
  * Banco de preguntas TecDuck. 130 preguntas en total:
  *   - Tema 1 (Coordenadas): 40 básico + 25 avanzado
  *   - Tema 2 (Vectores):    40 básico + 25 avanzado
+ *   - Tema 3 y Tema 4:      bancos vacíos (mensaje "No hay preguntas para este tema.")
  *
  * Esquema por pregunta:
  *   { id, q, opts: [{ t, ok, fb? }, ...], img? }
@@ -3328,6 +3329,14 @@ var QUIZ_BANK = {
         "img": "img/quiz/T2D/q25.png"
       }
     ]
+  },
+  "3": {
+    "facil": [],
+    "dificil": []
+  },
+  "4": {
+    "facil": [],
+    "dificil": []
   }
 };
 
@@ -3454,7 +3463,7 @@ function quizBarajar(arr) {
 function quizObtenerPreguntas(temaId, modo) {
   var id = String(temaId || "1");
   if (!QUIZ_BANK[id]) {
-    id = "1";
+    return [];
   }
   var m = String(modo || "facil").toLowerCase();
   if (m !== "facil" && m !== "dificil") {
