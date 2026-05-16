@@ -61,32 +61,6 @@ function duckAgregarMonedas(cantidad) {
   return total;
 }
 
-
-/* Cantidad de preguntas por intento (debe coincidir con quiz-data.js). */
-var DUCK_QUIZ_PREGUNTAS_FACIL = 10;
-var DUCK_QUIZ_PREGUNTAS_DIFICIL = 7;
-
-function duckPrecioPromedioCatalogoPagado() {
-  var sum = 0;
-  var n = 0;
-  for (var i = 0; i < DUCK_CATALOG.length; i++) {
-    var pr = DUCK_CATALOG[i].price;
-    if (pr > 0) {
-      sum += pr;
-      n++;
-    }
-  }
-  return n ? sum / n : 120;
-}
-
-function duckMonedasPorPregunta(modo) {
-  var media = duckPrecioPromedioCatalogoPagado();
-  if (String(modo).toLowerCase() === "dificil") {
-    return Math.max(5, Math.round((media * 0.38) / DUCK_QUIZ_PREGUNTAS_DIFICIL));
-  }
-  return Math.max(4, Math.round((media * 0.32) / DUCK_QUIZ_PREGUNTAS_FACIL));
-}
-
 function duckSrcDesdeEntrada(entry) {
   if (entry.sub) {
     return "../MAIN DUCK/" + entry.sub + "/" + entry.file;
