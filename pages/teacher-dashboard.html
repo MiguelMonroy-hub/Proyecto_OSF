@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel del maestro — TecDuck</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/teacher-dashboard.css">
+</head>
+<body class="page-teacher">
+  <div class="teacher-scene" aria-hidden="true">
+    <span class="teacher-deco teacher-deco--rocket">🚀</span>
+    <span class="teacher-deco teacher-deco--beaker">🧪</span>
+    <span class="teacher-deco teacher-deco--apple">🍎</span>
+    <span class="teacher-deco teacher-deco--formula">F=ma</span>
+  </div>
+
+  <div class="teacher-frame">
+    <header class="teacher-header">
+      <div class="teacher-header-left">
+        <img
+          class="teacher-mascot"
+          src="../MAIN DUCK/DUCK/MAIN DUCK.png"
+          alt=""
+          width="72"
+          height="72"
+          onerror="this.style.display='none'"
+        />
+        <div class="teacher-header-titles">
+          <h1>Panel del maestro</h1>
+          <p class="teacher-sub">Checa el progreso de tus alumnos</p>
+        </div>
+      </div>
+      <div class="teacher-header-right">
+        <div class="teacher-search-wrap">
+          <input type="search" id="teacher-search" class="teacher-search" placeholder="Buscar alumnos…" autocomplete="off" />
+        </div>
+        <div class="teacher-header-actions">
+          <button type="button" class="teacher-action-btn teacher-action-btn--groups" id="btn-grupos">
+            <svg class="teacher-action-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+            </svg>
+            <span class="teacher-action-label">Grupos</span>
+          </button>
+          <button type="button" class="teacher-action-btn teacher-action-btn--logout" id="btn-logout">
+            <svg class="teacher-action-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+            </svg>
+            <span class="teacher-action-label">Salir</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="teacher-toolbar">
+      <label class="teacher-select-wrap">
+        <span class="sr-only">Grupo</span>
+        <select id="teacher-grupo-filter" class="teacher-select"></select>
+      </label>
+      <label class="teacher-select-wrap">
+        <span class="sr-only">Vista</span>
+        <select id="teacher-vista" class="teacher-select">
+          <option value="temas">Progreso por tema</option>
+          <option value="niveles">Resumen por nivel</option>
+        </select>
+      </label>
+      <div class="teacher-period" role="group" aria-label="Periodo">
+        <button type="button" class="teacher-period-btn is-active" data-period="today">Hoy</button>
+        <button type="button" class="teacher-period-btn" data-period="week">Semana</button>
+        <button type="button" class="teacher-period-btn" data-period="month">Mes</button>
+      </div>
+    </div>
+
+    <div class="teacher-panel">
+      <div class="teacher-table-wrap">
+        <table class="teacher-table" id="teacher-table">
+          <thead>
+            <tr id="teacher-table-head"></tr>
+          </thead>
+          <tbody id="teacher-table-body"></tbody>
+        </table>
+      </div>
+      <p id="teacher-empty" class="teacher-empty" hidden>No hay alumnos en este grupo.</p>
+    </div>
+  </div>
+
+  <!-- Modal grupos -->
+  <div id="teacher-modal-grupos" class="teacher-modal" hidden aria-modal="true" role="dialog" aria-labelledby="modal-grupos-title">
+    <div class="teacher-modal-backdrop" data-close-modal></div>
+    <div class="teacher-modal-card">
+      <header class="teacher-modal-header">
+        <h2 id="modal-grupos-title">Mis grupos</h2>
+        <button type="button" class="teacher-modal-close" data-close-modal aria-label="Cerrar">&times;</button>
+      </header>
+      <p class="teacher-modal-lead">Crea grupos y asigna alumnos para organizar tu clase.</p>
+
+      <form id="form-nuevo-grupo" class="teacher-form-inline">
+        <input type="text" id="input-nombre-grupo" class="teacher-input" placeholder="Nombre del grupo nuevo" maxlength="40" required />
+        <button type="submit" class="btn btn-green">Crear grupo</button>
+      </form>
+
+      <p id="grupo-codigo-aviso" class="teacher-grupo-codigo-aviso" hidden></p>
+
+      <ul id="lista-grupos" class="teacher-grupos-list"></ul>
+
+      <section class="teacher-asignar" id="seccion-asignar" hidden>
+        <h3>Asignar alumnos a: <span id="asignar-grupo-nombre"></span></h3>
+        <ul id="lista-asignar-alumnos" class="teacher-asignar-list"></ul>
+        <button type="button" class="btn btn-blue" id="btn-guardar-asignacion">Guardar asignación</button>
+      </section>
+    </div>
+  </div>
+
+  <script src="../js/grupos-clase.js"></script>
+  <script src="../js/teacher-auth.js"></script>
+  <script src="../js/teacher-data.js"></script>
+  <script src="../js/teacher-dashboard.js"></script>
+</body>
+</html>

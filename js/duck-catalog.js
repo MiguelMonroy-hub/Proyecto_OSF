@@ -21,14 +21,14 @@ var DUCK_INV_MAPA_VIEJO = {
 };
 
 /**
- * sub: carpeta dentro de MAIN DUCK, vacío = raíz
+ * sub: carpeta dentro de MAIN DUCK (p. ej. DUCK, FACE, HEAD)
  * cat: base | face | head | neck | shoes
  */
 var DUCK_CATALOG = [
-  { id: "BASE:MAIN DUCK.png", cat: "base", sub: "", file: "MAIN DUCK.png", label: "Normal", price: 0 },
-  { id: "BASE:D_happy.png", cat: "base", sub: "", file: "D_happy.png", label: "Feliz", price: 110 },
-  { id: "BASE:D_sad.png", cat: "base", sub: "", file: "D_sad.png", label: "Triste", price: 110 },
-  { id: "BASE:D_angry.png", cat: "base", sub: "", file: "D_angry.png", label: "Enojado", price: 110 },
+  { id: "BASE:MAIN DUCK.png", cat: "base", sub: "DUCK", file: "MAIN DUCK.png", label: "Normal", price: 0 },
+  { id: "BASE:D_happy.png", cat: "base", sub: "DUCK", file: "D_happy.png", label: "Feliz", price: 110 },
+  { id: "BASE:D_sad.png", cat: "base", sub: "DUCK", file: "D_sad.png", label: "Triste", price: 110 },
+  { id: "BASE:D_angry.png", cat: "base", sub: "DUCK", file: "D_angry.png", label: "Enojado", price: 110 },
   { id: "FACE:F_black.png", cat: "face", sub: "FACE", file: "F_black.png", label: "Cara negra", price: 95 },
   { id: "FACE:F_glasses.png", cat: "face", sub: "FACE", file: "F_glasses.png", label: "Gafas", price: 100 },
   { id: "FACE:F_purple.png", cat: "face", sub: "FACE", file: "F_purple.png", label: "Antifaz morado", price: 140 },
@@ -64,6 +64,9 @@ function duckAgregarMonedas(cantidad) {
 function duckSrcDesdeEntrada(entry) {
   if (entry.sub) {
     return "../MAIN DUCK/" + entry.sub + "/" + entry.file;
+  }
+  if (entry.cat === "base") {
+    return "../MAIN DUCK/DUCK/" + entry.file;
   }
   return "../MAIN DUCK/" + entry.file;
 }

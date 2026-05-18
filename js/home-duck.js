@@ -30,62 +30,92 @@ function cargarOutfit() {
 }
 
 function rutaBase(archivo) {
-  return "../MAIN DUCK/" + archivo;
+  return "../MAIN DUCK/DUCK/" + archivo;
 }
 
 function rutaEnCarpeta(carpeta, archivo) {
   return "../MAIN DUCK/" + carpeta + "/" + archivo;
 }
 
-function pintarPatoInicio() {
-  var outfit = cargarOutfit();
-  var elBase = document.getElementById("home-img-base");
-  var elFace = document.getElementById("home-img-face");
-  var elHead = document.getElementById("home-img-head");
-  var elNeck = document.getElementById("home-img-neck");
-  var elShoes = document.getElementById("home-img-shoes");
+/**
+ * IDs de elementos <img> en capas. Por defecto, portada principal.
+ */
+function pintarPatoPorIds(ids) {
+  ids = ids || {};
+  var elBase =
+    document.getElementById(ids.base || "home-img-base");
+  var elFace =
+    document.getElementById(ids.face || "home-img-face");
+  var elHead =
+    document.getElementById(ids.head || "home-img-head");
+  var elNeck =
+    document.getElementById(ids.neck || "home-img-neck");
+  var elShoes =
+    document.getElementById(ids.shoes || "home-img-shoes");
 
   if (!elBase) {
     return;
   }
 
+  var outfit = cargarOutfit();
+
   elBase.src = rutaBase(outfit.base);
 
-  if (outfit.face) {
-    elFace.src = rutaEnCarpeta("FACE", outfit.face);
-    elFace.hidden = false;
-  } else {
-    elFace.removeAttribute("src");
-    elFace.hidden = true;
+  if (elFace) {
+    if (outfit.face) {
+      elFace.src = rutaEnCarpeta("FACE", outfit.face);
+      elFace.hidden = false;
+    } else {
+      elFace.removeAttribute("src");
+      elFace.hidden = true;
+    }
   }
 
-  if (outfit.head) {
-    elHead.src = rutaEnCarpeta("HEAD", outfit.head);
-    elHead.hidden = false;
-  } else {
-    elHead.removeAttribute("src");
-    elHead.hidden = true;
+  if (elHead) {
+    if (outfit.head) {
+      elHead.src = rutaEnCarpeta("HEAD", outfit.head);
+      elHead.hidden = false;
+    } else {
+      elHead.removeAttribute("src");
+      elHead.hidden = true;
+    }
   }
 
-  if (outfit.neck) {
-    elNeck.src = rutaEnCarpeta("NECK", outfit.neck);
-    elNeck.hidden = false;
-  } else {
-    elNeck.removeAttribute("src");
-    elNeck.hidden = true;
+  if (elNeck) {
+    if (outfit.neck) {
+      elNeck.src = rutaEnCarpeta("NECK", outfit.neck);
+      elNeck.hidden = false;
+    } else {
+      elNeck.removeAttribute("src");
+      elNeck.hidden = true;
+    }
   }
 
-  if (outfit.shoes) {
-    elShoes.src = rutaEnCarpeta("SHOES", outfit.shoes);
-    elShoes.hidden = false;
-  } else {
-    elShoes.removeAttribute("src");
-    elShoes.hidden = true;
+  if (elShoes) {
+    if (outfit.shoes) {
+      elShoes.src = rutaEnCarpeta("SHOES", outfit.shoes);
+      elShoes.hidden = false;
+    } else {
+      elShoes.removeAttribute("src");
+      elShoes.hidden = true;
+    }
   }
 }
 
+function pintarPatoInicio() {
+  pintarPatoPorIds({
+    base: "home-img-base",
+    face: "home-img-face",
+    head: "home-img-head",
+    neck: "home-img-neck",
+    shoes: "home-img-shoes"
+  });
+}
+
 function iniciar() {
-  pintarPatoInicio();
+  if (document.getElementById("home-img-base")) {
+    pintarPatoInicio();
+  }
 }
 
 if (document.readyState === "loading") {
@@ -96,5 +126,7 @@ if (document.readyState === "loading") {
 
 /* Al volver desde otra pantalla del mismo sitio, refrescar el pato */
 window.addEventListener("pageshow", function () {
-  pintarPatoInicio();
+  if (document.getElementById("home-img-base")) {
+    pintarPatoInicio();
+  }
 });

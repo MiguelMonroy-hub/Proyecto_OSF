@@ -5,18 +5,17 @@
  *   - Tema 3 y Tema 4:      bancos vacíos (mensaje "No hay preguntas para este tema.")
  *
  * Esquema por pregunta:
- *   { id, q, opts: [{ t, ok, fb? }, ...], img? }
+ *   { id, q, opts: [{ t, ok, fb?, jxg? }, ...] }
  *
- * `img`: ruta opcional desde la raíz del sitio, p. ej. "img/quiz/T1F/q01.png"
- *       (quizImagenParaPregunta convierte para pages/quiz.html).
+ * `jxg` (opcional): objeto de escena JSXGraph definido manualmente cuando el
+ * texto automático no basta ver js/quiz-option-jxg.js.
+ *
  *
  *   - t  : texto visible de la opción (ya incluye "A) ...")
  *   - ok : true si es respuesta correcta
  *   - fb : retroalimentación a mostrar SOLO si el usuario falla
  *          (se omite en opciones correctas)
  *
- * Generado automáticamente desde los .docx con _parse_quiz.py + _gen_quizdata.py.
- * No editar a mano salvo correcciones puntuales.
  */
 var QUIZ_BANK = {
   "1": {
@@ -44,8 +43,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Revisa el valor en el eje horizontal (x). Identifica el número que corta la línea vertical que baja desde el punto hacia el eje X."
           }
-        ],
-        "img": "img/quiz/T1F/q01.png"
+        ]
       },
       {
         "id": "T1F02",
@@ -269,8 +267,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Intercambiar los valores (y, x) no produce una simetría axial, sino una reflexión sobre la recta y = x."
           }
-        ],
-        "img": "img/quiz/T1F/q10.png"
+        ]
       },
       {
         "id": "T1F11",
@@ -545,8 +542,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Verifica la resta de las abscisas; parece que sumaste una unidad de más al resultado."
           }
-        ],
-        "img": "img/quiz/T1F/q21.png"
+        ]
       },
       {
         "id": "T1F22",
@@ -571,8 +567,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "El número 8 es la posición final, pero la distancia se mide desde el punto de partida (1)."
           }
-        ],
-        "img": "img/quiz/T1F/q22.png"
+        ]
       },
       {
         "id": "T1F23",
@@ -597,8 +592,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Similar a la opción anterior, este punto tiene desplazamientos en ambos ejes, no solo en el horizontal."
           }
-        ],
-        "img": "img/quiz/T1F/q23.png"
+        ]
       },
       {
         "id": "T1F24",
@@ -623,8 +617,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Recuerda que el eje horizontal controla la derecha y la izquierda. Has modificado el eje vertical."
           }
-        ],
-        "img": "img/quiz/T1F/q24.png"
+        ]
       },
       {
         "id": "T1F25",
@@ -649,8 +642,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Revisaste el eje equivocado. El movimiento arriba/abajo solo afecta a la segunda cifra del paréntesis."
           }
-        ],
-        "img": "img/quiz/T1F/q25.png"
+        ]
       },
       {
         "id": "T1F26",
@@ -674,8 +666,7 @@ var QUIZ_BANK = {
             "t": "D) (0, 1)",
             "ok": true
           }
-        ],
-        "img": "img/quiz/T1F/q26.png"
+        ]
       },
       {
         "id": "T1F27",
@@ -700,8 +691,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Parece que multiplicaste los valores. En un recorrido total, las distancias de cada paso se deben sumar."
           }
-        ],
-        "img": "img/quiz/T1F/q27.png"
+        ]
       },
       {
         "id": "T1F28",
@@ -726,8 +716,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Aunque moviste la x, sumaste en lugar de restar. Además, para ir \"arriba\", ¿se debe sumar o restar a la y?"
           }
-        ],
-        "img": "img/quiz/T1F/q28.png"
+        ]
       },
       {
         "id": "T1F29",
@@ -777,8 +766,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Esa es la coordenada inicial. Recuerda aplicar el desplazamiento de 4 unidades."
           }
-        ],
-        "img": "img/quiz/T1F/q30.png"
+        ]
       },
       {
         "id": "T1F31",
@@ -803,8 +791,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Ese es el valor de la x inicial. Resta la posición final menos la inicial para hallar el desplazamiento."
           }
-        ],
-        "img": "img/quiz/T1F/q31.png"
+        ]
       },
       {
         "id": "T1F32",
@@ -828,8 +815,7 @@ var QUIZ_BANK = {
             "t": "D) (7, 7)",
             "ok": true
           }
-        ],
-        "img": "img/quiz/T1F/q32.png"
+        ]
       },
       {
         "id": "T1F33",
@@ -854,8 +840,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Dividiste la y correctamente, pero dejaste la x intacta. El punto medio requiere promediar ambas coordenadas."
           }
-        ],
-        "img": "img/quiz/T1F/q33.png"
+        ]
       },
       {
         "id": "T1F34",
@@ -880,8 +865,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Revisa los signos de tu suma: -1 + 3 y -1 + 4. El resultado no debería ser negativo."
           }
-        ],
-        "img": "img/quiz/T1F/q34.png"
+        ]
       },
       {
         "id": "T1F35",
@@ -906,8 +890,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Un punto simétrico debe estar en una posición diferente (como un reflejo en un espejo). Este es el mismo punto."
           }
-        ],
-        "img": "img/quiz/T1F/q35.png"
+        ]
       },
       {
         "id": "T1F36",
@@ -957,8 +940,7 @@ var QUIZ_BANK = {
             "t": "D) 4 unidades abajo",
             "ok": true
           }
-        ],
-        "img": "img/quiz/T1F/q37.png"
+        ]
       },
       {
         "id": "T1F38",
@@ -1060,8 +1042,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Verifica el cálculo de la primera coordenada (x). Asegúrate de aplicar tanto el movimiento de 5 unidades como el del vector -2 partiendo desde el 3 inicial."
           }
-        ],
-        "img": "img/quiz/T1D/q01.png"
+        ]
       },
       {
         "id": "T1D02",
@@ -1111,8 +1092,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Revisa tus sumas y restas al calcular la diferencia de las coordenadas. Asegúrate de contar la distancia total absoluta de ambos tramos sin añadir unidades extra por error."
           }
-        ],
-        "img": "img/quiz/T1D/q03.png"
+        ]
       },
       {
         "id": "T1D04",
@@ -1187,8 +1167,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Estas son las coordenadas exactas del punto de partida. Asegúrate de aplicar los cambios de signo correspondientes a cada reflexión solicitada."
           }
-        ],
-        "img": "img/quiz/T1D/q06.png"
+        ]
       },
       {
         "id": "T1D07",
@@ -1213,8 +1192,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Estas son las coordenadas iniciales del punto P. Una simetría respecto al origen siempre debe alterar tu par ordenado."
           }
-        ],
-        "img": "img/quiz/T1D/q07.png"
+        ]
       },
       {
         "id": "T1D08",
@@ -1239,8 +1217,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Este es el punto final después del reflejo. Para encontrar el punto original, debes \"deshacer\" el efecto del espejo que ocurrió al cruzar el eje Y."
           }
-        ],
-        "img": "img/quiz/T1D/q08.png"
+        ]
       },
       {
         "id": "T1D09",
@@ -1265,8 +1242,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Has seleccionado las coordenadas de otro de los vértices del cuadrado original. Identifica el vértice (1, 5) y analiza qué le sucede a su altura cuando \"cruza\" el eje horizontal hacia abajo."
           }
-        ],
-        "img": "img/quiz/T1D/q09.png"
+        ]
       },
       {
         "id": "T1D10",
@@ -1291,8 +1267,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Estas coordenadas corresponden a una simetría respecto al origen. Plantea la ecuación del punto medio para cada eje de forma independiente y despeja la incógnita."
           }
-        ],
-        "img": "img/quiz/T1D/q10.png"
+        ]
       },
       {
         "id": "T1D11",
@@ -1342,8 +1317,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Tu planteamiento matemático inicial es correcto, pero lee con cuidado la instrucción del problema. Se te pide expresar el resultado final de la forma más simplificada posible."
           }
-        ],
-        "img": "img/quiz/T1D/q12.png"
+        ]
       },
       {
         "id": "T1D13",
@@ -1368,8 +1342,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Estos puntos no generan la misma longitud al calcular la distancia desde el vértice A. Revisa cuidadosamente el despeje de tu variable sobre el eje X."
           }
-        ],
-        "img": "img/quiz/T1D/q13.png"
+        ]
       },
       {
         "id": "T1D14",
@@ -1419,8 +1392,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Tu movimiento vertical es correcto. Pero un desplazamiento \"a la izquierda\" debe reducir tu posición en el eje X, no alejarla hacia valores más positivos."
           }
-        ],
-        "img": "img/quiz/T1D/q15.png"
+        ]
       },
       {
         "id": "T1D16",
@@ -1445,8 +1417,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Intenta establecer la ecuación de la recta o sigue el \"patrón\" de incrementos regulares. Este punto se desvía ligeramente de la trayectoria trazada."
           }
-        ],
-        "img": "img/quiz/T1D/q16.png"
+        ]
       },
       {
         "id": "T1D17",
@@ -1496,8 +1467,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Este resultado sería correcto si la pendiente de la recta fuera distinta o si hubieras cometido un error aritmético de suma al usar la fórmula de punto-pendiente."
           }
-        ],
-        "img": "img/quiz/T1D/q18.png"
+        ]
       },
       {
         "id": "T1D19",
@@ -1572,8 +1542,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Este punto se alinea en el plano verticalmente con A, pero su trayecto hacia B es considerablemente más largo. Busca un equilibrio sobre el eje X."
           }
-        ],
-        "img": "img/quiz/T1D/q21.png"
+        ]
       },
       {
         "id": "T1D22",
@@ -1598,8 +1567,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Observa la posición de este punto. Al tener una coordenada vertical tan alta, su distancia total al origen aumenta considerablemente. Busca el punto que equilibre mejor ambas coordenadas para estar lo más cerca posible del (0,0)."
           }
-        ],
-        "img": "img/quiz/T1D/q22.png"
+        ]
       },
       {
         "id": "T1D23",
@@ -1624,8 +1592,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "El área inicial se halla multiplicando base por altura y dividiendo el resultado. Un deslizamiento no escala la figura ni duplica mágicamente el espacio que ocupa."
           }
-        ],
-        "img": "img/quiz/T1D/q23.png"
+        ]
       },
       {
         "id": "T1D24",
@@ -1650,8 +1617,7 @@ var QUIZ_BANK = {
             "t": "D) (3, 6)",
             "ok": true
           }
-        ],
-        "img": "img/quiz/T1D/q24.png"
+        ]
       },
       {
         "id": "T1D25",
@@ -1676,8 +1642,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Obtuviste la suma de los cuadrados. Este es un paso intermedio para sacar distancias diagonales usando Pitágoras, pero aquí el recorrido exige sumar pasos directos."
           }
-        ],
-        "img": "img/quiz/T1D/q25.png"
+        ]
       }
     ]
   },
@@ -1831,8 +1796,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Elegiste el punto de partida. ¿Qué operación te permitiría saber cuánto avanzó realmente?"
           }
-        ],
-        "img": "img/quiz/T2F/q06.png"
+        ]
       },
       {
         "id": "T2F07",
@@ -1907,8 +1871,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Olvidaste el último paso del Teorema de Pitágoras. El valor 9 es el cuadrado de la distancia, no la distancia real."
           }
-        ],
-        "img": "img/quiz/T2F/q09.png"
+        ]
       },
       {
         "id": "T2F10",
@@ -1933,8 +1896,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "El vector (1, 1) claramente tiene una longitud física en el plano; no puede ser nulo."
           }
-        ],
-        "img": "img/quiz/T2F/q10.png"
+        ]
       },
       {
         "id": "T2F11",
@@ -2059,8 +2021,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Intercambiar los números cambia la inclinación del vector, no lo hace \"opuesto\"."
           }
-        ],
-        "img": "img/quiz/T2F/q15.png"
+        ]
       },
       {
         "id": "T2F16",
@@ -2110,8 +2071,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Al sumar las coordenadas, obtienes un punto alejado, no el desplazamiento relativo entre A y B."
           }
-        ],
-        "img": "img/quiz/T2F/q17.png"
+        ]
       },
       {
         "id": "T2F18",
@@ -2136,8 +2096,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Te detuviste antes de tiempo. El número 25 es el área del cuadrado formado, ahora falta obtener su lado (raíz)."
           }
-        ],
-        "img": "img/quiz/T2F/q18.png"
+        ]
       },
       {
         "id": "T2F19",
@@ -2187,8 +2146,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Al cambiar el signo de solo una componente, el vector ahora apunta hacia abajo, cambiando su ángulo."
           }
-        ],
-        "img": "img/quiz/T2F/q20.png"
+        ]
       },
       {
         "id": "T2F21",
@@ -2338,8 +2296,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "La infinitud implicaría una flecha que nunca termina, todo lo contrario al vector nulo."
           }
-        ],
-        "img": "img/quiz/T2F/q26.png"
+        ]
       },
       {
         "id": "T2F27",
@@ -2364,8 +2321,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Sí existe en matemáticas y es fundamental para representar el reposo."
           }
-        ],
-        "img": "img/quiz/T2F/q27.png"
+        ]
       },
       {
         "id": "T2F28",
@@ -2390,8 +2346,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Este es el doble de largo, pero sigue apuntando en la misma dirección vertical."
           }
-        ],
-        "img": "img/quiz/T2F/q28.png"
+        ]
       },
       {
         "id": "T2F29",
@@ -2416,8 +2371,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Similar a la anterior, este apunta en una dirección que cruza a la original."
           }
-        ],
-        "img": "img/quiz/T2F/q29.png"
+        ]
       },
       {
         "id": "T2F30",
@@ -2492,8 +2446,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Parece que sumaste los valores absolutos. Si estás en la posición 3 y retrocedes 3, ¿llegas a 6 o a otro número?"
           }
-        ],
-        "img": "img/quiz/T2F/q32.png"
+        ]
       },
       {
         "id": "T2F33",
@@ -2643,8 +2596,7 @@ var QUIZ_BANK = {
             "t": "D) 270°",
             "ok": true
           }
-        ],
-        "img": "img/quiz/T2F/q38.png"
+        ]
       },
       {
         "id": "T2F39",
@@ -2669,8 +2621,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Similar al anterior, este apunta a la derecha."
           }
-        ],
-        "img": "img/quiz/T2F/q39.png"
+        ]
       },
       {
         "id": "T2F40",
@@ -2797,8 +2748,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Un ángulo así indicaría que vas hacia la izquierda y hacia arriba o hacia el tercer cuadrante en sus cercanías. Revisa los signos iniciales del vector antes de aplicar la función inversa."
           }
-        ],
-        "img": "img/quiz/T2D/q04.png"
+        ]
       },
       {
         "id": "T2D05",
@@ -3069,8 +3019,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Elegiste las coordenadas del lugar al que TecDuck llegó. Un vector no es un \"lugar\", es el \"trayecto\" que se necesitó para viajar desde la salida a la llegada."
           }
-        ],
-        "img": "img/quiz/T2D/q15.png"
+        ]
       },
       {
         "id": "T2D16",
@@ -3095,8 +3044,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Parece que cambiaste el orden de tus respuestas, poniendo el cambio vertical donde va el horizontal. En un par ordenado de vector (x, y), primero reportamos el desplazamiento lateral."
           }
-        ],
-        "img": "img/quiz/T2D/q16.png"
+        ]
       },
       {
         "id": "T2D17",
@@ -3121,8 +3069,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Este vector representa el desplazamiento del lado AB. El problema te pide una conexión distinta: desde el centro de ese lado hacia el punto C. Revisa qué coordenadas estás restando."
           }
-        ],
-        "img": "img/quiz/T2D/q16.png"
+        ]
       },
       {
         "id": "T2D18",
@@ -3147,8 +3094,7 @@ var QUIZ_BANK = {
             "t": "D) (6, 8)",
             "ok": true
           }
-        ],
-        "img": "img/quiz/T2D/q18.png"
+        ]
       },
       {
         "id": "T2D19",
@@ -3248,8 +3194,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Multiplicaste mal el factor escalar sobre el vector. Tómalo con calma: primero escala el vector u, luego escala el vector v, y finalmente acomoda las restas individuales."
           }
-        ],
-        "img": "img/quiz/T2D/q22.png"
+        ]
       },
       {
         "id": "T2D23",
@@ -3274,8 +3219,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Estás tratando de usar los signos al revés sobre un vector incorrecto. Solo suma las componentes reales paso a paso, y encuentra el vector w que equilibra la balanza hacia el cero."
           }
-        ],
-        "img": "img/quiz/T2D/q23.png"
+        ]
       },
       {
         "id": "T2D24",
@@ -3325,8 +3269,7 @@ var QUIZ_BANK = {
             "ok": false,
             "fb": "Te equivocaste en los signos del último vector o lo restaste en lugar de sumarlo. Si la posición final hubiera sido (3, 4), la distancia al origen sería √(3² + 4²) = √25 = 5."
           }
-        ],
-        "img": "img/quiz/T2D/q25.png"
+        ]
       }
     ]
   },
@@ -3340,115 +3283,29 @@ var QUIZ_BANK = {
   }
 };
 
-/**
- * Índice de todas las PNG en img/quiz (por número de pregunta en el Word).
- * Si una entrada no aparece aquí, no hay gráfico extraído aún para esa pregunta.
- */
-var QUIZ_IMG_INDEX = {
-  "1": {
-    facil: {
-      "1": "../img/quiz/T1F/q01.png",
-      "10": "../img/quiz/T1F/q10.png",
-      "21": "../img/quiz/T1F/q21.png",
-      "22": "../img/quiz/T1F/q22.png",
-      "23": "../img/quiz/T1F/q23.png",
-      "24": "../img/quiz/T1F/q24.png",
-      "25": "../img/quiz/T1F/q25.png",
-      "26": "../img/quiz/T1F/q26.png",
-      "27": "../img/quiz/T1F/q27.png",
-      "28": "../img/quiz/T1F/q28.png",
-      "30": "../img/quiz/T1F/q30.png",
-      "31": "../img/quiz/T1F/q31.png",
-      "32": "../img/quiz/T1F/q32.png",
-      "33": "../img/quiz/T1F/q33.png",
-      "34": "../img/quiz/T1F/q34.png",
-      "35": "../img/quiz/T1F/q35.png",
-      "37": "../img/quiz/T1F/q37.png"
-    },
-    dificil: {
-      "1": "../img/quiz/T1D/q01.png",
-      "3": "../img/quiz/T1D/q03.png",
-      "6": "../img/quiz/T1D/q06.png",
-      "7": "../img/quiz/T1D/q07.png",
-      "8": "../img/quiz/T1D/q08.png",
-      "9": "../img/quiz/T1D/q09.png",
-      "10": "../img/quiz/T1D/q10.png",
-      "12": "../img/quiz/T1D/q12.png",
-      "13": "../img/quiz/T1D/q13.png",
-      "15": "../img/quiz/T1D/q15.png",
-      "16": "../img/quiz/T1D/q16.png",
-      "18": "../img/quiz/T1D/q18.png",
-      "21": "../img/quiz/T1D/q21.png",
-      "22": "../img/quiz/T1D/q22.png",
-      "23": "../img/quiz/T1D/q23.png",
-      "24": "../img/quiz/T1D/q24.png",
-      "25": "../img/quiz/T1D/q25.png"
-    }
-  },
-  "2": {
-    facil: {
-      "6": "../img/quiz/T2F/q06.png",
-      "9": "../img/quiz/T2F/q09.png",
-      "10": "../img/quiz/T2F/q10.png",
-      "15": "../img/quiz/T2F/q15.png",
-      "17": "../img/quiz/T2F/q17.png",
-      "18": "../img/quiz/T2F/q18.png",
-      "20": "../img/quiz/T2F/q20.png",
-      "26": "../img/quiz/T2F/q26.png",
-      "27": "../img/quiz/T2F/q27.png",
-      "28": "../img/quiz/T2F/q28.png",
-      "29": "../img/quiz/T2F/q29.png",
-      "32": "../img/quiz/T2F/q32.png",
-      "38": "../img/quiz/T2F/q38.png",
-      "39": "../img/quiz/T2F/q39.png"
-    },
-    dificil: {
-      "4": "../img/quiz/T2D/q04.png",
-      "15": "../img/quiz/T2D/q15.png",
-      "16": "../img/quiz/T2D/q16.png",
-      "18": "../img/quiz/T2D/q18.png",
-      "22": "../img/quiz/T2D/q22.png",
-      "23": "../img/quiz/T2D/q23.png",
-      "25": "../img/quiz/T2D/q25.png"
-    }
-  }
-};
-
-/**
- * Resuelve la URL para mostrar en pages/quiz.html.
- * Preferencia: campo img del banco; si falta, busca QUIZ_IMG_INDEX por id de pregunta.
- */
-function quizImagenParaPregunta(p) {
-  function resolver(s) {
-    s = String(s).trim();
-    if (!s) return "";
-    if (/^https?:\/\//i.test(s)) return s;
-    if (/^\.\.\//.test(s)) return s;
-    if (s.charAt(0) === "/") return s;
-    return "../" + s.replace(/^\/+/, "");
-  }
-
-  if (p && p.img != null && String(p.img).trim() !== "") {
-    return resolver(p.img);
-  }
-
-  var m = p && /^T(\d)([FD])(\d{2})$/.exec(p.id);
-  if (!m) return "";
-  var tema = m[1];
-  var modo = m[2] === "D" ? "dificil" : "facil";
-  var n = String(parseInt(m[3], 10));
-  var sub = QUIZ_IMG_INDEX[tema] && QUIZ_IMG_INDEX[tema][modo];
-  return sub && sub[n] ? sub[n] : "";
-}
 
 var QUIZ_PREGUNTAS_FACIL = 10;
 var QUIZ_PREGUNTAS_DIFICIL = 7;
 
-/** Baraja una copia del array (Fisher-Yates). */
+var CLAVE_QUIZ_COLA_PREGUNTAS = "tec_duck_quiz_cola_preguntas";
+
+function quizEnteroAleatorio(maxExcl) {
+  if (maxExcl <= 0) {
+    return 0;
+  }
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    var buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0] % maxExcl;
+  }
+  return Math.floor(Math.random() * maxExcl);
+}
+
+/** Baraja una copia del array (Fisher-Yates) con aleatorio fuerte. */
 function quizBarajar(arr) {
   var copia = arr.slice();
   for (var i = copia.length - 1; i > 0; i--) {
-    var j = Math.floor(Math.random() * (i + 1));
+    var j = quizEnteroAleatorio(i + 1);
     var tmp = copia[i];
     copia[i] = copia[j];
     copia[j] = tmp;
@@ -3456,9 +3313,26 @@ function quizBarajar(arr) {
   return copia;
 }
 
+function quizLeerColasPreguntas() {
+  try {
+    var raw = localStorage.getItem(CLAVE_QUIZ_COLA_PREGUNTAS);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function quizGuardarColasPreguntas(mapa) {
+  localStorage.setItem(CLAVE_QUIZ_COLA_PREGUNTAS, JSON.stringify(mapa));
+}
+
+function quizClaveCola(temaId, modo) {
+  return String(temaId || "1") + "_" + String(modo || "facil").toLowerCase();
+}
+
 /**
- * Devuelve N preguntas aleatorias del banco para el tema/modo indicado.
- * Si el banco es menor que N (por seguridad), devuelve todo el banco barajado.
+ * Devuelve N preguntas sin repetir dentro de la partida ni en partidas
+ * siguientes hasta agotar el banco (luego se baraja de nuevo todo el banco).
  */
 function quizObtenerPreguntas(temaId, modo) {
   var id = String(temaId || "1");
@@ -3470,9 +3344,57 @@ function quizObtenerPreguntas(temaId, modo) {
     m = "facil";
   }
   var banco = QUIZ_BANK[id][m] || [];
-  var n = m === "dificil" ? QUIZ_PREGUNTAS_DIFICIL : QUIZ_PREGUNTAS_FACIL;
-  var barajado = quizBarajar(banco);
-  return barajado.slice(0, Math.min(n, barajado.length));
+  var n = Math.min(
+    m === "dificil" ? QUIZ_PREGUNTAS_DIFICIL : QUIZ_PREGUNTAS_FACIL,
+    banco.length
+  );
+  if (!n) {
+    return [];
+  }
+
+  var porId = {};
+  var todosLosIds = [];
+  for (var i = 0; i < banco.length; i++) {
+    porId[banco[i].id] = banco[i];
+    todosLosIds.push(banco[i].id);
+  }
+
+  var colas = quizLeerColasPreguntas();
+  var clave = quizClaveCola(id, m);
+  var restantes = colas[clave];
+
+  if (!Array.isArray(restantes)) {
+    restantes = [];
+  }
+
+  restantes = restantes.filter(function (pid) {
+    return porId[pid];
+  });
+
+  if (restantes.length < n) {
+    restantes = todosLosIds.slice();
+  }
+
+  restantes = quizBarajar(restantes);
+
+  var idsElegidos = restantes.slice(0, n);
+  colas[clave] = restantes.slice(n);
+  quizGuardarColasPreguntas(colas);
+
+  var salida = [];
+  for (var j = 0; j < idsElegidos.length; j++) {
+    if (porId[idsElegidos[j]]) {
+      salida.push(porId[idsElegidos[j]]);
+    }
+  }
+  return salida;
+}
+
+/** Reinicia la cola de un tema/modo (todas las preguntas disponibles otra vez). */
+function quizReiniciarColaPreguntas(temaId, modo) {
+  var colas = quizLeerColasPreguntas();
+  delete colas[quizClaveCola(temaId, modo)];
+  quizGuardarColasPreguntas(colas);
 }
 
 function quizTotalPreguntas(modo) {

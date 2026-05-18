@@ -33,6 +33,23 @@
   opacity: 0.95;
 }
 
+.topics-grupo-banner {
+  display: inline-block;
+  margin: 10px 0 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #0c4a6e;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(56, 189, 248, 0.55);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.topics-grupo-banner[hidden] {
+  display: none;
+}
+
 .topics-actions {
   display: flex;
   flex-wrap: wrap;
@@ -116,6 +133,25 @@
   position: relative;
 }
 
+.topic-visual--logo {
+  height: 158px;
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #e8f4fc 0%, #bee3f8 100%);
+}
+
+.topic-logo {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-height: 142px;
+  max-width: min(100%, 142px);
+  object-fit: contain;
+  z-index: 2;
+  position: relative;
+  border-radius: 14px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.28));
+}
+
 .topic-deco {
   position: absolute;
   inset: 0;
@@ -124,7 +160,7 @@
 }
 
 /* Patrones por tema (vectores / plano) */
-.c-tema1 .topic-visual {
+.c-tema1 .topic-visual:not(.topic-visual--logo) {
   background: linear-gradient(145deg, #4299e1 0%, #2b6cb0 45%, #1a4971 100%);
 }
 
@@ -139,8 +175,12 @@
     );
 }
 
-.c-tema2 .topic-visual {
+.c-tema2 .topic-visual:not(.topic-visual--logo) {
   background: linear-gradient(145deg, #fc8181 0%, #c53030 50%, #9b2c2c 100%);
+}
+
+.c-tema2 .topic-visual--logo {
+  background: linear-gradient(180deg, #fff5f5 0%, #fed7d7 100%);
 }
 
 .c-tema2 .topic-deco {
@@ -148,8 +188,12 @@
     radial-gradient(circle at 70% 60%, rgba(255, 230, 150, 0.2) 0%, transparent 40%);
 }
 
-.c-tema3 .topic-visual {
+.c-tema3 .topic-visual:not(.topic-visual--logo) {
   background: linear-gradient(145deg, #f6ad55 0%, #dd6b20 50%, #c05621 100%);
+}
+
+.c-tema3 .topic-visual--logo {
+  background: linear-gradient(180deg, #fffaf0 0%, #feebc8 100%);
 }
 
 .c-tema3 .topic-deco {
@@ -162,8 +206,12 @@
   );
 }
 
-.c-tema4 .topic-visual {
+.c-tema4 .topic-visual:not(.topic-visual--logo) {
   background: linear-gradient(145deg, #9f7aea 0%, #805ad5 45%, #553c9a 100%);
+}
+
+.c-tema4 .topic-visual--logo {
+  background: linear-gradient(180deg, #faf5ff 0%, #e9d8fd 100%);
 }
 
 .c-tema4 .topic-deco {

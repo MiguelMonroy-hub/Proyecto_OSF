@@ -35,7 +35,7 @@ function guardarOutfit(outfit) {
 }
 
 function rutaBase(archivo) {
-  return "../MAIN DUCK/" + archivo;
+  return "../MAIN DUCK/DUCK/" + archivo;
 }
 
 function rutaEnCarpeta(carpeta, archivo) {
