@@ -13,6 +13,7 @@
     <div>
       <h1>Elige tu tema</h1>
       <p class="topics-lead">Vectores en el plano: coordenadas, representación y operaciones. ¡Elige por dónde empezar! El <strong>nivel avanzado</strong> se abre cuando termines el <strong>básico</strong> de ese tema.</p>
+      <p id="topics-grupo-banner" class="topics-grupo-banner" hidden></p>
     </div>
     <div class="topics-actions">
       <a class="btn btn-green topics-pill" href="customize.html">Mi pato</a>
@@ -23,9 +24,14 @@
 
   <div class="topic-grid">
     <article class="topic-card c-tema1" data-tema="1">
-      <div class="topic-visual" aria-hidden="true">
-        <span class="topic-emoji">📐</span>
-        <span class="topic-deco"></span>
+      <div class="topic-visual topic-visual--logo" aria-hidden="true">
+        <img
+          class="topic-logo"
+          src="../MAIN DUCK/BACKGROUND/Ubicación de puntos en el plano cartesiano.png"
+          alt=""
+          width="142"
+          height="142"
+        />
       </div>
       <div class="topic-body">
         <h2>Tema 1</h2>
@@ -39,9 +45,14 @@
     </article>
 
     <article class="topic-card c-tema2" data-tema="2">
-      <div class="topic-visual" aria-hidden="true">
-        <span class="topic-emoji">📍</span>
-        <span class="topic-deco"></span>
+      <div class="topic-visual topic-visual--logo" aria-hidden="true">
+        <img
+          class="topic-logo"
+          src="../MAIN DUCK/BACKGROUND/Dibujo y Representación de Vectores.png"
+          alt=""
+          width="142"
+          height="142"
+        />
       </div>
       <div class="topic-body">
         <h2>Tema 2</h2>
@@ -55,9 +66,14 @@
     </article>
 
     <article class="topic-card c-tema3" data-tema="3">
-      <div class="topic-visual" aria-hidden="true">
-        <span class="topic-emoji">➕</span>
-        <span class="topic-deco"></span>
+      <div class="topic-visual topic-visual--logo" aria-hidden="true">
+        <img
+          class="topic-logo"
+          src="../MAIN DUCK/BACKGROUND/Suma y Resta de Vectores.png"
+          alt=""
+          width="142"
+          height="142"
+        />
       </div>
       <div class="topic-body">
         <h2>Tema 3</h2>
@@ -71,9 +87,14 @@
     </article>
 
     <article class="topic-card c-tema4" data-tema="4">
-      <div class="topic-visual" aria-hidden="true">
-        <span class="topic-emoji">✖️</span>
-        <span class="topic-deco"></span>
+      <div class="topic-visual topic-visual--logo" aria-hidden="true">
+        <img
+          class="topic-logo"
+          src="../MAIN DUCK/BACKGROUND/Multiplicación por escalar.png"
+          alt=""
+          width="142"
+          height="142"
+        />
       </div>
       <div class="topic-body">
         <h2>Tema 4</h2>
@@ -87,7 +108,9 @@
     </article>
   </div>
 
+  <script src="../js/grupos-clase.js"></script>
   <script src="../js/topic-progress.js"></script>
+  <script src="../js/topics-entry.js"></script>
   <script>
     function refrescarBloqueos() {
       if (typeof aplicarBloqueosTarjetas === "function") {

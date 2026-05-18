@@ -6,7 +6,7 @@ body.page-topics,
 body.page-levels,
 body.page-quiz,
 body.page-shop {
-  background-image: url("../background_1.png");
+  background-image: url("../MAIN DUCK/BACKGROUND/background_1.png");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -24,10 +24,10 @@ body.page-shop::before {
   z-index: 0;
 }
 
-body.page-topics > *:not(.quiz-img-lightbox),
-body.page-levels > *:not(.quiz-img-lightbox),
-body.page-quiz > *:not(.quiz-img-lightbox),
-body.page-shop > *:not(.quiz-img-lightbox) {
+body.page-topics > *,
+body.page-levels > *,
+body.page-quiz > *,
+body.page-shop > * {
   position: relative;
   z-index: 1;
 }

@@ -1,7 +1,7 @@
 /* Pantalla inicio */
 .page-home {
   min-height: 100vh;
-  background-image: url("../background_1.png");
+  background-image: url("../MAIN DUCK/BACKGROUND/background_1.png");
   background-size: cover;
   background-position: center;
   display: flex;

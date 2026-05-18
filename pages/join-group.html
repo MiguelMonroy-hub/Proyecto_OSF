@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unirse a un grupo</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/auth-back.css">
+  <link rel="stylesheet" href="../css/login.css">
+  <link rel="stylesheet" href="../css/join-group.css">
+</head>
+<body class="page-login-new page-join-group">
+  <nav class="auth-nav" aria-label="Navegación">
+    <a class="auth-back" href="index.html">
+      <span class="auth-back-icon" aria-hidden="true">←</span>
+      <span class="auth-back-text">Volver al inicio</span>
+    </a>
+  </nav>
+
+  <div class="modal-login modal-join-group">
+    <h1>Únete a tu grupo</h1>
+    <p class="join-lead">Tu maestro te dio un código de <strong>6 caracteres</strong>. Escríbelo aquí para entrar a la clase.</p>
+
+    <label for="codigo-grupo">Código del grupo</label>
+    <input
+      type="text"
+      id="codigo-grupo"
+      class="join-codigo-input"
+      placeholder="Ej. A3K9M2"
+      maxlength="6"
+      autocomplete="off"
+      autocapitalize="characters"
+      spellcheck="false"
+    />
+
+    <p id="join-error" class="join-error" hidden></p>
+
+    <button type="button" class="btn-submit" id="btn-unir-grupo">Entrar al grupo</button>
+  </div>
+
+  <script src="../js/grupos-clase.js"></script>
+  <script src="../js/join-group.js"></script>
+</body>
+</html>

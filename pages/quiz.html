@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/quiz.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraph.css">
 </head>
 <body class="page-quiz">
   <div class="quiz-top">
@@ -19,33 +20,40 @@
   </div>
 
   <div class="quiz-box">
-    <figure id="quiz-figure" class="quiz-figure" hidden>
-      <img id="quiz-image" class="quiz-image" alt="" decoding="async" />
-    </figure>
+    <div id="quiz-jxg-panel" class="quiz-jxg-panel" hidden aria-hidden="true">
+      <p class="quiz-jxg-panel-hint">Plano de coordenadas — elige una opción para verla dibujada</p>
+      <div id="quizJXGMapaFijo" class="jxgbox quiz-jxg-board-fijo"></div>
+    </div>
     <p class="question" id="quiz-question-text"></p>
     <div class="options" id="quiz-options"></div>
+    <button type="button" id="quiz-confirmar" class="quiz-confirmar" hidden>Confirmar respuesta</button>
     <div id="quiz-feedback" class="quiz-feedback" hidden></div>
     <p id="quiz-reward-msg" class="quiz-reward-msg" hidden></p>
     <button type="button" id="quiz-siguiente" class="quiz-siguiente" hidden>Siguiente pregunta</button>
     <p id="quiz-gameover" class="quiz-gameover" hidden></p>
   </div>
 
-  <p class="quiz-nav">
-    <a href="topics.html">Regresar a temas</a>
-    <button type="button" class="quiz-nav-retry" id="quiz-reiniciar">Reiniciar nivel</button>
-  </p>
-
-  <div id="quiz-img-lightbox" class="quiz-img-lightbox" hidden aria-modal="true" role="dialog" aria-label="Imagen ampliada">
-    <button type="button" class="quiz-img-lightbox-backdrop" id="quiz-img-lightbox-backdrop" tabindex="-1" aria-label="Cerrar"></button>
-    <div class="quiz-img-lightbox-panel">
-      <button type="button" class="quiz-img-lightbox-close" id="quiz-img-lightbox-close" aria-label="Cerrar vista ampliada">&times;</button>
-      <img id="quiz-img-lightbox-img" class="quiz-img-lightbox-img" alt="" decoding="async" />
-    </div>
-  </div>
+  <nav class="quiz-nav" aria-label="Navegación del quiz">
+    <a href="topics.html" class="quiz-nav-btn quiz-nav-btn--topics" id="quiz-volver-temas">
+      <svg class="quiz-nav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span class="quiz-nav-label">Volver a temas</span>
+    </a>
+    <button type="button" class="quiz-nav-btn quiz-nav-btn--retry" id="quiz-reiniciar">
+      <svg class="quiz-nav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08a5.99 5.99 0 0 1-5.65 4c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+      <span class="quiz-nav-label">Reiniciar nivel</span>
+    </button>
+  </nav>
 
   <script src="../js/duck-catalog.js"></script>
   <script src="../js/topic-progress.js"></script>
   <script src="../js/quiz-data.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraphcore.js"></script>
+  <script src="../js/quiz-option-jxg.js"></script>
+  <script src="../js/quiz-jxg-preview.js"></script>
   <script src="../js/quiz.js"></script>
 </body>
 </html>
