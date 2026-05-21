@@ -223,15 +223,18 @@ a.teacher-action-btn {
 
 .teacher-mascot {
   flex-shrink: 0;
-  width: 64px;
-  height: auto;
+  width: auto;
+  height: 76px;
+  max-width: 88px;
+  object-fit: contain;
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.25));
   pointer-events: none;
 }
 
 @media (max-width: 520px) {
   .teacher-mascot {
-    width: 52px;
+    height: 60px;
+    max-width: 70px;
   }
 
   .teacher-header-left {

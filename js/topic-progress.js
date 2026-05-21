@@ -53,7 +53,7 @@ function crearEnlaceDificil(tema) {
   a.href = "quiz.html?tema=" + encodeURIComponent(tema) + "&modo=dificil";
   a.className = "level-btn level-btn-2 level-dificil";
   a.innerHTML =
-    '<span class="lvl-badge">A</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span>';
+    '<span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span>';
   return a;
 }
 

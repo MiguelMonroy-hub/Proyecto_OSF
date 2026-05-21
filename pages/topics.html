@@ -23,13 +23,7 @@
     </div>
   </header>
 
-  <section id="topics-maestro-niveles" class="topics-maestro-section" hidden aria-labelledby="topics-maestro-title">
-    <h2 id="topics-maestro-title" class="topics-maestro-heading">Niveles de tu maestro</h2>
-    <p class="topics-maestro-lead">Prácticas asignadas a tu grupo. Respeta la fecha límite si aparece.</p>
-    <div id="topics-maestro-list" class="topics-maestro-list"></div>
-  </section>
-
-  <div class="topic-grid">
+  <div class="topic-grid" id="topics-grid-temas">
     <article class="topic-card c-tema1" data-tema="1">
       <div class="topic-visual topic-visual--logo" aria-hidden="true">
         <img
@@ -45,8 +39,8 @@
         <p class="topic-title">Ubicación de puntos en el plano cartesiano</p>
         <p class="topic-tagline">Coordenadas, ejes y cuadrantes</p>
         <div class="levels">
-          <a href="quiz.html?tema=1&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="quiz.html?tema=1&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=1&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=1&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
         </div>
       </div>
     </article>
@@ -66,8 +60,8 @@
         <p class="topic-title">Dibujo y representación de vectores</p>
         <p class="topic-tagline">Módulo, dirección y sentido</p>
         <div class="levels">
-          <a href="quiz.html?tema=2&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="quiz.html?tema=2&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=2&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=2&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
         </div>
       </div>
     </article>
@@ -87,8 +81,8 @@
         <p class="topic-title">Suma y resta de vectores</p>
         <p class="topic-tagline">Método del paralelogramo y del triángulo</p>
         <div class="levels">
-          <a href="quiz.html?tema=3&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="quiz.html?tema=3&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=3&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=3&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
         </div>
       </div>
     </article>
@@ -108,12 +102,19 @@
         <p class="topic-title">Multiplicación por escalar</p>
         <p class="topic-tagline">Amplía o invierte un vector</p>
         <div class="levels">
-          <a href="quiz.html?tema=4&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="quiz.html?tema=4&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=4&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
+          <a href="quiz.html?tema=4&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
         </div>
       </div>
     </article>
   </div>
+
+  <section id="topics-maestro-niveles" class="topics-maestro-section" hidden aria-labelledby="topics-maestro-title">
+    <h2 id="topics-maestro-title" class="topics-maestro-heading">Niveles de tu maestro</h2>
+    <p class="topics-maestro-lead">Prácticas asignadas a tu grupo. Respeta la fecha límite si aparece.</p>
+  </section>
+
+  <div class="topic-grid topics-maestro-grid" id="topics-maestro-grid"></div>
 
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-niveles.js"></script>

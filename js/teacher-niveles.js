@@ -49,6 +49,89 @@ function nivelMaestroFusionarGrupos(existentes) {
 }
 
 var NIVEL_MAESTRO_LETRAS_OPCION = ["A", "B", "C", "D"];
+var NIVEL_MAESTRO_LOGO_DEFAULT = "MAIN DUCK/BACKGROUND/Quiz_default.png";
+
+/** URL del logo en pantallas dentro de /pages/ */
+function nivelMaestroUrlLogo(nivel) {
+  if (nivelMaestroEsLogoValido(nivel && nivel.logo)) {
+    return nivel.logo;
+  }
+  return "../" + NIVEL_MAESTRO_LOGO_DEFAULT;
+}
+var NIVEL_LOGO_MAX_LADO = 200;
+var NIVEL_LOGO_MAX_BYTES_ARCHIVO = 3 * 1024 * 1024;
+var NIVEL_LOGO_MAX_DATA_URL = 150000;
+
+function nivelMaestroEsLogoValido(str) {
+  return (
+    typeof str === "string" &&
+    str.length > 0 &&
+    str.length <= NIVEL_LOGO_MAX_DATA_URL &&
+    str.indexOf("data:image/") === 0
+  );
+}
+
+/**
+ * Redimensiona una imagen y devuelve data URL JPEG para guardar en el nivel.
+ */
+function nivelMaestroProcesarArchivoLogo(archivo, callback) {
+  callback = typeof callback === "function" ? callback : function () {};
+  if (!archivo || !archivo.type || archivo.type.indexOf("image/") !== 0) {
+    callback({ ok: false, error: "Elige un archivo de imagen (PNG, JPG o WebP)." });
+    return;
+  }
+  if (archivo.size > NIVEL_LOGO_MAX_BYTES_ARCHIVO) {
+    callback({ ok: false, error: "La imagen es muy pesada. Usa una menor a 3 MB." });
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function () {
+    var img = new Image();
+    img.onload = function () {
+      var w = img.width;
+      var h = img.height;
+      var max = NIVEL_LOGO_MAX_LADO;
+      if (w > max || h > max) {
+        if (w >= h) {
+          h = Math.round((h * max) / w);
+          w = max;
+        } else {
+          w = Math.round((w * max) / h);
+          h = max;
+        }
+      }
+      var canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      var ctx = canvas.getContext("2d");
+      if (!ctx) {
+        callback({ ok: false, error: "No se pudo procesar la imagen." });
+        return;
+      }
+      ctx.drawImage(img, 0, 0, w, h);
+      var dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+      if (dataUrl.length > NIVEL_LOGO_MAX_DATA_URL) {
+        dataUrl = canvas.toDataURL("image/jpeg", 0.65);
+      }
+      if (!nivelMaestroEsLogoValido(dataUrl)) {
+        callback({
+          ok: false,
+          error: "La imagen sigue siendo muy grande. Prueba con otra más pequeña."
+        });
+        return;
+      }
+      callback({ ok: true, logo: dataUrl });
+    };
+    img.onerror = function () {
+      callback({ ok: false, error: "No se pudo leer la imagen." });
+    };
+    img.src = reader.result;
+  };
+  reader.onerror = function () {
+    callback({ ok: false, error: "No se pudo cargar el archivo." });
+  };
+  reader.readAsDataURL(archivo);
+}
 
 function nivelMaestroPrefijoOpcion(letra, texto) {
   texto = String(texto || "").trim();
@@ -188,7 +271,7 @@ function nivelMaestroDesdePreguntaGuardada(p) {
 function nivelMaestroNormalizar(datos) {
   var id = datos.id || nivelMaestroGenerarId();
   var preguntas = nivelMaestroNormalizarListaPreguntas(datos.preguntas, id);
-  return {
+  var item = {
     id: id,
     titulo: String(datos.titulo || "Nivel sin nombre").trim() || "Nivel sin nombre",
     preguntas: preguntas,
@@ -196,6 +279,10 @@ function nivelMaestroNormalizar(datos) {
     creadoEn: datos.creadoEn || Date.now(),
     actualizadoEn: Date.now()
   };
+  if (nivelMaestroEsLogoValido(datos.logo)) {
+    item.logo = datos.logo;
+  }
+  return item;
 }
 
 function nivelMaestroGuardar(datos) {
@@ -206,6 +293,15 @@ function nivelMaestroGuardar(datos) {
     if (lista[i].id === item.id) {
       idx = i;
       item.creadoEn = lista[i].creadoEn;
+      if (datos.logo === "" || datos.logo === null) {
+        delete item.logo;
+      } else if (
+        datos.logo === undefined &&
+        !item.logo &&
+        nivelMaestroEsLogoValido(lista[i].logo)
+      ) {
+        item.logo = lista[i].logo;
+      }
       break;
     }
   }

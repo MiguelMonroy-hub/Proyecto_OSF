@@ -19,7 +19,7 @@
         <span>Panel</span>
       </a>
       <div class="tn-topbar-brand">
-        <img class="tn-topbar-duck" src="../MAIN DUCK/DUCK/MAIN DUCK.png" alt="" width="48" height="48" onerror="this.style.display='none'" />
+        <img class="tn-topbar-duck" src="../MAIN DUCK/DUCK/Duck_teacher.png" alt="" width="56" height="56" onerror="this.style.display='none'" />
         <div>
           <h1 class="tn-topbar-title">Mis niveles</h1>
           <p class="tn-topbar-sub">Preguntas propias para tus grupos</p>
@@ -51,7 +51,6 @@
           </div>
           <h2 class="tn-welcome-title">Arma tu práctica</h2>
           <p class="tn-welcome-text">Crea enunciados con cuatro opciones, elige la respuesta correcta y compártelo con los grupos que quieras.</p>
-          <button type="button" class="tn-btn-primary" id="btn-tn-welcome">Crear mi primer nivel</button>
         </div>
 
         <div id="tn-form-wrap" class="tn-form-panel" hidden>
@@ -68,6 +67,23 @@
                 <span class="tn-label">Nombre del nivel</span>
                 <input type="text" id="tn-titulo" class="tn-input" maxlength="60" required placeholder="Ej. Repaso de vectores — semana 3" />
               </label>
+              <div class="tn-logo-field">
+                <span class="tn-label">Logo del nivel (opcional)</span>
+                <p class="tn-logo-hint">Imagen que verán tus alumnos en Temas (como los otros temas). Si no subes ninguna, se usa la imagen por defecto del quiz.</p>
+                <div class="tn-logo-row">
+                  <div class="tn-logo-preview-box" id="tn-logo-preview-box">
+                    <img id="tn-logo-preview" class="tn-logo-preview" alt="" hidden />
+                    <span class="tn-logo-placeholder" id="tn-logo-placeholder" hidden>Sin logo</span>
+                  </div>
+                  <div class="tn-logo-actions">
+                    <label class="tn-btn-outline tn-logo-upload-label">
+                      <input type="file" id="tn-logo-file" accept="image/png,image/jpeg,image/jpg,image/webp,image/gif" hidden />
+                      Subir imagen
+                    </label>
+                    <button type="button" class="tn-btn-ghost-danger" id="btn-tn-quitar-logo" hidden>Quitar logo</button>
+                  </div>
+                </div>
+              </div>
             </section>
 
             <section class="tn-section">

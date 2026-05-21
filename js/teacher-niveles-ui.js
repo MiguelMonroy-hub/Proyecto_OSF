@@ -15,6 +15,12 @@
 
   var editandoId = null;
   var preguntasEditando = [];
+  var logoActual = "";
+
+  var inpLogoFile = document.getElementById("tn-logo-file");
+  var imgLogoPreview = document.getElementById("tn-logo-preview");
+  var elLogoPlaceholder = document.getElementById("tn-logo-placeholder");
+  var btnQuitarLogo = document.getElementById("btn-tn-quitar-logo");
 
   var elLista = document.getElementById("lista-niveles-maestro");
   var elBadge = document.getElementById("tn-count-badge");
@@ -37,6 +43,64 @@
 
   function escAttr(s) {
     return escHtml(s).replace(/'/g, "&#39;");
+  }
+
+  function urlLogoPreview() {
+    if (
+      typeof nivelMaestroEsLogoValido === "function" &&
+      nivelMaestroEsLogoValido(logoActual)
+    ) {
+      return logoActual;
+    }
+    return "../MAIN DUCK/BACKGROUND/Quiz_default.png";
+  }
+
+  function pintarVistaLogo() {
+    var tiene =
+      typeof nivelMaestroEsLogoValido === "function" &&
+      nivelMaestroEsLogoValido(logoActual);
+    if (imgLogoPreview) {
+      imgLogoPreview.src = urlLogoPreview();
+      imgLogoPreview.hidden = false;
+    }
+    if (elLogoPlaceholder) {
+      elLogoPlaceholder.hidden = true;
+    }
+    if (btnQuitarLogo) {
+      btnQuitarLogo.hidden = !tiene;
+    }
+    if (elLogoPlaceholder && !imgLogoPreview) {
+      elLogoPlaceholder.hidden = tiene;
+    }
+  }
+
+  function quitarLogoNivel() {
+    logoActual = "";
+    if (inpLogoFile) {
+      inpLogoFile.value = "";
+    }
+    pintarVistaLogo();
+  }
+
+  function onArchivoLogoSeleccionado(ev) {
+    var archivo = ev.target.files && ev.target.files[0];
+    if (!archivo) {
+      return;
+    }
+    if (typeof nivelMaestroProcesarArchivoLogo !== "function") {
+      return;
+    }
+    nivelMaestroProcesarArchivoLogo(archivo, function (res) {
+      if (inpLogoFile) {
+        inpLogoFile.value = "";
+      }
+      if (!res.ok) {
+        window.alert(res.error || "No se pudo usar esa imagen.");
+        return;
+      }
+      logoActual = res.logo;
+      pintarVistaLogo();
+    });
   }
 
   function gruposEditables() {
@@ -248,12 +312,6 @@
     if (elBadge) {
       elBadge.textContent = String(niveles.length);
     }
-    var btnWelcome = document.getElementById("btn-tn-welcome");
-    if (btnWelcome) {
-      btnWelcome.textContent = niveles.length
-        ? "Crear otro nivel"
-        : "Crear mi primer nivel";
-    }
     elLista.innerHTML = "";
     if (!niveles.length) {
       var liVacio = document.createElement("li");
@@ -273,10 +331,22 @@
         }
       }
       li.className = "tn-list-item" + (n.id === editandoId ? " is-active" : "");
+      var thumbSrc =
+        typeof nivelMaestroUrlLogo === "function"
+          ? nivelMaestroUrlLogo(n)
+          : typeof nivelMaestroEsLogoValido === "function" && nivelMaestroEsLogoValido(n.logo)
+            ? n.logo
+            : "../MAIN DUCK/BACKGROUND/Quiz_default.png";
+      var thumbHtml =
+        '<span class="tn-list-thumb"><img src="' +
+        escAttr(thumbSrc) +
+        '" alt="" /></span>';
       li.innerHTML =
         '<button type="button" class="tn-list-btn" data-edit="' +
         escHtml(n.id) +
         '">' +
+        thumbHtml +
+        '<span class="tn-list-text">' +
         '<span class="tn-list-title">' +
         escHtml(n.titulo) +
         "</span>" +
@@ -288,7 +358,7 @@
         activos +
         " grupo" +
         (activos === 1 ? "" : "s") +
-        "</span></span></button>";
+        "</span></span></span></button>";
       elLista.appendChild(li);
     }
   }
@@ -384,6 +454,14 @@
     if (btnEliminar) {
       btnEliminar.hidden = !nivel;
     }
+    logoActual =
+      nivel && typeof nivelMaestroEsLogoValido === "function" && nivelMaestroEsLogoValido(nivel.logo)
+        ? nivel.logo
+        : "";
+    if (inpLogoFile) {
+      inpLogoFile.value = "";
+    }
+    pintarVistaLogo();
     cargarPreguntasEnEditor(nivel);
     pintarFilasGrupos(nivel ? nivel.grupos : null);
     pintarListaNiveles();
@@ -440,9 +518,15 @@
       id: editandoId || undefined,
       titulo: titulo,
       preguntas: preguntasEditando,
-      grupos: datosGrupos
+      grupos: datosGrupos,
+      logo: logoActual || ""
     });
     editandoId = guardado.id;
+    logoActual =
+      typeof nivelMaestroEsLogoValido === "function" && nivelMaestroEsLogoValido(guardado.logo)
+        ? guardado.logo
+        : "";
+    pintarVistaLogo();
     preguntasEditando = guardado.preguntas.map(nivelMaestroDesdePreguntaGuardada);
     pintarEditorPreguntas();
     if (btnEliminar) {
@@ -472,6 +556,8 @@
     nivelMaestroEliminar(editandoId);
     editandoId = null;
     preguntasEditando = [];
+    logoActual = "";
+    pintarVistaLogo();
     mostrarVistaBienvenida();
     pintarListaNiveles();
     if (window.history && window.history.replaceState) {
@@ -511,8 +597,6 @@
   function registrar() {
     var btnNuevo = document.getElementById("btn-tn-nuevo");
     var btnNuevoHeader = document.getElementById("btn-tn-nuevo-header");
-    var btnWelcome = document.getElementById("btn-tn-welcome");
-
     function onNuevo() {
       nuevoNivel();
       if (window.history && window.history.replaceState) {
@@ -529,9 +613,6 @@
     if (btnNuevoHeader) {
       btnNuevoHeader.addEventListener("click", onNuevo);
     }
-    if (btnWelcome) {
-      btnWelcome.addEventListener("click", onNuevo);
-    }
     var btnAddPreg = document.getElementById("btn-tn-add-pregunta");
     if (btnAddPreg) {
       btnAddPreg.addEventListener("click", agregarPregunta);
@@ -541,6 +622,12 @@
     }
     if (btnEliminar) {
       btnEliminar.addEventListener("click", eliminarNivelActual);
+    }
+    if (inpLogoFile) {
+      inpLogoFile.addEventListener("change", onArchivoLogoSeleccionado);
+    }
+    if (btnQuitarLogo) {
+      btnQuitarLogo.addEventListener("click", quitarLogoNivel);
     }
     if (contPreguntas) {
       contPreguntas.addEventListener("click", function (ev) {

@@ -1,64 +1,45 @@
-/* Niveles asignados por el maestro (pantalla Temas) */
+/* Encabezado de la sección + tarjetas maestro (estilo en topics.css) */
 .topics-maestro-section {
-  max-width: 1100px;
-  margin: 0 auto 28px;
+  max-width: 960px;
+  margin: 28px auto 12px;
   padding: 0 16px;
+}
+
+.topics-maestro-grid {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 16px 36px;
 }
 
 .topics-maestro-heading {
   margin: 0 0 6px;
-  font-size: 1.35rem;
-  color: #1e4d7b;
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  color: #0a1f0d;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.6);
+  letter-spacing: -0.02em;
 }
 
 .topics-maestro-lead {
-  margin: 0 0 16px;
-  font-size: 0.9rem;
-  color: #475569;
-}
-
-.topics-maestro-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 14px;
-}
-
-.topics-maestro-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 2px solid rgba(124, 58, 237, 0.25);
-  box-shadow: 0 8px 24px rgba(30, 77, 123, 0.12);
-}
-
-.topics-maestro-card h3 {
-  margin: 0 0 4px;
-  font-size: 1rem;
-  color: #1e4d7b;
-}
-
-.topics-maestro-meta {
   margin: 0;
-  font-size: 0.82rem;
-  color: #64748b;
+  font-size: 0.9rem;
+  color: #1e3d24;
+  line-height: 1.4;
+  opacity: 0.95;
 }
 
-.topics-maestro-fecha {
-  margin: 6px 0 0;
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: #7c3aed;
+.topics-maestro-section[hidden] {
+  display: none;
 }
 
-.topics-maestro-play {
-  flex-shrink: 0;
-  min-width: 100px;
+/* Tarjeta igual que temas 1–4 */
+.c-maestro-nivel {
+  background: linear-gradient(180deg, #7c3aed 0%, #6d28d9 100%);
 }
 
-.topics-maestro-play .lvl-badge {
-  background: linear-gradient(180deg, #a78bfa, #7c3aed);
+.c-maestro-nivel .topic-visual--logo {
+  background: linear-gradient(180deg, #faf5ff 0%, #e9d8fd 100%);
+}
+
+.c-maestro-nivel .lvl-badge {
+  background: linear-gradient(145deg, #a78bfa, #6d28d9);
 }
