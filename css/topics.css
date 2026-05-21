@@ -207,11 +207,11 @@
 }
 
 .c-tema4 .topic-visual:not(.topic-visual--logo) {
-  background: linear-gradient(145deg, #9f7aea 0%, #805ad5 45%, #553c9a 100%);
+  background: linear-gradient(145deg, #7ed957 0%, #57bf22 45%, #3d8a18 100%);
 }
 
 .c-tema4 .topic-visual--logo {
-  background: linear-gradient(180deg, #faf5ff 0%, #e9d8fd 100%);
+  background: linear-gradient(180deg, #f4ffe8 0%, #d4f5b8 100%);
 }
 
 .c-tema4 .topic-deco {
@@ -219,7 +219,7 @@
     125deg,
     rgba(255, 255, 255, 0.15) 0%,
     transparent 40%,
-    rgba(220, 200, 255, 0.12) 100%
+    rgba(87, 191, 34, 0.18) 100%
   );
 }
 
@@ -337,7 +337,7 @@
   background: linear-gradient(145deg, #f6ad55, #dd6b20);
 }
 .c-tema4 .lvl-badge {
-  background: linear-gradient(145deg, #b794f4, #805ad5);
+  background: linear-gradient(145deg, #7ed957, #57bf22);
 }
 
 .level-btn-2 .lvl-badge {
@@ -366,5 +366,5 @@
   background: linear-gradient(180deg, #ed8936 0%, #dd6b20 100%);
 }
 .c-tema4 {
-  background: linear-gradient(180deg, #805ad5 0%, #6b46c1 100%);
+  background: linear-gradient(180deg, #57bf22 0%, #3d8a18 100%);
 }

@@ -346,17 +346,29 @@ function nivelMaestroAsignacionGrupo(nivel, grupoId) {
   return nivel.grupos[grupoId] || { visible: false, fechaLimite: "" };
 }
 
-/** ¿El nivel está visible y vigente para un grupo? */
+/** ¿El maestro activó este nivel para el grupo? (sigue en Temas aunque venza) */
 function nivelMaestroVisibleParaGrupo(nivel, grupoId) {
   var a = nivelMaestroAsignacionGrupo(nivel, grupoId);
-  if (!a || !a.visible) {
+  return !!(a && a.visible);
+}
+
+/** ¿Ya pasó la fecha límite del grupo? */
+function nivelMaestroFechaVencida(nivel, grupoId) {
+  if (!nivelMaestroVisibleParaGrupo(nivel, grupoId)) {
     return false;
   }
+  var a = nivelMaestroAsignacionGrupo(nivel, grupoId);
   var fin = nivelMaestroParseFechaLimite(a.fechaLimite);
-  if (fin && Date.now() > fin.getTime()) {
-    return false;
-  }
-  return true;
+  return !!(fin && Date.now() > fin.getTime());
+}
+
+/** ¿El alumno puede jugarlo ahora? */
+function nivelMaestroJugableParaGrupo(nivel, grupoId) {
+  return (
+    nivelMaestroVisibleParaGrupo(nivel, grupoId) &&
+    !nivelMaestroFechaVencida(nivel, grupoId) &&
+    nivelMaestroContarPreguntas(nivel) > 0
+  );
 }
 
 function nivelMaestroParaGrupo(grupoId) {

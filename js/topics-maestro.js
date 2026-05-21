@@ -5,6 +5,7 @@
   "use strict";
 
   var RUTA_LOGO_DEFAULT = "../MAIN DUCK/BACKGROUND/Quiz_default.png";
+  var RUTA_TIMEOUT = "../MAIN DUCK/BACKGROUND/Timeout.png";
 
   function escHtml(s) {
     return String(s)
@@ -40,6 +41,9 @@
 
   function crearTarjetaTema(nivel, vinculo) {
     var asig = nivel.grupos[vinculo.grupoId] || {};
+    var vencido =
+      typeof nivelMaestroFechaVencida === "function" &&
+      nivelMaestroFechaVencida(nivel, vinculo.grupoId);
     var fechaTxt =
       typeof nivelMaestroEtiquetaFecha === "function"
         ? nivelMaestroEtiquetaFecha(asig.fechaLimite)
@@ -50,17 +54,43 @@
         : "";
     var tagline = meta;
     if (fechaTxt && fechaTxt !== "Sin fecha límite") {
-      tagline = tagline + " · " + fechaTxt;
+      tagline = tagline + " · Límite: " + fechaTxt;
+    }
+    var nivelHtml = "";
+    if (vencido) {
+      nivelHtml =
+        '<span class="level-btn level-facil level-maestro-locked" role="presentation">' +
+        '<span class="lvl-badge">🔒</span>' +
+        '<span class="lvl-label">Jugar</span>' +
+        '<span class="lvl-go">No disponible</span>' +
+        "</span>";
+    } else {
+      nivelHtml =
+        '<a href="quiz.html?tn=' +
+        encodeURIComponent(nivel.id) +
+        '" class="level-btn level-facil">' +
+        '<span class="lvl-badge">A</span>' +
+        '<span class="lvl-label">Jugar</span>' +
+        '<span class="lvl-go">Jugar →</span>' +
+        "</a>";
     }
 
     var card = document.createElement("article");
-    card.className = "topic-card c-maestro-nivel";
+    card.className =
+      "topic-card c-maestro-nivel" + (vencido ? " c-maestro-nivel--vencido" : "");
     card.setAttribute("data-maestro-nivel", nivel.id);
 
     card.innerHTML =
-      '<div class="topic-visual topic-visual--logo" aria-hidden="true">' +
-      '<img class="topic-logo" src="' +
-      escAttr(urlLogoNivel(nivel)) +
+      (vencido
+        ? '<span class="c-maestro-vencido-badge" aria-hidden="true">Vencido</span>'
+        : "") +
+      '<div class="topic-visual topic-visual--logo' +
+      (vencido ? " topic-visual--timeout" : "") +
+      '" aria-hidden="true">' +
+      '<img class="topic-logo' +
+      (vencido ? " topic-logo--timeout" : "") +
+      '" src="' +
+      escAttr(vencido ? RUTA_TIMEOUT : urlLogoNivel(nivel)) +
       '" alt="" width="142" height="142" />' +
       "</div>" +
       '<div class="topic-body">' +
@@ -72,13 +102,7 @@
       escHtml(tagline) +
       "</p>" +
       '<div class="levels">' +
-      '<a href="quiz.html?tn=' +
-      encodeURIComponent(nivel.id) +
-      '" class="level-btn level-facil">' +
-      '<span class="lvl-badge">A</span>' +
-      '<span class="lvl-label">Jugar</span>' +
-      '<span class="lvl-go">Jugar →</span>' +
-      "</a>" +
+      nivelHtml +
       "</div></div>";
 
     return card;

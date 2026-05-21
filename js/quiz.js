@@ -49,12 +49,21 @@
       typeof alumnoObtenerGrupoVinculado === "function"
         ? alumnoObtenerGrupoVinculado(email)
         : null;
+    if (!vinculo || !vinculo.grupoId) {
+      window.alert("Este nivel no está disponible para tu grupo.");
+      window.location.href = "topics.html";
+      return false;
+    }
+    if (!nivelMaestroVisibleParaGrupo(nivelMaestro, vinculo.grupoId)) {
+      window.alert("Este nivel no está disponible para tu grupo.");
+      window.location.href = "topics.html";
+      return false;
+    }
     if (
-      !vinculo ||
-      !vinculo.grupoId ||
-      !nivelMaestroVisibleParaGrupo(nivelMaestro, vinculo.grupoId)
+      typeof nivelMaestroFechaVencida === "function" &&
+      nivelMaestroFechaVencida(nivelMaestro, vinculo.grupoId)
     ) {
-      window.alert("Este nivel no está disponible para tu grupo o ya venció.");
+      window.alert("La fecha límite de este nivel ya pasó. Ya no puedes jugarlo.");
       window.location.href = "topics.html";
       return false;
     }

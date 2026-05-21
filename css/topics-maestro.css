@@ -43,3 +43,80 @@
 .c-maestro-nivel .lvl-badge {
   background: linear-gradient(145deg, #a78bfa, #6d28d9);
 }
+
+.c-maestro-nivel--vencido {
+  position: relative;
+}
+
+.c-maestro-nivel--vencido:hover {
+  transform: none !important;
+}
+
+.c-maestro-nivel--vencido .topic-visual--timeout {
+  background: linear-gradient(180deg, #fff8e8 0%, #dbeafe 55%, #bfdbfe 100%) !important;
+}
+
+.c-maestro-nivel--vencido .topic-logo--timeout {
+  width: 100%;
+  max-width: 148px;
+  height: auto;
+  max-height: 148px;
+  object-fit: contain;
+  filter: none;
+}
+
+.c-maestro-nivel--vencido .topic-body h2,
+.c-maestro-nivel--vencido .topic-title,
+.c-maestro-nivel--vencido .topic-tagline {
+  opacity: 0.98;
+}
+
+.c-maestro-vencido-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 55%, #b91c1c 100%);
+  border: 2px solid #fecaca;
+  box-shadow: 0 3px 12px rgba(185, 28, 28, 0.55);
+}
+
+.level-maestro-locked {
+  cursor: not-allowed !important;
+  opacity: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg, #e2e8f0 0%, #cbd5e1 100%) !important;
+  color: #64748b !important;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12) !important;
+  border: 2px solid #94a3b8 !important;
+}
+
+.level-maestro-locked:hover {
+  transform: none !important;
+}
+
+.level-maestro-locked .lvl-badge {
+  background: linear-gradient(145deg, #94a3b8, #64748b) !important;
+  color: #fff !important;
+}
+
+.level-maestro-locked .lvl-label {
+  color: #64748b !important;
+}
+
+.level-maestro-locked .lvl-go {
+  color: #64748b !important;
+  font-weight: 700;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  white-space: normal;
+  text-align: left;
+  max-width: 11rem;
+}
