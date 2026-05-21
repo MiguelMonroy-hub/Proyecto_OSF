@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/topics.css">
+  <link rel="stylesheet" href="../css/topics-maestro.css">
 </head>
 <body class="page-topics">
   <header class="topics-hero">
@@ -21,6 +22,12 @@
       <a class="topics-logout" href="index.html">Cerrar sesión</a>
     </div>
   </header>
+
+  <section id="topics-maestro-niveles" class="topics-maestro-section" hidden aria-labelledby="topics-maestro-title">
+    <h2 id="topics-maestro-title" class="topics-maestro-heading">Niveles de tu maestro</h2>
+    <p class="topics-maestro-lead">Prácticas asignadas a tu grupo. Respeta la fecha límite si aparece.</p>
+    <div id="topics-maestro-list" class="topics-maestro-list"></div>
+  </section>
 
   <div class="topic-grid">
     <article class="topic-card c-tema1" data-tema="1">
@@ -109,8 +116,10 @@
   </div>
 
   <script src="../js/grupos-clase.js"></script>
+  <script src="../js/teacher-niveles.js"></script>
   <script src="../js/topic-progress.js"></script>
   <script src="../js/topics-entry.js"></script>
+  <script src="../js/topics-maestro.js"></script>
   <script>
     function refrescarBloqueos() {
       if (typeof aplicarBloqueosTarjetas === "function") {

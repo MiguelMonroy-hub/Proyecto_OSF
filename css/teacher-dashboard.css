@@ -4,7 +4,6 @@
   margin: 0;
   padding: 20px 16px 32px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(180deg, #7ec8e8 0%, #a8dce8 35%, #8bc96a 70%, #6aab4e 100%);
   position: relative;
   overflow-x: hidden;
 }
@@ -21,10 +20,7 @@
 }
 
 .teacher-scene {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
+  display: none;
 }
 
 .teacher-deco {
@@ -139,6 +135,10 @@
   gap: 8px;
 }
 
+a.teacher-action-btn {
+  text-decoration: none;
+}
+
 .teacher-action-btn {
   display: inline-flex;
   align-items: center;
@@ -170,6 +170,16 @@
 
 .teacher-action-label {
   white-space: nowrap;
+}
+
+.teacher-action-btn--levels {
+  background: linear-gradient(180deg, #a78bfa, #7c3aed);
+  color: #fff;
+}
+
+.teacher-action-btn--levels:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
 }
 
 .teacher-action-btn--groups {
@@ -748,4 +758,341 @@
   gap: 8px;
   cursor: pointer;
   font-size: 0.88rem;
+}
+
+/* Modal niveles del maestro */
+.teacher-modal-card--wide {
+  max-width: 920px;
+  max-height: 92vh;
+}
+
+.tn-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 220px) 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .tn-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tn-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tn-btn-new {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.tn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.tn-list-empty {
+  padding: 12px;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.tn-list-btn {
+  width: 100%;
+  text-align: left;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  font: inherit;
+}
+
+.tn-list-item.is-active .tn-list-btn {
+  border-color: #7c3aed;
+  background: #f5f3ff;
+}
+
+.tn-list-title {
+  display: block;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #1e4d7b;
+}
+
+.tn-list-meta {
+  display: block;
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.tn-empty-hint {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.tn-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tn-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tn-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.tn-field-row {
+  display: grid;
+  grid-template-columns: 1fr 120px;
+  gap: 12px;
+}
+
+@media (max-width: 480px) {
+  .tn-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tn-check-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: #334155;
+  cursor: pointer;
+}
+
+.tn-check-wrap[hidden] {
+  display: none;
+}
+
+.tn-grupos-fieldset {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0;
+}
+
+.tn-grupos-fieldset legend {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1e4d7b;
+  padding: 0 6px;
+}
+
+.tn-grupos-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.tn-grupo-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+@media (max-width: 520px) {
+  .tn-grupo-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tn-grupo-vis {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tn-grupo-codigo {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #7c3aed;
+  margin-left: 4px;
+}
+
+.tn-grupo-fecha {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+.tn-grupo-fecha input {
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.82rem;
+}
+
+.tn-sin-grupos {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.tn-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-danger {
+  background: linear-gradient(180deg, #f87171, #dc2626);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.tn-preguntas-fieldset {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0;
+}
+
+.tn-preguntas-fieldset legend {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e4d7b;
+  padding: 0 6px;
+}
+
+.tn-preguntas-hint {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.tn-preguntas-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 42vh;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  padding-right: 4px;
+}
+
+.tn-pregunta-card {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.tn-pregunta-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tn-pregunta-head strong {
+  color: #1e4d7b;
+  font-size: 0.88rem;
+}
+
+.tn-btn-quitar-pregunta {
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tn-pregunta-card textarea.teacher-input {
+  width: 100%;
+  resize: vertical;
+  min-height: 52px;
+  font-family: inherit;
+}
+
+.tn-field--correcta {
+  max-width: 160px;
+}
+
+.tn-opciones-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 560px) {
+  .tn-opciones-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tn-opcion-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tn-opcion-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.tn-opcion-letra {
+  font-weight: 800;
+  color: #7c3aed;
+  min-width: 1.2em;
+}
+
+.tn-fb-label {
+  font-size: 0.72rem;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tn-btn-add-pregunta {
+  width: 100%;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.tn-main {
+  min-width: 0;
 }

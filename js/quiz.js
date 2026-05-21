@@ -2,8 +2,69 @@
   "use strict";
 
   var params = new URLSearchParams(window.location.search);
+  var tnId = params.get("tn");
+  var nivelMaestro = null;
+  var quizOptsPartida = null;
   var temaId = params.get("tema") || "1";
   var modo = params.get("modo") === "dificil" ? "dificil" : "facil";
+
+  if (tnId && typeof nivelMaestroPorId === "function") {
+    nivelMaestro = nivelMaestroPorId(tnId);
+    if (nivelMaestro) {
+      temaId = "1";
+      modo = "facil";
+      quizOptsPartida = { nivelMaestroCustom: true };
+      window.quizConfigPartida = {
+        mostrarJxg: false,
+        titulo: nivelMaestro.titulo
+      };
+    }
+  }
+
+  function partidaUsaMapaJXG() {
+    if (temaId !== "2") {
+      return false;
+    }
+    if (
+      window.quizConfigPartida &&
+      window.quizConfigPartida.mostrarJxg === false
+    ) {
+      return false;
+    }
+    return true;
+  }
+
+  function validarAccesoNivelMaestro() {
+    if (!tnId) {
+      return true;
+    }
+    if (!nivelMaestro) {
+      window.alert("Este nivel no existe o fue eliminado.");
+      window.location.href = "topics.html";
+      return false;
+    }
+    var email =
+      typeof alumnoSesionEmail === "function" ? alumnoSesionEmail() : "";
+    var vinculo =
+      typeof alumnoObtenerGrupoVinculado === "function"
+        ? alumnoObtenerGrupoVinculado(email)
+        : null;
+    if (
+      !vinculo ||
+      !vinculo.grupoId ||
+      !nivelMaestroVisibleParaGrupo(nivelMaestro, vinculo.grupoId)
+    ) {
+      window.alert("Este nivel no está disponible para tu grupo o ya venció.");
+      window.location.href = "topics.html";
+      return false;
+    }
+    if (!nivelMaestroContarPreguntas(nivelMaestro)) {
+      window.alert("Este nivel aún no tiene preguntas. Avísale a tu maestro.");
+      window.location.href = "topics.html";
+      return false;
+    }
+    return true;
+  }
 
   var lista = [];
   var indice = 0;
@@ -134,7 +195,7 @@
     if (typeof QuizJXGMapaFijo === "undefined") {
       return;
     }
-    if (temaId === "2") {
+    if (partidaUsaMapaJXG()) {
       QuizJXGMapaFijo.prepararPregunta(temaId, pregunta);
     } else {
       QuizJXGMapaFijo.ocultar();
@@ -143,7 +204,7 @@
 
   function vistaMapaOpcion(opcion) {
     if (
-      temaId !== "2" ||
+      !partidaUsaMapaJXG() ||
       typeof QuizJXGMapaFijo === "undefined" ||
       !lista[indice]
     ) {
@@ -401,10 +462,19 @@
     if (go) go.hidden = true;
     ocultarSiguiente();
 
-    lista = quizObtenerPreguntas(temaId, modo);
+    if (
+      nivelMaestro &&
+      typeof nivelMaestroObtenerPreguntasPartida === "function"
+    ) {
+      lista = nivelMaestroObtenerPreguntasPartida(nivelMaestro);
+    } else {
+      lista = quizObtenerPreguntas(temaId, modo, quizOptsPartida);
+    }
     if (!lista.length) {
       document.getElementById("quiz-question-text").textContent =
-        "No hay preguntas para este tema.";
+        nivelMaestro
+          ? "Este nivel no tiene preguntas todavía."
+          : "No hay preguntas para este tema.";
       document.getElementById("quiz-options").innerHTML = "";
       if (typeof QuizJXGMapaFijo !== "undefined") {
         QuizJXGMapaFijo.ocultar();
@@ -433,14 +503,29 @@
   }
 
   function iniciar() {
+    if (!validarAccesoNivelMaestro()) {
+      return;
+    }
+    if (nivelMaestro && typeof window.quizPreguntaUsaMapaJXG === "function") {
+      window.quizPreguntaUsaMapaJXG = function () {
+        return false;
+      };
+    }
     registrarBotonReiniciarQuiz();
     registrarVolverTemasQuiz();
     registrarBotonConfirmarQuiz();
 
     var ctx = document.getElementById("quiz-context");
     if (ctx) {
-      ctx.textContent =
-        "Tema " + temaId + " · " + (modo === "dificil" ? "Avanzado" : "Básico");
+      if (nivelMaestro) {
+        ctx.textContent = nivelMaestro.titulo;
+      } else {
+        ctx.textContent =
+          "Tema " +
+          temaId +
+          " · " +
+          (modo === "dificil" ? "Avanzado" : "Básico");
+      }
     }
     reiniciarNivelQuiz();
   }

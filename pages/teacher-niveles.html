@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis niveles — TecDuck</title>
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/game-bg.css">
+  <link rel="stylesheet" href="../css/teacher-dashboard.css">
+  <link rel="stylesheet" href="../css/teacher-niveles.css">
+</head>
+<body class="page-teacher page-teacher-niveles">
+  <div class="teacher-scene" aria-hidden="true"></div>
+
+  <div class="teacher-frame teacher-niveles-frame" id="teacher-niveles-page">
+    <header class="tn-topbar">
+      <a href="teacher-dashboard.html" class="tn-topbar-back" aria-label="Volver al panel">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+        <span>Panel</span>
+      </a>
+      <div class="tn-topbar-brand">
+        <img class="tn-topbar-duck" src="../MAIN DUCK/DUCK/MAIN DUCK.png" alt="" width="48" height="48" onerror="this.style.display='none'" />
+        <div>
+          <h1 class="tn-topbar-title">Mis niveles</h1>
+          <p class="tn-topbar-sub">Preguntas propias para tus grupos</p>
+        </div>
+      </div>
+      <button type="button" class="tn-btn-primary" id="btn-tn-nuevo-header">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Nuevo nivel
+      </button>
+    </header>
+
+    <div class="tn-workspace">
+      <aside class="tn-sidebar" aria-label="Lista de niveles">
+        <div class="tn-sidebar-head">
+          <h2 class="tn-sidebar-title">Tus niveles</h2>
+          <span class="tn-sidebar-badge" id="tn-count-badge">0</span>
+        </div>
+        <button type="button" class="tn-btn-secondary tn-sidebar-new" id="btn-tn-nuevo">
+          <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          Crear nivel
+        </button>
+        <ul id="lista-niveles-maestro" class="tn-level-list"></ul>
+      </aside>
+
+      <main class="tn-editor">
+        <div id="tn-empty-hint" class="tn-welcome">
+          <div class="tn-welcome-visual" aria-hidden="true">
+            <span class="tn-welcome-emoji">📝</span>
+          </div>
+          <h2 class="tn-welcome-title">Arma tu práctica</h2>
+          <p class="tn-welcome-text">Crea enunciados con cuatro opciones, elige la respuesta correcta y compártelo con los grupos que quieras.</p>
+          <button type="button" class="tn-btn-primary" id="btn-tn-welcome">Crear mi primer nivel</button>
+        </div>
+
+        <div id="tn-form-wrap" class="tn-form-panel" hidden>
+          <form id="form-nivel-maestro" class="tn-form">
+            <section class="tn-section">
+              <div class="tn-section-head">
+                <span class="tn-section-num">1</span>
+                <div>
+                  <h3 class="tn-section-title">Información del nivel</h3>
+                  <p class="tn-section-desc">Nombre que verán tus alumnos en Temas</p>
+                </div>
+              </div>
+              <label class="tn-field">
+                <span class="tn-label">Nombre del nivel</span>
+                <input type="text" id="tn-titulo" class="tn-input" maxlength="60" required placeholder="Ej. Repaso de vectores — semana 3" />
+              </label>
+            </section>
+
+            <section class="tn-section">
+              <div class="tn-section-head">
+                <span class="tn-section-num">2</span>
+                <div>
+                  <h3 class="tn-section-title">Preguntas</h3>
+                  <p class="tn-section-desc">Enunciado, cuatro opciones y retroalimentación opcional si fallan</p>
+                </div>
+              </div>
+              <div id="tn-preguntas-list" class="tn-preguntas-list"></div>
+              <button type="button" class="tn-btn-outline" id="btn-tn-add-pregunta">
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+                Agregar otra pregunta
+              </button>
+            </section>
+
+            <section class="tn-section">
+              <div class="tn-section-head">
+                <span class="tn-section-num">3</span>
+                <div>
+                  <h3 class="tn-section-title">Grupos y fecha límite</h3>
+                  <p class="tn-section-desc">Activa los grupos que pueden jugar este nivel</p>
+                </div>
+              </div>
+              <div id="tn-grupos-list" class="tn-grupos-grid"></div>
+            </section>
+
+            <footer class="tn-form-footer">
+              <button type="submit" class="tn-btn-primary tn-btn-primary--lg">Guardar nivel</button>
+              <button type="button" class="tn-btn-ghost-danger" id="btn-tn-eliminar" hidden>Eliminar nivel</button>
+            </footer>
+          </form>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/grupos-clase.js"></script>
+  <script src="../js/teacher-auth.js"></script>
+  <script src="../js/teacher-data.js"></script>
+  <script src="../js/teacher-niveles.js"></script>
+  <script src="../js/teacher-niveles-ui.js"></script>
+</body>
+</html>

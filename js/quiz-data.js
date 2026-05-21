@@ -3326,15 +3326,21 @@ function quizGuardarColasPreguntas(mapa) {
   localStorage.setItem(CLAVE_QUIZ_COLA_PREGUNTAS, JSON.stringify(mapa));
 }
 
-function quizClaveCola(temaId, modo) {
-  return String(temaId || "1") + "_" + String(modo || "facil").toLowerCase();
+function quizClaveCola(temaId, modo, nivelMaestroId) {
+  var clave =
+    String(temaId || "1") + "_" + String(modo || "facil").toLowerCase();
+  if (nivelMaestroId) {
+    clave += "_tn_" + String(nivelMaestroId);
+  }
+  return clave;
 }
 
 /**
  * Devuelve N preguntas sin repetir dentro de la partida ni en partidas
  * siguientes hasta agotar el banco (luego se baraja de nuevo todo el banco).
  */
-function quizObtenerPreguntas(temaId, modo) {
+function quizObtenerPreguntas(temaId, modo, opts) {
+  opts = opts || {};
   var id = String(temaId || "1");
   if (!QUIZ_BANK[id]) {
     return [];
@@ -3344,10 +3350,13 @@ function quizObtenerPreguntas(temaId, modo) {
     m = "facil";
   }
   var banco = QUIZ_BANK[id][m] || [];
-  var n = Math.min(
-    m === "dificil" ? QUIZ_PREGUNTAS_DIFICIL : QUIZ_PREGUNTAS_FACIL,
-    banco.length
-  );
+  var nDefault =
+    m === "dificil" ? QUIZ_PREGUNTAS_DIFICIL : QUIZ_PREGUNTAS_FACIL;
+  var nPedido = parseInt(opts.numPreguntas, 10);
+  var n =
+    !isNaN(nPedido) && nPedido > 0
+      ? Math.min(nPedido, banco.length)
+      : Math.min(nDefault, banco.length);
   if (!n) {
     return [];
   }
@@ -3360,7 +3369,7 @@ function quizObtenerPreguntas(temaId, modo) {
   }
 
   var colas = quizLeerColasPreguntas();
-  var clave = quizClaveCola(id, m);
+  var clave = quizClaveCola(id, m, opts.nivelMaestroId);
   var restantes = colas[clave];
 
   if (!Array.isArray(restantes)) {
