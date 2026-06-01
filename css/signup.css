@@ -86,3 +86,37 @@
 .modal-signup .switch a {
   color: #2b6cb0;
 }
+
+.signup-maestro-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 12px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.signup-maestro-check input {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.signup-temp-tag {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.signup-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(220, 38, 38, 0.12);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+  font-size: 0.88rem;
+  color: #b91c1c;
+}
+
+.signup-error[hidden] {
+  display: none;
+}

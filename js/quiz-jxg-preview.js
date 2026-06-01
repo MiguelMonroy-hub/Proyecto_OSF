@@ -203,9 +203,119 @@
     return base;
   }
 
-  function opcionesTablero() {
+  var BBOX_DEFECTO = [-8, 8, 8, -8];
+
+  /** [xmin, ymax, xmax, ymin] — solo el tablero JSXGraph, no la página. */
+  function bboxSimetrico(half, minHalf) {
+    var h = Math.max(half, minHalf != null ? minHalf : 3);
+    return [-h, h, h, -h];
+  }
+
+  function bboxCuadrante(n, radio) {
+    var r = radio != null && isFinite(radio) ? radio : 5;
+    var pad = 0.75;
+    if (n === 1) {
+      return [-pad, r + pad, r + pad, -pad];
+    }
+    if (n === 2) {
+      return [-r - pad, r + pad, pad, -pad];
+    }
+    if (n === 3) {
+      return [-r - pad, pad, pad, -r - pad];
+    }
+    return [-pad, pad, r + pad, -r - pad];
+  }
+
+  function radioCuadranteDesdeBbox(bb) {
+    return Math.max(
+      Math.abs(bb[2] - bb[0]),
+      Math.abs(bb[1] - bb[3])
+    ) * 0.42;
+  }
+
+  /**
+   * Zoom según contenido: puntos pequeños → acercar; grandes → alejar.
+   * Cuadrante: encuadra solo el cuadrante indicado.
+   */
+  function calcularBoundingBoxEscena(scene) {
+    if (!scene || !scene.tipo) {
+      return BBOX_DEFECTO.slice();
+    }
+    if (scene.boundingbox && scene.boundingbox.length === 4) {
+      return scene.boundingbox.slice();
+    }
+
+    var px;
+    var py;
+    var m;
+
+    switch (scene.tipo) {
+      case "rellenoCuadrante":
+        return bboxCuadrante(scene.cuadrante, scene.radioCuadrante);
+
+      case "puntoProyecciones":
+      case "puntoEtiqueta":
+      case "vectorOrigen":
+      case "vectorOrigenEtiqueta":
+        px = Number(scene.x);
+        py = Number(scene.y);
+        if (!isFinite(px)) {
+          px = 0;
+        }
+        if (!isFinite(py)) {
+          py = 0;
+        }
+        m = Math.max(Math.abs(px), Math.abs(py), 0.25);
+        if (m <= 2.5) {
+          return bboxSimetrico(m + 1.8, 3.5);
+        }
+        if (m <= 7) {
+          return bboxSimetrico(m + 2.5, 5);
+        }
+        return bboxSimetrico(Math.min(22, m * 1.3 + 3), 8);
+
+      case "ejeHighlight":
+        if (scene.cual === "y") {
+          return [-3.5, 9, 3.5, -3.5];
+        }
+        return [-9, 3.5, 9, -3.5];
+
+      case "origenCoords":
+      case "origenEtiqueta":
+        return bboxSimetrico(3.5, 3);
+
+      case "ejemploHorizontal":
+        return bboxSimetrico(6.5, 4);
+
+      case "ejemploVertical":
+        return bboxSimetrico(6, 4);
+
+      default:
+        return BBOX_DEFECTO.slice();
+    }
+  }
+
+  function aplicarBoundingBox(bbox) {
+    var b = brd;
+    if (!b || !bbox || bbox.length !== 4) {
+      return;
+    }
+    try {
+      if (typeof b.setBoundingBox === "function") {
+        b.setBoundingBox(bbox, false);
+      } else {
+        b.attr({ boundingbox: bbox });
+      }
+      b.update();
+    } catch (_e) {
+      /* noop */
+    }
+  }
+
+  function opcionesTablero(bbox) {
+    var bb = bbox && bbox.length === 4 ? bbox : BBOX_DEFECTO;
     return {
-      boundingbox: [-8, 8, 8, -8],
+      boundingbox: bb.slice(),
       axis: true,
       showCopyright: false,
       showNavigation: false,
@@ -242,21 +352,31 @@
     };
   }
 
-  function asegurarTablero() {
-    if (brd) {
-      return brd;
-    }
+  function asegurarTablero(bbox) {
     if (typeof JXG === "undefined") {
       return null;
     }
     document.getElementById(BOX_ID);
-    brd = JXG.JSXGraph.initBoard(BOX_ID, opcionesTablero());
+    if (brd) {
+      if (bbox) {
+        aplicarBoundingBox(bbox);
+      }
+      return brd;
+    }
+    brd = JXG.JSXGraph.initBoard(
+      BOX_ID,
+      opcionesTablero(bbox || BBOX_DEFECTO)
+    );
     return brd;
   }
 
   function pintarEscena(scene) {
-    var b = asegurarTablero();
-    if (!b || !scene) {
+    if (!scene) {
+      return;
+    }
+    var bbox = calcularBoundingBoxEscena(scene);
+    var b = asegurarTablero(bbox);
+    if (!b) {
       return;
     }
 
@@ -266,7 +386,11 @@
 
     if (scene.tipo === "rellenoCuadrante") {
       origenMarcado(b);
-      poligonoCuadrante(b, scene.cuadrante, 8);
+      var rCuad =
+        scene.radioCuadrante != null && isFinite(scene.radioCuadrante)
+          ? scene.radioCuadrante
+          : radioCuadranteDesdeBbox(bbox);
+      poligonoCuadrante(b, scene.cuadrante, rCuad);
       return;
     }
 
@@ -544,7 +668,7 @@
       p.hidden = false;
       p.setAttribute("aria-hidden", "false");
       destruirTablero();
-      asegurarTablero();
+      asegurarTablero(BBOX_DEFECTO);
       limpiarCapaDinamica();
       if (brd) {
         try {
@@ -564,7 +688,7 @@
       }
       var qtext = pregunta.q || "";
       var escena = quizInferEscenaJXGDesdeOpcion(
-        String(temaId || "2"),
+        String(temaId || "1"),
         qtext,
         opcion || {}
       );

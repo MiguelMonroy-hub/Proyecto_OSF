@@ -274,15 +274,44 @@ a.teacher-action-btn {
   padding: 0 4px;
 }
 
+.teacher-select-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.teacher-select-label {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 248, 220, 0.95);
+}
+
 .teacher-select {
   padding: 8px 12px;
   border-radius: 10px;
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  background: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  background-color: #fff;
+  font-family: inherit;
   font-size: 0.88rem;
   font-weight: 600;
   color: #1e3a5f;
   min-width: 160px;
+  max-width: 100%;
+  color-scheme: light;
+  -webkit-text-fill-color: #1e3a5f;
+}
+
+.teacher-select:focus {
+  outline: 2px solid #fef08a;
+  outline-offset: 1px;
+}
+
+.teacher-select option {
+  color: #1e3a5f;
+  background-color: #fff;
 }
 
 .teacher-period {
@@ -367,8 +396,8 @@ a.teacher-action-btn {
 }
 
 .teacher-avatar {
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: linear-gradient(145deg, #fde047, #f59e0b);
   display: flex;
@@ -377,6 +406,42 @@ a.teacher-action-btn {
   font-size: 1.4rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   flex-shrink: 0;
+}
+
+.teacher-avatar--duck {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.teacher-avatar--duck .teacher-avatar-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.teacher-avatar-base {
+  z-index: 1;
+}
+
+.teacher-avatar-shoes {
+  z-index: 2;
+}
+
+.teacher-avatar-neck {
+  z-index: 3;
+}
+
+.teacher-avatar-face {
+  z-index: 4;
+}
+
+.teacher-avatar-head {
+  z-index: 5;
 }
 
 .teacher-student-name {
@@ -465,6 +530,7 @@ a.teacher-action-btn {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
+  align-items: flex-start;
 }
 
 .teacher-detail-title {
@@ -473,9 +539,17 @@ a.teacher-action-btn {
   color: #1e4d7b;
 }
 
+.teacher-detail-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 220px;
+  max-width: 340px;
+}
+
 .teacher-detail-progress {
   flex: 1 1 200px;
-  max-width: 320px;
+  max-width: none;
 }
 
 .teacher-detail-progress label {
@@ -488,8 +562,142 @@ a.teacher-action-btn {
 
 .teacher-detail-body {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: minmax(180px, 240px) 1fr;
   gap: 16px;
+}
+
+.teacher-detail-side-title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.teacher-detail-side-title + .teacher-levels-mini,
+.teacher-detail-side-title + .teacher-intentos {
+  margin-bottom: 14px;
+}
+
+.teacher-intentos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.teacher-intento {
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(30, 77, 123, 0.12);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.teacher-intento:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.teacher-intento.is-selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  background: rgba(239, 246, 255, 0.95);
+}
+
+.teacher-intento:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.teacher-intento-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+}
+
+.teacher-intento-estado {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.15);
+  color: #475569;
+}
+
+.teacher-intento--ok .teacher-intento-estado {
+  background: rgba(22, 163, 74, 0.15);
+  color: #15803d;
+}
+
+.teacher-intento--fail .teacher-intento-estado {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
+.teacher-intento--warn .teacher-intento-estado {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.teacher-intento--curso .teacher-intento-estado {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+
+.teacher-intento-meta {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.teacher-intento .teacher-bar-wrap {
+  margin-top: 0;
+}
+
+.teacher-intento-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.teacher-intento-bar-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.teacher-intento-bar .teacher-bar-wrap {
+  margin-top: 0;
+}
+
+.teacher-intento-empty {
+  font-size: 0.8rem;
+  color: #64748b;
+  padding: 8px 0;
+}
+
+.task-omitida {
+  color: #b45309;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.task-partial {
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.78rem;
 }
 
 @media (max-width: 640px) {
@@ -505,12 +713,39 @@ a.teacher-action-btn {
 }
 
 .teacher-levels-mini li {
-  padding: 8px 10px;
   margin-bottom: 6px;
+}
+
+.teacher-tema-btn {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid transparent;
   border-radius: 8px;
   background: rgba(30, 77, 123, 0.08);
   font-size: 0.8rem;
   font-weight: 600;
+  color: #1e4d7b;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.teacher-tema-btn:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.teacher-tema-btn.is-selected {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.teacher-temas-select {
+  margin-bottom: 4px;
+}
+
+.teacher-modos-select {
+  margin-bottom: 4px;
 }
 
 .teacher-tasks {
@@ -569,22 +804,24 @@ a.teacher-action-btn {
 .teacher-empty {
   text-align: center;
   padding: 24px;
-  color: #64748b;
+  color: #334155;
   font-weight: 600;
+  font-size: 0.95rem;
 }
 
-/* Modal grupos */
-.teacher-modal {
+/* Modal grupos — selector explícito por si game-bg afecta hijos del body */
+body.page-teacher > #teacher-modal-grupos.teacher-modal {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  margin: 0;
 }
 
-.teacher-modal[hidden] {
+body.page-teacher > #teacher-modal-grupos.teacher-modal[hidden] {
   display: none;
 }
 
@@ -592,6 +829,7 @@ a.teacher-action-btn {
   position: absolute;
   inset: 0;
   background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(1.5px);
 }
 
 .teacher-modal-card {
@@ -605,6 +843,10 @@ a.teacher-action-btn {
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+body.page-teacher.teacher-modal-open {
+  overflow: hidden;
 }
 
 .teacher-modal-header {
@@ -676,6 +918,12 @@ a.teacher-action-btn {
   gap: 6px;
   flex: 1;
   min-width: 0;
+  color: #0f172a;
+}
+
+.teacher-grupo-info strong {
+  color: #0f172a;
+  font-size: 0.95rem;
 }
 
 .teacher-grupo-codigo {
@@ -748,6 +996,12 @@ a.teacher-action-btn {
   padding: 0;
   max-height: 200px;
   overflow-y: auto;
+}
+
+.teacher-asignar-empty {
+  padding: 12px;
+  color: #64748b;
+  font-size: 0.88rem;
 }
 
 .teacher-asignar-list li {

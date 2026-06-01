@@ -191,15 +191,16 @@
     return null;
   }
 
-  /** Tema 2: mapa fijo si alguna opción se puede dibujar con JSXGraph. */
+  /** Temas 1 y 2: mapa si alguna opción admite escena JSXGraph. */
   function quizPreguntaUsaMapaJXG(temaId, pregunta) {
-    if (String(temaId) !== "2" || !pregunta) {
+    var tema = String(temaId || "");
+    if ((tema !== "1" && tema !== "2") || !pregunta) {
       return false;
     }
     var opts = pregunta.opts || [];
     var q = pregunta.q || "";
     for (var i = 0; i < opts.length; i++) {
-      if (quizInferEscenaJXGDesdeOpcion("2", q, opts[i])) {
+      if (quizInferEscenaJXGDesdeOpcion(tema, q, opts[i])) {
         return true;
       }
     }

@@ -1,23 +1,16 @@
 /**
- * Niveles personalizados del maestro (localStorage).
+ * Niveles personalizados del maestro (Supabase + caché en memoria).
  */
-var CLAVE_NIVELES_MAESTRO = "tec_duck_teacher_niveles";
-
 function nivelMaestroLeerTodos() {
-  try {
-    var raw = localStorage.getItem(CLAVE_NIVELES_MAESTRO);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
-  }
+  return _nivelMaestroDbCache ? _nivelMaestroDbCache.slice() : [];
 }
 
 function nivelMaestroGuardarTodos(lista) {
-  localStorage.setItem(CLAVE_NIVELES_MAESTRO, JSON.stringify(lista));
+  _nivelMaestroDbCache = Array.isArray(lista) ? lista.slice() : [];
 }
 
 function nivelMaestroGenerarId() {
-  return "tn-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+  return null;
 }
 
 function nivelMaestroGruposVacios() {
@@ -38,12 +31,10 @@ function nivelMaestroFusionarGrupos(existentes) {
   }
   var keys = Object.keys(existentes);
   for (var i = 0; i < keys.length; i++) {
-    if (base[keys[i]]) {
-      base[keys[i]] = {
-        visible: !!existentes[keys[i]].visible,
-        fechaLimite: String(existentes[keys[i]].fechaLimite || "")
-      };
-    }
+    base[keys[i]] = {
+      visible: !!existentes[keys[i]].visible,
+      fechaLimite: String(existentes[keys[i]].fechaLimite || "")
+    };
   }
   return base;
 }
@@ -269,10 +260,11 @@ function nivelMaestroDesdePreguntaGuardada(p) {
 }
 
 function nivelMaestroNormalizar(datos) {
-  var id = datos.id || nivelMaestroGenerarId();
-  var preguntas = nivelMaestroNormalizarListaPreguntas(datos.preguntas, id);
+  var id = datos.id != null ? String(datos.id) : null;
+  var preguntas = nivelMaestroNormalizarListaPreguntas(datos.preguntas, id || "nuevo");
   var item = {
     id: id,
+    dbId: id && !isNaN(parseInt(id, 10)) ? parseInt(id, 10) : datos.dbId || null,
     titulo: String(datos.titulo || "Nivel sin nombre").trim() || "Nivel sin nombre",
     preguntas: preguntas,
     grupos: nivelMaestroFusionarGrupos(datos.grupos),
@@ -285,50 +277,77 @@ function nivelMaestroNormalizar(datos) {
   return item;
 }
 
+async function nivelMaestroCargarDesdeDb(force) {
+  if (typeof nivelMaestroDbCargarTodos !== "function") {
+    return [];
+  }
+  return nivelMaestroDbCargarTodos(!!force);
+}
+
+async function nivelMaestroGuardarAsync(datos) {
+  if (typeof nivelMaestroDbGuardar !== "function") {
+    throw new Error("No está disponible el guardado en base de datos.");
+  }
+  return nivelMaestroDbGuardar(datos);
+}
+
 function nivelMaestroGuardar(datos) {
-  var lista = nivelMaestroLeerTodos();
-  var item = nivelMaestroNormalizar(datos);
-  var idx = -1;
-  for (var i = 0; i < lista.length; i++) {
-    if (lista[i].id === item.id) {
-      idx = i;
-      item.creadoEn = lista[i].creadoEn;
-      if (datos.logo === "" || datos.logo === null) {
-        delete item.logo;
-      } else if (
-        datos.logo === undefined &&
-        !item.logo &&
-        nivelMaestroEsLogoValido(lista[i].logo)
-      ) {
-        item.logo = lista[i].logo;
-      }
-      break;
-    }
+  console.warn(
+    "[nivel-maestro] Usa nivelMaestroGuardarAsync; el guardado síncrono ya no persiste."
+  );
+  return nivelMaestroNormalizar(datos);
+}
+
+async function nivelMaestroEliminarAsync(id) {
+  if (typeof nivelMaestroDbEliminar !== "function") {
+    throw new Error("No está disponible el borrado en base de datos.");
   }
-  if (idx >= 0) {
-    lista[idx] = item;
-  } else {
-    lista.push(item);
-  }
-  nivelMaestroGuardarTodos(lista);
-  return item;
+  await nivelMaestroDbEliminar(id);
 }
 
 function nivelMaestroEliminar(id) {
-  var lista = nivelMaestroLeerTodos().filter(function (n) {
-    return n.id !== id;
-  });
-  nivelMaestroGuardarTodos(lista);
+  console.warn(
+    "[nivel-maestro] Usa nivelMaestroEliminarAsync; el borrado síncrono ya no persiste."
+  );
+  nivelMaestroDbQuitarDeCache(String(id));
 }
 
 function nivelMaestroPorId(id) {
+  if (id == null || id === "") {
+    return null;
+  }
   var lista = nivelMaestroLeerTodos();
+  var buscado = String(id);
   for (var i = 0; i < lista.length; i++) {
-    if (lista[i].id === id) {
+    if (String(lista[i].id) === buscado) {
+      return lista[i];
+    }
+    if (lista[i].dbId != null && String(lista[i].dbId) === buscado) {
       return lista[i];
     }
   }
   return null;
+}
+
+async function nivelMaestroPorIdAsync(id) {
+  if (id == null || id === "") {
+    return null;
+  }
+  var cached = nivelMaestroPorId(id);
+  if (cached) {
+    return cached;
+  }
+  if (typeof nivelMaestroDbCargarUno === "function") {
+    return nivelMaestroDbCargarUno(id);
+  }
+  return null;
+}
+
+async function nivelMaestroParaGrupoAsync(grupoId) {
+  if (typeof nivelMaestroCargarDesdeDb === "function") {
+    await nivelMaestroCargarDesdeDb(true);
+  }
+  return nivelMaestroParaGrupo(grupoId);
 }
 
 function nivelMaestroParseFechaLimite(str) {
@@ -340,10 +359,20 @@ function nivelMaestroParseFechaLimite(str) {
 }
 
 function nivelMaestroAsignacionGrupo(nivel, grupoId) {
-  if (!nivel || !nivel.grupos) {
+  if (!nivel || !nivel.grupos || grupoId == null || grupoId === "") {
     return null;
   }
-  return nivel.grupos[grupoId] || { visible: false, fechaLimite: "" };
+  var gid = String(grupoId);
+  if (nivel.grupos[gid]) {
+    return nivel.grupos[gid];
+  }
+  var keys = Object.keys(nivel.grupos);
+  for (var i = 0; i < keys.length; i++) {
+    if (String(keys[i]) === gid) {
+      return nivel.grupos[keys[i]];
+    }
+  }
+  return { visible: false, fechaLimite: "" };
 }
 
 /** ¿El maestro activó este nivel para el grupo? (sigue en Temas aunque venza) */
@@ -375,12 +404,21 @@ function nivelMaestroParaGrupo(grupoId) {
   if (!grupoId) {
     return [];
   }
+  var vistos = {};
   return nivelMaestroLeerTodos()
     .filter(function (n) {
-      return (
-        nivelMaestroVisibleParaGrupo(n, grupoId) &&
-        nivelMaestroContarPreguntas(n) > 0
-      );
+      var id = String(n.id);
+      if (vistos[id]) {
+        return false;
+      }
+      if (
+        !nivelMaestroVisibleParaGrupo(n, grupoId) ||
+        nivelMaestroContarPreguntas(n) <= 0
+      ) {
+        return false;
+      }
+      vistos[id] = true;
+      return true;
     })
     .sort(function (a, b) {
       return (b.actualizadoEn || 0) - (a.actualizadoEn || 0);

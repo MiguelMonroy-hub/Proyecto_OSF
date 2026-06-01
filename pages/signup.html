@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/pages/">
   <title>Crear cuenta</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/auth-back.css">
@@ -28,11 +29,26 @@
     <label for="email">Correo</label>
     <input type="email" id="email" name="email" autocomplete="email" placeholder="tu@correo.com">
 
+    <label for="pass">Contraseña</label>
+    <input type="password" id="pass" name="pass" placeholder="••••••••" autocomplete="new-password" minlength="6">
+
+    <label class="signup-maestro-check">
+      <input type="checkbox" id="es-maestro" name="es-maestro">
+      <span>Soy maestro <span class="signup-temp-tag">(temporal)</span></span>
+    </label>
+
+    <p id="signup-error" class="signup-error" hidden></p>
+
     <button type="button" class="btn-submit" onclick="crearCuenta()">Registrarse</button>
 
     <p class="switch">¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a></p>
   </div>
 
+  <script src="../js/rutas.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/auth-service.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/register.js"></script>
 </body>

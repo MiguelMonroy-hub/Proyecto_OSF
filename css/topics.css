@@ -292,6 +292,18 @@
 }
 
 /* Nivel avanzado bloqueado hasta pasar el básico */
+.level-dificil-cargando {
+  cursor: wait !important;
+  opacity: 0.85;
+  pointer-events: none;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.15) !important;
+}
+
+.level-dificil-cargando .lvl-go {
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
 .level-dificil-locked {
   cursor: not-allowed !important;
   opacity: 0.72;

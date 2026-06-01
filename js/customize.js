@@ -1,117 +1,100 @@
 /* Personalización: solo ítems que existen en el inventario (tienda) */
-var CLAVE = "tec_duck_personaje";
+var _outfitBorrador = null;
+var _outfitGuardadoJson = "";
 
-function valoresPorDefecto() {
-  return {
-    base: "MAIN DUCK.png",
-    face: "",
-    head: "",
-    neck: "",
-    shoes: ""
-  };
+function hayCambiosSinGuardar() {
+  return duckOutfitAString(_outfitBorrador) !== _outfitGuardadoJson;
 }
 
-function cargarOutfit() {
-  var raw = localStorage.getItem(CLAVE);
-  if (!raw) {
-    return valoresPorDefecto();
+function mostrarMensajeGuardado(texto, esError) {
+  var ok = document.getElementById("customize-save-msg");
+  var err = document.getElementById("customize-save-error");
+  if (ok) {
+    ok.hidden = !!esError;
   }
-  try {
-    var o = JSON.parse(raw);
-    var d = valoresPorDefecto();
-    d.base = o.base || d.base;
-    d.face = o.face || "";
-    d.head = o.head || "";
-    d.neck = o.neck || "";
-    d.shoes = o.shoes || "";
-    return d;
-  } catch (e) {
-    return valoresPorDefecto();
+  if (err) {
+    err.hidden = !esError;
+    err.textContent = esError ? texto : "";
+  }
+  if (!esError && ok) {
+    ok.hidden = false;
+    setTimeout(function () {
+      if (!hayCambiosSinGuardar()) {
+        ok.hidden = true;
+      }
+    }, 2500);
   }
 }
 
-function guardarOutfit(outfit) {
-  localStorage.setItem(CLAVE, JSON.stringify(outfit));
+function actualizarBotonGuardar() {
+  var btn = document.getElementById("btn-guardar-pato");
+  if (btn) {
+    btn.disabled = !hayCambiosSinGuardar();
+  }
+  if (hayCambiosSinGuardar()) {
+    mostrarMensajeGuardado("", false);
+    var ok = document.getElementById("customize-save-msg");
+    if (ok) {
+      ok.hidden = true;
+    }
+  }
 }
 
-function rutaBase(archivo) {
-  return "../MAIN DUCK/DUCK/" + archivo;
-}
-
-function rutaEnCarpeta(carpeta, archivo) {
-  return "../MAIN DUCK/" + carpeta + "/" + archivo;
+function marcarOutfitComoGuardado() {
+  _outfitGuardadoJson = duckOutfitAString(_outfitBorrador);
+  actualizarBotonGuardar();
 }
 
 function aplicarVistaPrevia(outfit) {
-  var elBase = document.getElementById("img-base");
-  var elFace = document.getElementById("img-face");
-  var elHead = document.getElementById("img-head");
-  var elNeck = document.getElementById("img-neck");
-  var elShoes = document.getElementById("img-shoes");
-
-  elBase.src = rutaBase(outfit.base);
-
-  if (outfit.face) {
-    elFace.src = rutaEnCarpeta("FACE", outfit.face);
-    elFace.hidden = false;
-  } else {
-    elFace.removeAttribute("src");
-    elFace.hidden = true;
-  }
-
-  if (outfit.head) {
-    elHead.src = rutaEnCarpeta("HEAD", outfit.head);
-    elHead.hidden = false;
-  } else {
-    elHead.removeAttribute("src");
-    elHead.hidden = true;
-  }
-
-  if (outfit.neck) {
-    elNeck.src = rutaEnCarpeta("NECK", outfit.neck);
-    elNeck.hidden = false;
-  } else {
-    elNeck.removeAttribute("src");
-    elNeck.hidden = true;
-  }
-
-  if (outfit.shoes) {
-    elShoes.src = rutaEnCarpeta("SHOES", outfit.shoes);
-    elShoes.hidden = false;
-  } else {
-    elShoes.removeAttribute("src");
-    elShoes.hidden = true;
-  }
+  duckOutfitPintarEnIds(DUCK_OUTFIT_IDS_CUSTOMIZE, outfit);
 }
 
-function ajustarOutfitAlInventario(outfit) {
-  duckInvMigrar();
-  var o = {
-    base: outfit.base || "MAIN DUCK.png",
-    face: outfit.face || "",
-    head: outfit.head || "",
-    neck: outfit.neck || "",
-    shoes: outfit.shoes || ""
-  };
-
-  if (!duckTengoId(duckIdDesdePieza("base", o.base))) {
-    o.base = "MAIN DUCK.png";
-  }
-  if (o.face && !duckTengoId(duckIdDesdePieza("face", o.face))) {
-    o.face = "";
-  }
-  if (o.head && !duckTengoId(duckIdDesdePieza("head", o.head))) {
-    o.head = "";
-  }
-  if (o.neck && !duckTengoId(duckIdDesdePieza("neck", o.neck))) {
-    o.neck = "";
-  }
-  if (o.shoes && !duckTengoId(duckIdDesdePieza("shoes", o.shoes))) {
-    o.shoes = "";
+async function guardarPatoPersonalizado() {
+  var btn = document.getElementById("btn-guardar-pato");
+  if (!hayCambiosSinGuardar()) {
+    return true;
   }
 
-  guardarOutfit(o);
-  return o;
+  _outfitBorrador = duckOutfitAjustarAlInventario(
+    _outfitBorrador || duckOutfitLeerLocal()
+  );
+  aplicarVistaPrevia(_outfitBorrador);
+  duckOutfitGuardarLocal(_outfitBorrador, Date.now());
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Guardando…";
+  }
+
+  var ok = true;
+  var errorNube = "";
+  if (typeof duckAvatarSincronizar === "function") {
+    var syncRes = await duckAvatarSincronizar(_outfitBorrador);
+    if (syncRes && typeof syncRes.ok === "boolean") {
+      ok = syncRes.ok;
+      errorNube = syncRes.error || "";
+    } else {
+      ok = !!syncRes;
+    }
+  }
+
+  if (btn) {
+    btn.textContent = "Guardar pato";
+  }
+
+  if (ok) {
+    marcarOutfitComoGuardado();
+    mostrarMensajeGuardado("¡Pato guardado!", false);
+  } else {
+    actualizarBotonGuardar();
+    mostrarMensajeGuardado(
+      errorNube ||
+        "No se pudo guardar en la nube. Revisa tu conexión e inténtalo de nuevo.",
+      true
+    );
+  }
+
+  return ok;
 }
 
 function vaciarOpts(panel) {
@@ -230,7 +213,7 @@ function enlazarPaneles() {
         return;
       }
 
-      var outfit = cargarOutfit();
+      var outfit = Object.assign({}, _outfitBorrador || duckOutfitLeerLocal());
       if (grupo === "base") {
         outfit.base = valor || "MAIN DUCK.png";
       }
@@ -247,9 +230,9 @@ function enlazarPaneles() {
         outfit.shoes = valor;
       }
 
-      outfit = ajustarOutfitAlInventario(outfit);
-      guardarOutfit(outfit);
-      aplicarVistaPrevia(outfit);
+      _outfitBorrador = duckOutfitAjustarAlInventario(outfit);
+      aplicarVistaPrevia(_outfitBorrador);
+      actualizarBotonGuardar();
 
       var todos = this.querySelectorAll(".opt, .opt-none");
       for (var i = 0; i < todos.length; i++) {
@@ -260,18 +243,84 @@ function enlazarPaneles() {
   }
 }
 
+function enlazarGuardar() {
+  var btn = document.getElementById("btn-guardar-pato");
+  if (!btn) {
+    return;
+  }
+  btn.addEventListener("click", function () {
+    guardarPatoPersonalizado();
+  });
+}
+
+function enlazarNavegacion() {
+  var volver = document.querySelector(".customize-nav-btn--topics");
+  if (!volver) {
+    return;
+  }
+  volver.addEventListener("click", function (ev) {
+    ev.preventDefault();
+    var destino =
+      typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+
+    function ir() {
+      window.location.href = destino;
+    }
+
+    if (hayCambiosSinGuardar()) {
+      var salir = window.confirm(
+        "Tienes cambios sin guardar. ¿Salir sin guardar?"
+      );
+      if (!salir) {
+        return;
+      }
+    }
+
+    ir();
+  });
+}
+
+function montarInterfaz(outfit) {
+  _outfitBorrador = duckOutfitAjustarAlInventario(outfit);
+  marcarOutfitComoGuardado();
+  aplicarVistaPrevia(_outfitBorrador);
+  construirPanelBase(_outfitBorrador);
+  construirPanelAccesorio("face", "face", _outfitBorrador, "face");
+  construirPanelAccesorio("head", "head", _outfitBorrador, "head");
+  construirPanelAccesorio("neck", "neck", _outfitBorrador, "neck");
+  construirPanelAccesorio("shoes", "shoes", _outfitBorrador, "shoes");
+  enlazarPaneles();
+  enlazarGuardar();
+  enlazarNavegacion();
+}
+
 function iniciar() {
   duckInvMigrar();
-  var outfit = ajustarOutfitAlInventario(cargarOutfit());
-  aplicarVistaPrevia(outfit);
+  var arranque = Promise.resolve();
+  if (typeof initSupabase === "function") {
+    arranque = initSupabase();
+  }
+  arranque = arranque.then(function () {
+    if (typeof duckEconomiaSyncDesdeDb === "function") {
+      return duckEconomiaSyncDesdeDb().catch(function (e) {
+        console.warn("[customize] economia:", e);
+      });
+    }
+  });
+  arranque = arranque.then(function () {
+    if (typeof duckAvatarResolverOutfit === "function") {
+      return duckAvatarResolverOutfit();
+    }
+  });
 
-  construirPanelBase(outfit);
-  construirPanelAccesorio("face", "face", outfit, "face");
-  construirPanelAccesorio("head", "head", outfit, "head");
-  construirPanelAccesorio("neck", "neck", outfit, "neck");
-  construirPanelAccesorio("shoes", "shoes", outfit, "shoes");
-
-  enlazarPaneles();
+  arranque
+    .then(function () {
+      montarInterfaz(duckOutfitLeerLocal());
+    })
+    .catch(function (e) {
+      console.warn("No se pudo cargar el avatar:", e);
+      montarInterfaz(duckOutfitLeerLocal());
+    });
 }
 
 if (document.readyState === "loading") {

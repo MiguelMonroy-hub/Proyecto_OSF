@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/pages/">
   <title>Quiz</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
@@ -10,6 +11,55 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraph.css">
 </head>
 <body class="page-quiz">
+  <script>
+    (function () {
+      function textoContextoQuizDesdeUrl() {
+        var search = window.location.search || "";
+        if (!search && window.location.href.indexOf("?") >= 0) {
+          search = "?" + window.location.href.split("?")[1].split("#")[0];
+        }
+        var params = new URLSearchParams(search);
+        if (params.get("tn")) {
+          return "";
+        }
+        var tema = String(params.get("tema") || "1").trim() || "1";
+        var modo =
+          String(params.get("modo") || "facil").toLowerCase() === "dificil"
+            ? "Avanzado"
+            : "Básico";
+        return "Tema " + tema + " · " + modo;
+      }
+      function pintarContextoInicial() {
+        var texto = textoContextoQuizDesdeUrl();
+        if (!texto) {
+          return;
+        }
+        var el = document.getElementById("quiz-context");
+        if (el) {
+          el.textContent = texto;
+        }
+      }
+      document.addEventListener("DOMContentLoaded", pintarContextoInicial);
+      window.addEventListener("pageshow", pintarContextoInicial);
+    })();
+  </script>
+  <div id="quiz-loading-overlay" class="quiz-loading-overlay" aria-live="polite" aria-label="Cargando nivel">
+    <div class="quiz-loading-card">
+      <img
+        class="quiz-loading-duck"
+        src="../MAIN DUCK/DUCK/MAIN DUCK.png"
+        alt="Pato TecDuck"
+        width="86"
+        height="86"
+        onerror="this.hidden=true; var fb=document.getElementById('quiz-loading-duck-fallback'); if (fb) fb.hidden=false;"
+      />
+      <span id="quiz-loading-duck-fallback" class="quiz-loading-duck-fallback" hidden aria-hidden="true">🦆</span>
+      <span class="quiz-loading-brand">TecDuck</span>
+      <span class="quiz-loading-main">Cargando la tecduck-aventura</span>
+      <span class="quiz-loading-sub">Preparando preguntas, mapa y progreso...</span>
+      <span class="quiz-loading-bar" aria-hidden="true"><span class="quiz-loading-bar-fill"></span></span>
+    </div>
+  </div>
   <div class="quiz-top">
     <div class="quiz-top-left">
       <span id="quiz-context" class="quiz-context"></span>
@@ -48,14 +98,21 @@
     </button>
   </nav>
 
+  <script src="../js/rutas.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/auth-service.js"></script>
   <script src="../js/duck-catalog.js"></script>
+  <script src="../js/duck-economia-sync.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-niveles.js"></script>
+  <script src="../js/teacher-niveles-db.js"></script>
   <script src="../js/topic-progress.js"></script>
   <script src="../js/quiz-data.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraphcore.js"></script>
   <script src="../js/quiz-option-jxg.js"></script>
   <script src="../js/quiz-jxg-preview.js"></script>
-  <script src="../js/quiz.js"></script>
+  <script src="../js/quiz.js?v=20260529"></script>
 </body>
 </html>

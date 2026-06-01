@@ -1,14 +1,13 @@
 function obtenerMonedas() {
-  var guardado = localStorage.getItem(TEC_DUCK_STORAGE_COINS);
-  if (guardado === null) {
-    return 725;
-  }
-  var n = parseInt(guardado, 10);
-  return isNaN(n) ? 725 : n;
+  return typeof duckObtenerSaldoMonedas === "function" ? duckObtenerSaldoMonedas() : 0;
 }
 
 function guardarMonedas(cantidad) {
-  localStorage.setItem(TEC_DUCK_STORAGE_COINS, String(cantidad));
+  if (typeof duckEconomiaAplicarSaldoLocal === "function") {
+    duckEconomiaAplicarSaldoLocal(cantidad);
+  } else {
+    localStorage.setItem(TEC_DUCK_STORAGE_COINS, String(cantidad));
+  }
 }
 
 function pintarMonedas(cantidad) {
@@ -68,6 +67,8 @@ function crearTarjetaTienda(entry) {
   var img = document.createElement("img");
   img.src = duckSrcDesdeEntrada(entry);
   img.alt = entry.label;
+  img.decoding = "async";
+  img.loading = entry.cat === "shoes" ? "eager" : "lazy";
 
   var h3 = document.createElement("h3");
   h3.textContent = entry.label;
@@ -89,11 +90,18 @@ function crearTarjetaTienda(entry) {
   return art;
 }
 
-function iniciarTienda() {
+async function iniciarTienda() {
+  if (typeof initSupabase === "function") {
+    await initSupabase();
+  }
   duckInvMigrar();
 
-  if (localStorage.getItem(TEC_DUCK_STORAGE_COINS) === null) {
-    guardarMonedas(725);
+  if (typeof duckEconomiaSyncDesdeDb === "function") {
+    try {
+      await duckEconomiaSyncDesdeDb();
+    } catch (e) {
+      console.warn("[shop] sync:", e);
+    }
   }
 
   var monedas = obtenerMonedas();
@@ -107,47 +115,65 @@ function iniciarTienda() {
   grid.innerHTML = "";
 
   for (var i = 0; i < DUCK_CATALOG.length; i++) {
-    var entry = DUCK_CATALOG[i];
-    var card = crearTarjetaTienda(entry);
-    grid.appendChild(card);
+    (function (entry) {
+      var card = crearTarjetaTienda(entry);
+      grid.appendChild(card);
 
-    if (duckTengoId(entry.id)) {
-      marcarTarjetaComprada(card);
-      continue;
-    }
-
-    var precio = entry.price;
-    var btn = card.querySelector(".btn-buy");
-
-    btn.addEventListener("click", function (ev) {
-      var c = ev.target.closest(".item-card");
-      var pid = c.getAttribute("data-id");
-      var pprecio = parseInt(c.getAttribute("data-price"), 10);
-      var lista = duckInvObtener();
-
-      if (duckTengoId(pid)) {
+      if (duckTengoId(entry.id)) {
+        marcarTarjetaComprada(card);
         return;
       }
 
-      var m = obtenerMonedas();
-      if (m < pprecio) {
-        alert("No tienes suficientes monedas.");
-        return;
-      }
+      var precio = entry.price;
+      var btn = card.querySelector(".btn-buy");
 
-      m = m - pprecio;
-      lista.push(pid);
-      guardarMonedas(m);
-      duckInvGuardar(lista);
+      btn.addEventListener("click", async function () {
+        if (duckTengoId(entry.id)) {
+          return;
+        }
 
-      pintarMonedas(m);
-      marcarTarjetaComprada(c);
-      actualizarBotonesComprar();
-    });
+        btn.disabled = true;
+        btn.textContent = "…";
 
-    btn.disabled = monedas < precio;
-    btn.textContent = monedas < precio ? "No alcanza" : "Comprar";
+        if (typeof duckEconomiaComprarItem === "function") {
+          var res = await duckEconomiaComprarItem(entry.id);
+          if (!res.ok) {
+            alert(res.error || "No se pudo completar la compra.");
+            actualizarBotonesComprar();
+            return;
+          }
+          pintarMonedas(res.saldo);
+          marcarTarjetaComprada(card);
+          actualizarBotonesComprar();
+          return;
+        }
+
+        var m = obtenerMonedas();
+        if (m < precio) {
+          alert("No tienes suficientes monedas.");
+          actualizarBotonesComprar();
+          return;
+        }
+        m = m - precio;
+        var lista = duckInvObtener();
+        lista.push(entry.id);
+        guardarMonedas(m);
+        duckInvGuardar(lista);
+        pintarMonedas(m);
+        marcarTarjetaComprada(card);
+        actualizarBotonesComprar();
+      });
+
+      btn.disabled = monedas < precio;
+      btn.textContent = monedas < precio ? "No alcanza" : "Comprar";
+    })(DUCK_CATALOG[i]);
   }
+
+  setTimeout(function () {
+    if (typeof duckAvatarResolverOutfit === "function") {
+      duckAvatarResolverOutfit();
+    }
+  }, 100);
 }
 
 if (document.readyState === "loading") {

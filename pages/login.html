@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/pages/">
   <title>Iniciar sesión</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/auth-back.css">
@@ -30,11 +31,18 @@
       <a href="#">¿Olvidaste tu contraseña?</a>
     </div>
 
+    <p id="login-error" class="join-error" hidden></p>
+
     <button type="button" class="btn-submit" onclick="entrar()">Entrar</button>
 
     <p class="switch">¿No tienes cuenta? <a href="signup.html">Crear cuenta</a></p>
   </div>
 
+  <script src="../js/rutas.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/auth-service.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-auth.js"></script>
   <script src="../js/login.js"></script>

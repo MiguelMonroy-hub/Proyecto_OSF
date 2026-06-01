@@ -4,7 +4,6 @@
 */
 body.page-topics,
 body.page-customize,
-body.page-levels,
 body.page-quiz,
 body.page-shop {
   background-image: url("../MAIN DUCK/BACKGROUND/background_1.png");
@@ -24,7 +23,6 @@ body.page-teacher {
 
 body.page-topics::before,
 body.page-customize::before,
-body.page-levels::before,
 body.page-quiz::before,
 body.page-shop::before,
 body.page-teacher::before {
@@ -37,10 +35,15 @@ body.page-teacher::before {
 
 body.page-topics > *,
 body.page-customize > *,
-body.page-levels > *,
 body.page-quiz > *,
-body.page-shop > *,
-body.page-teacher > * {
+body.page-shop > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Solo capas de contenido; los modales deben poder usar position: fixed */
+body.page-teacher > .teacher-scene,
+body.page-teacher > .teacher-frame {
   position: relative;
   z-index: 1;
 }
@@ -48,10 +51,6 @@ body.page-teacher > * {
 body.page-topics::before,
 body.page-customize::before {
   background: rgba(160, 210, 140, 0.45);
-}
-
-body.page-levels::before {
-  background: rgba(20, 30, 55, 0.78);
 }
 
 body.page-quiz::before {

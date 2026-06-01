@@ -66,7 +66,7 @@
         "</span>";
     } else {
       nivelHtml =
-        '<a href="quiz.html?tn=' +
+        '<a href="/pages/quiz?tn=' +
         encodeURIComponent(nivel.id) +
         '" class="level-btn level-facil">' +
         '<span class="lvl-badge">A</span>' +
@@ -105,13 +105,32 @@
       nivelHtml +
       "</div></div>";
 
+    if (!vencido) {
+      var play = card.querySelector("a.level-facil");
+      if (play) {
+        play.setAttribute(
+          "href",
+          "/pages/quiz?tn=" + encodeURIComponent(nivel.id)
+        );
+        play.addEventListener("click", function (ev) {
+          ev.preventDefault();
+          window.location.assign(
+            "/pages/quiz?tn=" + encodeURIComponent(nivel.id)
+          );
+        });
+      }
+    }
+
     return card;
   }
 
-  function pintar() {
+  var pintarSeq = 0;
+
+  async function pintar() {
     if (typeof nivelMaestroParaGrupo !== "function") {
       return;
     }
+    var seq = ++pintarSeq;
     var seccion = document.getElementById("topics-maestro-niveles");
     var grid = document.getElementById("topics-maestro-grid");
     if (!grid) {
@@ -120,12 +139,14 @@
 
     quitarTarjetasMaestro(grid);
 
-    var email =
-      typeof alumnoSesionEmail === "function" ? alumnoSesionEmail() : "";
     var vinculo =
-      typeof alumnoObtenerGrupoVinculado === "function"
-        ? alumnoObtenerGrupoVinculado(email)
+      typeof alumnoObtenerGrupoVinculadoAsync === "function"
+        ? await alumnoObtenerGrupoVinculadoAsync()
         : null;
+
+    if (seq !== pintarSeq) {
+      return;
+    }
 
     if (!vinculo || !vinculo.grupoId) {
       if (seccion) {
@@ -134,7 +155,25 @@
       return;
     }
 
-    var niveles = nivelMaestroParaGrupo(vinculo.grupoId);
+    if (typeof initSupabase === "function") {
+      await initSupabase();
+    }
+
+    if (seq !== pintarSeq) {
+      return;
+    }
+
+    var niveles =
+      typeof nivelMaestroParaGrupoAsync === "function"
+        ? await nivelMaestroParaGrupoAsync(vinculo.grupoId)
+        : nivelMaestroParaGrupo(vinculo.grupoId);
+
+    if (seq !== pintarSeq) {
+      return;
+    }
+
+    quitarTarjetasMaestro(grid);
+
     if (!niveles.length) {
       if (seccion) {
         seccion.hidden = true;
@@ -153,8 +192,8 @@
     grid.appendChild(frag);
   }
 
-  function iniciar() {
-    pintar();
+  async function iniciar() {
+    await pintar();
   }
 
   if (document.readyState === "loading") {

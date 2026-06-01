@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/pages/">
   <title>Personalizar pato</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
@@ -10,8 +11,18 @@
   <link rel="stylesheet" href="../css/topics.css">
 </head>
 <body class="page-customize">
+  <nav class="customize-top-nav" aria-label="Navegación">
+    <a href="topics.html" class="customize-nav-btn customize-nav-btn--topics">
+      <svg class="customize-nav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
+        <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+      </svg>
+      <span class="customize-nav-label">Volver a temas</span>
+    </a>
+    <a href="shop.html" class="btn btn-blue topics-pill customize-top-shop">Tienda</a>
+  </nav>
+
   <h1>Personalizar pato</h1>
-  <p class="sub">Solo aparecen piezas que ya compraste en la tienda (el pato <strong>normal</strong> es gratis).</p>
+  <p class="sub">Solo aparecen piezas que ya compraste en la tienda.</p>
 
   <div class="preview-wrap">
     <div class="duck-stack" id="duck-stack">
@@ -53,17 +64,24 @@
     <div class="opts"></div>
   </div>
 
-  <nav class="customize-nav" aria-label="Navegación">
-    <a href="topics.html" class="customize-nav-btn customize-nav-btn--topics">
-      <svg class="customize-nav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
-        <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-      </svg>
-      <span class="customize-nav-label">Volver a temas</span>
-    </a>
-    <a href="shop.html" class="btn btn-blue topics-pill">Tienda</a>
-  </nav>
+  <div class="customize-actions">
+    <button type="button" id="btn-guardar-pato" class="btn btn-green customize-save-btn" disabled>
+      Guardar pato
+    </button>
+    <p id="customize-save-msg" class="customize-save-msg" hidden role="status">¡Pato guardado!</p>
+    <p id="customize-save-error" class="customize-save-error" hidden role="alert"></p>
+  </div>
 
+  <script src="../js/rutas.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/auth-service.js"></script>
+  <script src="../js/grupos-clase.js"></script>
   <script src="../js/duck-catalog.js"></script>
+  <script src="../js/duck-outfit.js"></script>
+  <script src="../js/duck-economia-sync.js"></script>
+  <script src="../js/duck-avatar-sync.js"></script>
   <script src="../js/customize.js"></script>
 </body>
 </html>

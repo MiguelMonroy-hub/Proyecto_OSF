@@ -1,28 +1,49 @@
 (function () {
   "use strict";
 
-  var params = new URLSearchParams(window.location.search);
-  var tnId = params.get("tn");
+  var tnId = null;
   var nivelMaestro = null;
   var quizOptsPartida = null;
-  var temaId = params.get("tema") || "1";
-  var modo = params.get("modo") === "dificil" ? "dificil" : "facil";
+  var temaId = "1";
+  var modo = "facil";
 
-  if (tnId && typeof nivelMaestroPorId === "function") {
-    nivelMaestro = nivelMaestroPorId(tnId);
-    if (nivelMaestro) {
-      temaId = "1";
-      modo = "facil";
-      quizOptsPartida = { nivelMaestroCustom: true };
-      window.quizConfigPartida = {
-        mostrarJxg: false,
-        titulo: nivelMaestro.titulo
-      };
+  function quizSearchParams() {
+    var search = window.location.search || "";
+    if (!search && window.location.href.indexOf("?") >= 0) {
+      search = "?" + window.location.href.split("?")[1].split("#")[0];
+    }
+    return new URLSearchParams(search);
+  }
+
+  function quizLeerParamsPartida() {
+    var params = quizSearchParams();
+    var modoRaw = String(params.get("modo") || "facil")
+      .trim()
+      .toLowerCase();
+    return {
+      tnId: params.get("tn"),
+      temaId: String(params.get("tema") || "1").trim() || "1",
+      modo: modoRaw === "dificil" ? "dificil" : "facil"
+    };
+  }
+
+  function aplicarParamsPartida(conf) {
+    conf = conf || quizLeerParamsPartida();
+    tnId = conf.tnId;
+    temaId = conf.temaId;
+    modo = conf.modo;
+    nivelMaestro = null;
+    quizOptsPartida = null;
+    if (window.quizConfigPartida) {
+      delete window.quizConfigPartida;
     }
   }
 
+  aplicarParamsPartida();
+
   function partidaUsaMapaJXG() {
-    if (temaId !== "2") {
+    var t = String(temaId);
+    if (t !== "1" && t !== "2") {
       return false;
     }
     if (
@@ -34,29 +55,78 @@
     return true;
   }
 
-  function validarAccesoNivelMaestro() {
+  /** Básico: vista al elegir opción; avanzado: solo al confirmar acierto. */
+  function jxgVistaAlSeleccionarOpcion() {
+    return modo === "facil";
+  }
+
+  function actualizarHintMapaJXG(pregunta) {
+    var hint = document.querySelector(".quiz-jxg-panel-hint");
+    if (!hint || !pregunta) {
+      return;
+    }
+    if (
+      !partidaUsaMapaJXG() ||
+      typeof quizPreguntaUsaMapaJXG !== "function" ||
+      !quizPreguntaUsaMapaJXG(temaId, pregunta)
+    ) {
+      return;
+    }
+    hint.textContent =
+      modo === "dificil"
+        ? "Plano de coordenadas — se dibujará al confirmar la respuesta correcta"
+        : "Plano de coordenadas — elige una opción para verla dibujada";
+  }
+
+  function reiniciarMapaPreguntaActual() {
+    if (!lista[indice]) {
+      return;
+    }
+    prepararMapaPregunta(lista[indice]);
+  }
+
+  async function validarAccesoTemaModo() {
+    if (tnId || modo !== "dificil") {
+      return true;
+    }
+    if (typeof quizProgressCargarDesbloqueosTemas === "function") {
+      await quizProgressCargarDesbloqueosTemas();
+    }
+    if (
+      typeof isDificilDesbloqueado === "function" &&
+      !isDificilDesbloqueado(temaId)
+    ) {
+      window.alert(
+        "Completa el nivel básico de este tema antes de jugar el avanzado."
+      );
+      window.location.href =
+        typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      return false;
+    }
+    return true;
+  }
+
+  async function validarAccesoNivelMaestro() {
     if (!tnId) {
       return true;
     }
     if (!nivelMaestro) {
       window.alert("Este nivel no existe o fue eliminado.");
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
       return false;
     }
-    var email =
-      typeof alumnoSesionEmail === "function" ? alumnoSesionEmail() : "";
     var vinculo =
-      typeof alumnoObtenerGrupoVinculado === "function"
-        ? alumnoObtenerGrupoVinculado(email)
+      typeof alumnoObtenerGrupoVinculadoAsync === "function"
+        ? await alumnoObtenerGrupoVinculadoAsync()
         : null;
     if (!vinculo || !vinculo.grupoId) {
       window.alert("Este nivel no está disponible para tu grupo.");
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
       return false;
     }
     if (!nivelMaestroVisibleParaGrupo(nivelMaestro, vinculo.grupoId)) {
       window.alert("Este nivel no está disponible para tu grupo.");
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
       return false;
     }
     if (
@@ -64,12 +134,12 @@
       nivelMaestroFechaVencida(nivelMaestro, vinculo.grupoId)
     ) {
       window.alert("La fecha límite de este nivel ya pasó. Ya no puedes jugarlo.");
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
       return false;
     }
     if (!nivelMaestroContarPreguntas(nivelMaestro)) {
       window.alert("Este nivel aún no tiene preguntas. Avísale a tu maestro.");
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
       return false;
     }
     return true;
@@ -88,6 +158,219 @@
   var erroresOpcionIncorrectaEstaPregunta = 0;
   /** Índice de opción elegida pendiente de confirmar (null = ninguna). */
   var seleccionPendienteIdx = null;
+  var _quizSync = {
+    porIndice: {},
+    preguntasOk: 0,
+    monedasGanadas: 0,
+    preguntaInicioMs: Date.now(),
+    finalizado: false,
+    pausado: false
+  };
+
+  function reiniciarQuizSync() {
+    _quizSync = {
+      porIndice: {},
+      preguntasOk: 0,
+      monedasGanadas: 0,
+      preguntaInicioMs: Date.now(),
+      finalizado: false,
+      pausado: false
+    };
+  }
+
+  function tiempoSegundosPreguntaActual() {
+    return Math.max(
+      1,
+      Math.round((Date.now() - (_quizSync.preguntaInicioMs || Date.now())) / 1000)
+    );
+  }
+
+  function textoPreguntaActual() {
+    var p = lista[indice];
+    return p ? String(p.q || "").slice(0, 220) : "";
+  }
+
+  function registrarErrorPreguntaActual() {
+    var prev = _quizSync.porIndice[indice];
+    _quizSync.porIndice[indice] = {
+      indice: indice,
+      ok: false,
+      errores: erroresOpcionIncorrectaEstaPregunta,
+      tiempo: prev ? prev.tiempo : tiempoSegundosPreguntaActual(),
+      texto: textoPreguntaActual(),
+      contestada: false,
+      omitida: false
+    };
+  }
+
+  function registrarActividadPregunta(ok, texto) {
+    _quizSync.porIndice[indice] = {
+      indice: indice,
+      ok: !!ok,
+      errores: erroresOpcionIncorrectaEstaPregunta,
+      tiempo: tiempoSegundosPreguntaActual(),
+      texto: String(texto || "").slice(0, 220),
+      contestada: true,
+      omitida: false
+    };
+    if (ok) {
+      _quizSync.preguntasOk += 1;
+    }
+  }
+
+  function construirActividadParaGuardar(estadoPartida) {
+    var act = [];
+    var i;
+    for (i = 0; i < lista.length; i++) {
+      var entry = _quizSync.porIndice[i];
+      if (entry) {
+        act.push({
+          indice: entry.indice,
+          ok: !!entry.ok,
+          errores: entry.errores || 0,
+          tiempo: entry.tiempo || 0,
+          texto: entry.texto || "",
+          contestada: entry.contestada !== false,
+          omitida: !!entry.omitida
+        });
+        continue;
+      }
+      if (estadoPartida === "GAME_OVER") {
+        act.push({
+          indice: i,
+          ok: false,
+          errores: 0,
+          tiempo: 0,
+          texto: lista[i] ? String(lista[i].q || "").slice(0, 220) : "",
+          contestada: false,
+          omitida: true
+        });
+      } else if (
+        (estadoPartida === "ABANDONADA" || estadoPartida === "EN_CURSO") &&
+        i === indice
+      ) {
+        act.push({
+          indice: i,
+          ok: !!respondidaBien,
+          errores: erroresOpcionIncorrectaEstaPregunta,
+          tiempo: tiempoSegundosPreguntaActual(),
+          texto: textoPreguntaActual(),
+          contestada: !!respondidaBien,
+          omitida: false
+        });
+      }
+    }
+    return act;
+  }
+
+  function contarPreguntasOkActividad(act) {
+    var n = 0;
+    for (var i = 0; i < act.length; i++) {
+      if (act[i] && act[i].ok) {
+        n += 1;
+      }
+    }
+    return n;
+  }
+
+  function tiempoPromedioActividad(act) {
+    if (!act.length) {
+      return 0;
+    }
+    var sum = 0;
+    var n = 0;
+    for (var i = 0; i < act.length; i++) {
+      if (act[i] && act[i].tiempo != null && act[i].contestada !== false) {
+        sum += act[i].tiempo || 0;
+        n += 1;
+      }
+    }
+    return n ? Math.round(sum / n) : 0;
+  }
+
+  async function enviarResultadoQuiz(estadoPartida) {
+    if (typeof quizProgressGuardar !== "function") {
+      return false;
+    }
+    if (tnId && !nivelMaestro) {
+      return false;
+    }
+    var esFinal =
+      estadoPartida === "COMPLETADA" || estadoPartida === "GAME_OVER";
+    var esPausa =
+      estadoPartida === "ABANDONADA" || estadoPartida === "EN_CURSO";
+    if (_quizSync.finalizado && esFinal) {
+      return false;
+    }
+    if (_quizSync.pausado && esPausa) {
+      return false;
+    }
+    if (!lista.length) {
+      return false;
+    }
+
+    var actividad = construirActividadParaGuardar(estadoPartida);
+    if (!actividad.length && !esPausa) {
+      return false;
+    }
+
+    try {
+      var res = await quizProgressGuardar({
+        temaId: tnId ? null : parseInt(temaId, 10),
+        nivelMaestroId:
+          tnId && nivelMaestro
+            ? nivelMaestro.dbId || parseInt(nivelMaestro.id, 10) || null
+            : null,
+        modo: modo,
+        estado: estadoPartida,
+        preguntasOk: contarPreguntasOkActividad(actividad),
+        preguntasTotal: lista.length,
+        tiempoPromedioSeg: tiempoPromedioActividad(actividad),
+        monedasGanadas: _quizSync.monedasGanadas,
+        vidasRestantes: vidas,
+        indicePregunta: indice,
+        actividad: actividad
+      });
+      if (!res || !res.ok) {
+        console.warn("[quiz] sync:", res && res.error ? res.error : "Error desconocido");
+        return false;
+      }
+      if (esFinal) {
+        _quizSync.finalizado = true;
+      }
+      if (esPausa) {
+        _quizSync.pausado = true;
+      }
+      return true;
+    } catch (e) {
+      console.warn("[quiz] sync:", e);
+      return false;
+    }
+  }
+
+  function estadoSalidaConVidas() {
+    return vidas > 0 ? "EN_CURSO" : "ABANDONADA";
+  }
+
+  async function guardarProgresoYSalir(destino) {
+    if (!hayProgresoEnPartida()) {
+      if (destino) {
+        window.location.href = destino;
+      }
+      return true;
+    }
+    var ok = await enviarResultadoQuiz(estadoSalidaConVidas());
+    if (!ok) {
+      window.alert(
+        "No se pudo guardar tu avance en la nube. Revisa tu conexión e inténtalo de nuevo."
+      );
+      return false;
+    }
+    if (destino) {
+      window.location.href = destino;
+    }
+    return true;
+  }
 
   function hayProgresoEnPartida() {
     if (partidaTerminada || !lista.length) {
@@ -110,13 +393,13 @@
 
   function confirmarSalirTemas() {
     return window.confirm(
-      "Perderás todo el progreso acumulado en esta partida (preguntas del intento y vidas).\n\n¿Volver a temas?"
+      "Se guardará tu avance en la nube (pregunta actual, vidas y errores).\n\n¿Volver a temas?"
     );
   }
 
   function confirmarReiniciarNivel() {
     return window.confirm(
-      "Perderás todo el progreso acumulado en esta partida (preguntas del intento y vidas).\n\n¿Reiniciar el nivel?"
+      "Se guardará este intento como abandonado y empezarás el nivel desde cero.\n\n¿Reiniciar el nivel?"
     );
   }
 
@@ -206,6 +489,7 @@
     }
     if (partidaUsaMapaJXG()) {
       QuizJXGMapaFijo.prepararPregunta(temaId, pregunta);
+      actualizarHintMapaJXG(pregunta);
     } else {
       QuizJXGMapaFijo.ocultar();
     }
@@ -263,6 +547,7 @@
 
   function mostrarGameOver() {
     partidaTerminada = true;
+    enviarResultadoQuiz("GAME_OVER");
     var go = document.getElementById("quiz-gameover");
     if (go) {
       go.textContent =
@@ -270,7 +555,7 @@
       go.hidden = false;
     }
     mostrarSiguiente("Salir", function () {
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
     });
     deshabilitarOpciones();
     ocultarConfirmar();
@@ -280,15 +565,23 @@
     pintarSaldo();
   }
 
-  function terminarQuiz() {
-    if (modo === "facil" && typeof setFacilCompletado === "function") {
-      setFacilCompletado(temaId);
+  async function terminarQuiz() {
+    var guardado = await enviarResultadoQuiz("COMPLETADA");
+    if (!guardado) {
+      document.getElementById("quiz-question-text").textContent =
+        "Completaste el quiz, pero no se pudo guardar el progreso en la nube. Revisa tu conexión e inténtalo de nuevo.";
+      mostrarSiguiente("Reintentar guardar", function () {
+        terminarQuiz();
+      });
+      partidaTerminada = true;
+      pintarSaldo();
+      return;
     }
     mostrarSiguiente("Volver a temas", function () {
-      window.location.href = "topics.html";
+      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
     });
     document.getElementById("quiz-question-text").textContent =
-      "¡Completaste el quiz! Monedas guardadas.";
+      "¡Completaste el quiz! Monedas y progreso guardados.";
     document.getElementById("quiz-options").innerHTML = "";
     if (typeof QuizJXGMapaFijo !== "undefined") {
       QuizJXGMapaFijo.ocultar();
@@ -318,7 +611,11 @@
     }
     btn.classList.add("option-elegida");
     seleccionPendienteIdx = idx;
-    vistaMapaOpcion(opt);
+    if (jxgVistaAlSeleccionarOpcion()) {
+      vistaMapaOpcion(opt);
+    } else {
+      reiniciarMapaPreguntaActual();
+    }
     mostrarConfirmar();
   }
 
@@ -339,16 +636,22 @@
     ocultarConfirmar();
 
     if (opt.ok) {
+      if (!jxgVistaAlSeleccionarOpcion()) {
+        vistaMapaOpcion(opt);
+      }
       btn.classList.add("correct");
       respondidaBien = true;
       deshabilitarOpciones();
       ocultarFeedback();
       if (!monedaPagada) {
         monedaPagada = true;
-        duckAgregarMonedas(
-          monedasQuizSiAhoraAcierta(erroresOpcionIncorrectaEstaPregunta)
+        var monedasGanadas = monedasQuizSiAhoraAcierta(
+          erroresOpcionIncorrectaEstaPregunta
         );
+        duckAgregarMonedas(monedasGanadas);
+        _quizSync.monedasGanadas += monedasGanadas;
       }
+      registrarActividadPregunta(true, lista[indice] && lista[indice].q);
       mostrarSiguiente(
         indice + 1 >= lista.length ? "Finalizar" : "Siguiente pregunta",
         onSiguiente
@@ -360,6 +663,7 @@
     ocultarSiguiente();
     btn.classList.add("wrong");
     erroresOpcionIncorrectaEstaPregunta += 1;
+    registrarErrorPreguntaActual();
     vidas -= 1;
     pintarVidas();
 
@@ -398,9 +702,14 @@
 
   function mostrarPregunta() {
     var p = lista[indice];
+    _quizSync.preguntaInicioMs = Date.now();
     erroresOpcionIncorrectaEstaPregunta = 0;
     ocultarConfirmar();
-    document.getElementById("quiz-question-text").textContent = p.q;
+    var qEl = document.getElementById("quiz-question-text");
+    if (qEl) {
+      qEl.textContent = p.q;
+    }
+    ocultarCargandoTecduckAventura();
     pintarProgreso();
     pintarSaldo();
     ocultarFeedback();
@@ -429,15 +738,68 @@
     ocultarSiguiente();
   }
 
+  function pintarContextoQuiz() {
+    var ctx = document.getElementById("quiz-context");
+    if (!ctx) {
+      return;
+    }
+    if (nivelMaestro) {
+      ctx.textContent = nivelMaestro.titulo;
+      return;
+    }
+    ctx.textContent =
+      "Tema " +
+      temaId +
+      " · " +
+      (modo === "dificil" ? "Avanzado" : "Básico");
+  }
+
+  function mostrarCargandoTecduckAventura() {
+    document.body.classList.add("is-quiz-loading");
+    var overlay = document.getElementById("quiz-loading-overlay");
+    if (overlay) {
+      overlay.classList.remove("is-hidden");
+    }
+  }
+
+  function ocultarCargandoTecduckAventura() {
+    document.body.classList.remove("is-quiz-loading");
+    var overlay = document.getElementById("quiz-loading-overlay");
+    if (overlay) {
+      overlay.classList.add("is-hidden");
+    }
+  }
+
+  function reiniciarPartidaSegunUrl() {
+    mostrarCargandoTecduckAventura();
+    aplicarParamsPartida();
+    _quizSync.pausado = false;
+    _quizSync.finalizado = false;
+    pintarContextoQuiz();
+    reiniciarNivelQuiz();
+  }
+
   function registrarBotonReiniciarQuiz() {
     var b = document.getElementById("quiz-reiniciar");
     if (!b || b.getAttribute("data-hook") === "1") return;
     b.setAttribute("data-hook", "1");
     b.addEventListener("click", function () {
-      if (hayProgresoEnPartida() && !confirmarReiniciarNivel()) {
+      if (!hayProgresoEnPartida()) {
+        reiniciarNivelQuiz();
         return;
       }
-      reiniciarNivelQuiz();
+      if (!confirmarReiniciarNivel()) {
+        return;
+      }
+      enviarResultadoQuiz("ABANDONADA").then(function (ok) {
+        if (!ok) {
+          window.alert(
+            "No se pudo guardar el intento abandonado. Revisa tu conexión e inténtalo de nuevo."
+          );
+          return;
+        }
+        reiniciarNivelQuiz();
+      });
     });
   }
 
@@ -452,9 +814,13 @@
         return;
       }
       ev.preventDefault();
-      if (confirmarSalirTemas()) {
-        window.location.href = link.getAttribute("href") || "topics.html";
+      if (!confirmarSalirTemas()) {
+        return;
       }
+      var destino =
+        link.getAttribute("href") ||
+        (typeof pagina === "function" ? pagina("topics.html") : "topics.html");
+      guardarProgresoYSalir(destino);
     });
   }
 
@@ -496,23 +862,55 @@
       partidaTerminada = false;
       respondidaBien = false;
       monedaPagada = false;
+      reiniciarQuizSync();
+      pintarContextoQuiz();
       pintarVidas();
       pintarSaldo();
+      ocultarCargandoTecduckAventura();
       return;
     }
 
+    reiniciarQuizSync();
     indice = 0;
     vidas = 3;
     partidaTerminada = false;
     respondidaBien = false;
     monedaPagada = false;
+    pintarContextoQuiz();
     pintarVidas();
     mostrarPregunta();
     pintarSaldo();
   }
 
-  function iniciar() {
-    if (!validarAccesoNivelMaestro()) {
+  async function iniciar() {
+    mostrarCargandoTecduckAventura();
+    aplicarParamsPartida();
+    if (typeof initSupabase === "function") {
+      await initSupabase();
+    }
+    if (typeof duckEconomiaSyncDesdeDb === "function") {
+      try {
+        await duckEconomiaSyncDesdeDb();
+      } catch (e) {
+        console.warn("[quiz] economia:", e);
+      }
+    }
+    if (tnId && typeof nivelMaestroPorIdAsync === "function") {
+      nivelMaestro = await nivelMaestroPorIdAsync(tnId);
+      if (nivelMaestro) {
+        temaId = "1";
+        modo = "facil";
+        quizOptsPartida = { nivelMaestroCustom: true };
+        window.quizConfigPartida = {
+          mostrarJxg: false,
+          titulo: nivelMaestro.titulo
+        };
+      }
+    }
+    if (!(await validarAccesoNivelMaestro())) {
+      return;
+    }
+    if (!(await validarAccesoTemaModo())) {
       return;
     }
     if (nivelMaestro && typeof window.quizPreguntaUsaMapaJXG === "function") {
@@ -523,20 +921,28 @@
     registrarBotonReiniciarQuiz();
     registrarVolverTemasQuiz();
     registrarBotonConfirmarQuiz();
-
-    var ctx = document.getElementById("quiz-context");
-    if (ctx) {
-      if (nivelMaestro) {
-        ctx.textContent = nivelMaestro.titulo;
-      } else {
-        ctx.textContent =
-          "Tema " +
-          temaId +
-          " · " +
-          (modo === "dificil" ? "Avanzado" : "Básico");
-      }
-    }
+    reiniciarQuizSync();
+    pintarContextoQuiz();
     reiniciarNivelQuiz();
+
+    window.addEventListener("pagehide", function () {
+      if (
+        partidaTerminada ||
+        _quizSync.finalizado ||
+        _quizSync.pausado ||
+        !hayProgresoEnPartida()
+      ) {
+        return;
+      }
+      enviarResultadoQuiz(estadoSalidaConVidas());
+    });
+
+    window.addEventListener("pageshow", function (ev) {
+      if (!ev.persisted) {
+        return;
+      }
+      reiniciarPartidaSegunUrl();
+    });
   }
 
   if (document.readyState === "loading") {

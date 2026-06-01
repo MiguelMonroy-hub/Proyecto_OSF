@@ -9,8 +9,26 @@
     return;
   }
 
-  if (typeof teacherExigirSesion === "function" && !teacherExigirSesion()) {
-    return;
+  async function arrancar() {
+    if (typeof teacherExigirSesionAsync === "function") {
+      var ok = await teacherExigirSesionAsync();
+      if (!ok) {
+        return;
+      }
+    }
+    try {
+      if (typeof gruposCargarDesdeSupabase === "function") {
+        await gruposCargarDesdeSupabase();
+      }
+      if (typeof nivelMaestroCargarDesdeDb === "function") {
+        await nivelMaestroCargarDesdeDb(true);
+      }
+    } catch (e) {
+      window.alert(
+        "No se pudieron cargar tus niveles: " + (e && e.message ? e.message : e)
+      );
+    }
+    registrar();
   }
 
   var editandoId = null;
@@ -104,10 +122,11 @@
   }
 
   function gruposEditables() {
-    return (typeof teacherLeerGrupos === "function" ? teacherLeerGrupos() : [])
-      .filter(function (g) {
+    return (typeof gruposLeer === "function" ? gruposLeer() : []).filter(
+      function (g) {
         return !g.sistema;
-      });
+      }
+    );
   }
 
   function mostrarVistaBienvenida() {
@@ -474,7 +493,7 @@
     }
   }
 
-  function guardarNivel(ev) {
+  async function guardarNivel(ev) {
     if (ev) {
       ev.preventDefault();
     }
@@ -514,46 +533,61 @@
       return;
     }
 
-    var guardado = nivelMaestroGuardar({
-      id: editandoId || undefined,
-      titulo: titulo,
-      preguntas: preguntasEditando,
-      grupos: datosGrupos,
-      logo: logoActual || ""
-    });
-    editandoId = guardado.id;
-    logoActual =
-      typeof nivelMaestroEsLogoValido === "function" && nivelMaestroEsLogoValido(guardado.logo)
-        ? guardado.logo
-        : "";
-    pintarVistaLogo();
-    preguntasEditando = guardado.preguntas.map(nivelMaestroDesdePreguntaGuardada);
-    pintarEditorPreguntas();
-    if (btnEliminar) {
-      btnEliminar.hidden = false;
+    try {
+      var guardado = await nivelMaestroGuardarAsync({
+        id: editandoId || undefined,
+        titulo: titulo,
+        preguntas: preguntasEditando,
+        grupos: datosGrupos,
+        logo: logoActual || ""
+      });
+      editandoId = guardado.id;
+      logoActual =
+        typeof nivelMaestroEsLogoValido === "function" &&
+        nivelMaestroEsLogoValido(guardado.logo)
+          ? guardado.logo
+          : "";
+      pintarVistaLogo();
+      preguntasEditando = guardado.preguntas.map(nivelMaestroDesdePreguntaGuardada);
+      pintarEditorPreguntas();
+      if (btnEliminar) {
+        btnEliminar.hidden = false;
+      }
+      pintarListaNiveles();
+      if (window.history && window.history.replaceState) {
+        var url = new URL(window.location.href);
+        url.searchParams.set("edit", guardado.id);
+        url.searchParams.delete("nuevo");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      }
+      window.alert(
+        "Nivel guardado con " +
+          guardado.preguntas.length +
+          " pregunta(s). Tus alumnos lo verán en Temas."
+      );
+    } catch (err) {
+      window.alert(
+        "No se pudo guardar el nivel: " +
+          (err && err.message ? err.message : "Error desconocido")
+      );
     }
-    pintarListaNiveles();
-    if (window.history && window.history.replaceState) {
-      var url = new URL(window.location.href);
-      url.searchParams.set("edit", guardado.id);
-      url.searchParams.delete("nuevo");
-      window.history.replaceState({}, "", url.pathname + url.search);
-    }
-    window.alert(
-      "Nivel guardado con " +
-        guardado.preguntas.length +
-        " pregunta(s). Tus alumnos lo verán en Temas."
-    );
   }
 
-  function eliminarNivelActual() {
+  async function eliminarNivelActual() {
     if (!editandoId) {
       return;
     }
     if (!window.confirm("¿Eliminar este nivel? Los alumnos ya no podrán jugarlo.")) {
       return;
     }
-    nivelMaestroEliminar(editandoId);
+    try {
+      await nivelMaestroEliminarAsync(editandoId);
+    } catch (err) {
+      window.alert(
+        "No se pudo eliminar: " + (err && err.message ? err.message : "Error desconocido")
+      );
+      return;
+    }
     editandoId = null;
     preguntasEditando = [];
     logoActual = "";
@@ -670,8 +704,8 @@
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", registrar);
+    document.addEventListener("DOMContentLoaded", arrancar);
   } else {
-    registrar();
+    arrancar();
   }
 })();

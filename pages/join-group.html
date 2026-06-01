@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/pages/">
   <title>Unirse a un grupo</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/auth-back.css">
@@ -33,11 +34,19 @@
       spellcheck="false"
     />
 
-    <p id="join-error" class="join-error" hidden></p>
+    <p id="join-error" class="join-error" role="alert" aria-live="polite" hidden>
+      <span class="join-error-icon" aria-hidden="true">!</span>
+      <span id="join-error-text"></span>
+    </p>
 
     <button type="button" class="btn-submit" id="btn-unir-grupo">Entrar al grupo</button>
   </div>
 
+  <script src="../js/rutas.js"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/auth-service.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/join-group.js"></script>
 </body>

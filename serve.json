@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    { "source": "/login", "destination": "/pages/login.html" },
+    { "source": "/login.html", "destination": "/pages/login.html" },
+    { "source": "/signup", "destination": "/pages/signup.html" },
+    { "source": "/signup.html", "destination": "/pages/signup.html" },
+    { "source": "/topics", "destination": "/pages/topics.html" },
+    { "source": "/topics.html", "destination": "/pages/topics.html" },
+    { "source": "/quiz", "destination": "/pages/quiz.html" },
+    { "source": "/quiz.html", "destination": "/pages/quiz.html" }
+  ]
+}

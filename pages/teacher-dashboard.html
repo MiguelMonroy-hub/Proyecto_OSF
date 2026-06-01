@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <base href="/pages/">
   <title>Panel del maestro — TecDuck</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
@@ -49,7 +50,7 @@
             </svg>
             <span class="teacher-action-label">Grupos</span>
           </button>
-          <button type="button" class="teacher-action-btn teacher-action-btn--logout" id="btn-logout">
+          <button type="button" class="teacher-action-btn teacher-action-btn--logout" id="btn-logout" data-auth-logout="login.html">
             <svg class="teacher-action-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
             </svg>
@@ -61,11 +62,11 @@
 
     <div class="teacher-toolbar">
       <label class="teacher-select-wrap">
-        <span class="sr-only">Grupo</span>
+        <span class="teacher-select-label">Grupo</span>
         <select id="teacher-grupo-filter" class="teacher-select"></select>
       </label>
       <label class="teacher-select-wrap">
-        <span class="sr-only">Vista</span>
+        <span class="teacher-select-label">Vista</span>
         <select id="teacher-vista" class="teacher-select">
           <option value="temas">Progreso por tema</option>
           <option value="niveles">Resumen por nivel</option>
@@ -87,7 +88,7 @@
           <tbody id="teacher-table-body"></tbody>
         </table>
       </div>
-      <p id="teacher-empty" class="teacher-empty" hidden>No hay alumnos en este grupo.</p>
+      <p id="teacher-empty" class="teacher-empty" hidden>Aún no hay alumnos registrados.</p>
     </div>
   </div>
 
@@ -118,8 +119,14 @@
     </div>
   </div>
 
+  <script src="../js/supabase-config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/auth-service.js"></script>
+  <script src="../js/rutas.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-auth.js"></script>
+  <script src="../js/duck-catalog.js"></script>
   <script src="../js/teacher-data.js"></script>
   <script src="../js/teacher-dashboard.js"></script>
 </body>
