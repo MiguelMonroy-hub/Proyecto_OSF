@@ -6,6 +6,7 @@
   var quizOptsPartida = null;
   var temaId = "1";
   var modo = "facil";
+  var quizModoPreview = false;
 
   function quizSearchParams() {
     var search = window.location.search || "";
@@ -23,7 +24,8 @@
     return {
       tnId: params.get("tn"),
       temaId: String(params.get("tema") || "1").trim() || "1",
-      modo: modoRaw === "dificil" ? "dificil" : "facil"
+      modo: modoRaw === "dificil" ? "dificil" : "facil",
+      preview: params.get("preview") === "1"
     };
   }
 
@@ -32,6 +34,7 @@
     tnId = conf.tnId;
     temaId = conf.temaId;
     modo = conf.modo;
+    quizModoPreview = !!conf.preview;
     nivelMaestro = null;
     quizOptsPartida = null;
     if (window.quizConfigPartida) {
@@ -96,14 +99,38 @@
       typeof isDificilDesbloqueado === "function" &&
       !isDificilDesbloqueado(temaId)
     ) {
-      window.alert(
+      quizAvisar(
         "Completa el nivel básico de este tema antes de jugar el avanzado."
       );
-      window.location.href =
-        typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      irATemasQuiz();
       return false;
     }
     return true;
+  }
+
+  function quizAvisar(msg) {
+    if (typeof uiToastError === "function") {
+      uiToastError(msg);
+    } else {
+      window.alert(msg);
+    }
+  }
+
+  function pintarBannerPreview() {
+    var banner = document.getElementById("quiz-preview-banner");
+    if (!banner) {
+      return;
+    }
+    if (!quizModoPreview) {
+      banner.hidden = true;
+      return;
+    }
+    banner.textContent =
+      typeof str === "function"
+        ? str("quiz.previewBanner", "Modo vista previa — no se guarda progreso ni monedas.")
+        : "Modo vista previa — no se guarda progreso ni monedas.";
+    banner.hidden = false;
+    document.body.classList.add("quiz--preview");
   }
 
   async function validarAccesoNivelMaestro() {
@@ -111,35 +138,42 @@
       return true;
     }
     if (!nivelMaestro) {
-      window.alert("Este nivel no existe o fue eliminado.");
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      quizAvisar("Este nivel no existe o fue eliminado.");
+      irATemasQuiz();
       return false;
+    }
+    if (quizModoPreview) {
+      if (!nivelMaestroContarPreguntas(nivelMaestro)) {
+        quizAvisar("Este nivel aún no tiene preguntas.");
+        return false;
+      }
+      return true;
     }
     var vinculo =
       typeof alumnoObtenerGrupoVinculadoAsync === "function"
         ? await alumnoObtenerGrupoVinculadoAsync()
         : null;
     if (!vinculo || !vinculo.grupoId) {
-      window.alert("Este nivel no está disponible para tu grupo.");
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      quizAvisar("Este nivel no está disponible para tu grupo.");
+      irATemasQuiz();
       return false;
     }
     if (!nivelMaestroVisibleParaGrupo(nivelMaestro, vinculo.grupoId)) {
-      window.alert("Este nivel no está disponible para tu grupo.");
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      quizAvisar("Este nivel no está disponible para tu grupo.");
+      irATemasQuiz();
       return false;
     }
     if (
       typeof nivelMaestroFechaVencida === "function" &&
       nivelMaestroFechaVencida(nivelMaestro, vinculo.grupoId)
     ) {
-      window.alert("La fecha límite de este nivel ya pasó. Ya no puedes jugarlo.");
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      quizAvisar("La fecha límite de este nivel ya pasó. Ya no puedes jugarlo.");
+      irATemasQuiz();
       return false;
     }
     if (!nivelMaestroContarPreguntas(nivelMaestro)) {
-      window.alert("Este nivel aún no tiene preguntas. Avísale a tu maestro.");
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+      quizAvisar("Este nivel aún no tiene preguntas. Avísale a tu maestro.");
+      irATemasQuiz();
       return false;
     }
     return true;
@@ -289,6 +323,9 @@
   }
 
   async function enviarResultadoQuiz(estadoPartida) {
+    if (quizModoPreview) {
+      return true;
+    }
     if (typeof quizProgressGuardar !== "function") {
       return false;
     }
@@ -361,15 +398,32 @@
     }
     var ok = await enviarResultadoQuiz(estadoSalidaConVidas());
     if (!ok) {
-      window.alert(
+      quizAvisar(
         "No se pudo guardar tu avance en la nube. Revisa tu conexión e inténtalo de nuevo."
       );
       return false;
     }
     if (destino) {
+      if (
+        typeof pageLoadDestinoEsTemas === "function" &&
+        pageLoadDestinoEsTemas(destino) &&
+        typeof pageLoadIrATemas === "function"
+      ) {
+        pageLoadIrATemas();
+        return true;
+      }
       window.location.href = destino;
     }
     return true;
+  }
+
+  function irATemasQuiz() {
+    if (typeof pageLoadIrATemas === "function") {
+      pageLoadIrATemas();
+      return;
+    }
+    window.location.href =
+      typeof pagina === "function" ? pagina("topics.html") : "topics.html";
   }
 
   function hayProgresoEnPartida() {
@@ -483,7 +537,22 @@
     }
   }
 
+  function preguntaUsaMapaJXG(pregunta) {
+    return (
+      partidaUsaMapaJXG() &&
+      typeof quizPreguntaUsaMapaJXG === "function" &&
+      !!quizPreguntaUsaMapaJXG(temaId, pregunta)
+    );
+  }
+
+  function aplicarLayoutMapaQuiz(pregunta) {
+    var conMapa = !!pregunta && preguntaUsaMapaJXG(pregunta);
+    document.body.classList.toggle("quiz--con-mapa", conMapa);
+    document.body.classList.toggle("quiz--sin-mapa", !conMapa);
+  }
+
   function prepararMapaPregunta(pregunta) {
+    aplicarLayoutMapaQuiz(pregunta);
     if (typeof QuizJXGMapaFijo === "undefined") {
       return;
     }
@@ -554,9 +623,7 @@
         "Sin vidas. Vuelve a intentarlo desde Temas cuando quieras.";
       go.hidden = false;
     }
-    mostrarSiguiente("Salir", function () {
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
-    });
+    mostrarSiguiente("Salir", irATemasQuiz);
     deshabilitarOpciones();
     ocultarConfirmar();
     if (typeof QuizJXGMapaFijo !== "undefined") {
@@ -577,9 +644,7 @@
       pintarSaldo();
       return;
     }
-    mostrarSiguiente("Volver a temas", function () {
-      window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
-    });
+    mostrarSiguiente("Volver a temas", irATemasQuiz);
     document.getElementById("quiz-question-text").textContent =
       "¡Completaste el quiz! Monedas y progreso guardados.";
     document.getElementById("quiz-options").innerHTML = "";
@@ -643,13 +708,15 @@
       respondidaBien = true;
       deshabilitarOpciones();
       ocultarFeedback();
-      if (!monedaPagada) {
+      if (!monedaPagada && !quizModoPreview) {
         monedaPagada = true;
         var monedasGanadas = monedasQuizSiAhoraAcierta(
           erroresOpcionIncorrectaEstaPregunta
         );
         duckAgregarMonedas(monedasGanadas);
         _quizSync.monedasGanadas += monedasGanadas;
+      } else if (!monedaPagada && quizModoPreview) {
+        monedaPagada = true;
       }
       registrarActividadPregunta(true, lista[indice] && lista[indice].q);
       mostrarSiguiente(
@@ -709,7 +776,6 @@
     if (qEl) {
       qEl.textContent = p.q;
     }
-    ocultarCargandoTecduckAventura();
     pintarProgreso();
     pintarSaldo();
     ocultarFeedback();
@@ -736,6 +802,7 @@
     var go = document.getElementById("quiz-gameover");
     if (go) go.hidden = true;
     ocultarSiguiente();
+    ocultarCargandoTecduckAventura();
   }
 
   function pintarContextoQuiz() {
@@ -793,7 +860,7 @@
       }
       enviarResultadoQuiz("ABANDONADA").then(function (ok) {
         if (!ok) {
-          window.alert(
+          quizAvisar(
             "No se pudo guardar el intento abandonado. Revisa tu conexión e inténtalo de nuevo."
           );
           return;
@@ -811,6 +878,8 @@
     link.setAttribute("data-hook", "1");
     link.addEventListener("click", function (ev) {
       if (!hayProgresoEnPartida()) {
+        ev.preventDefault();
+        irATemasQuiz();
         return;
       }
       ev.preventDefault();
@@ -854,6 +923,7 @@
       if (typeof QuizJXGMapaFijo !== "undefined") {
         QuizJXGMapaFijo.ocultar();
       }
+      aplicarLayoutMapaQuiz(null);
       ocultarConfirmar();
       var prog = document.getElementById("quiz-progress");
       if (prog) prog.textContent = "—";
@@ -882,13 +952,87 @@
     pintarSaldo();
   }
 
+  function registrarAtajosTecladoQuiz() {
+    if (document.body.getAttribute("data-quiz-keys") === "1") {
+      return;
+    }
+    document.body.setAttribute("data-quiz-keys", "1");
+    document.addEventListener("keydown", function (ev) {
+      if (partidaTerminada || respondidaBien) {
+        return;
+      }
+      var tag = ev.target && ev.target.tagName ? ev.target.tagName.toLowerCase() : "";
+      if (tag === "input" || tag === "textarea" || tag === "select") {
+        return;
+      }
+      var key = ev.key;
+      if (key === "Enter") {
+        var btnConf = document.getElementById("quiz-confirmar");
+        if (btnConf && !btnConf.hidden && seleccionPendienteIdx !== null) {
+          ev.preventDefault();
+          confirmarRespuesta();
+        }
+        return;
+      }
+      var mapa = { "1": 0, "2": 1, "3": 2, "4": 3 };
+      var idx = mapa[key];
+      if (idx == null && (key === "ArrowDown" || key === "ArrowUp")) {
+        var opts = document.querySelectorAll("#quiz-options .option:not([disabled])");
+        if (!opts.length) {
+          return;
+        }
+        var actual = -1;
+        for (var i = 0; i < opts.length; i++) {
+          if (opts[i].classList.contains("option-elegida")) {
+            actual = i;
+            break;
+          }
+        }
+        idx = key === "ArrowDown" ? (actual + 1) % opts.length : (actual <= 0 ? opts.length - 1 : actual - 1);
+        opts[idx].click();
+        ev.preventDefault();
+        return;
+      }
+      if (idx == null) {
+        return;
+      }
+      var boton = document.querySelector(
+        '#quiz-options .option[data-idx="' + idx + '"]:not([disabled])'
+      );
+      if (boton) {
+        ev.preventDefault();
+        boton.click();
+      }
+    });
+  }
+
   async function iniciar() {
     mostrarCargandoTecduckAventura();
     aplicarParamsPartida();
+    pintarBannerPreview();
+
+    if (quizModoPreview) {
+      if (typeof teacherExigirSesionAsync === "function") {
+        var okMaestro = await teacherExigirSesionAsync();
+        if (!okMaestro) {
+          return;
+        }
+      }
+    } else if (typeof alumnoGuardEsperar === "function") {
+      var okAlumno = await alumnoGuardEsperar();
+      if (!okAlumno) {
+        return;
+      }
+    }
+
     if (typeof initSupabase === "function") {
       await initSupabase();
     }
-    if (typeof duckEconomiaSyncDesdeDb === "function") {
+    if (
+      !quizModoPreview &&
+      typeof duckEconomiaSyncDesdeDb === "function" &&
+      (typeof alumnoGuardEstaListo !== "function" || !alumnoGuardEstaListo())
+    ) {
       try {
         await duckEconomiaSyncDesdeDb();
       } catch (e) {
@@ -921,6 +1065,7 @@
     registrarBotonReiniciarQuiz();
     registrarVolverTemasQuiz();
     registrarBotonConfirmarQuiz();
+    registrarAtajosTecladoQuiz();
     reiniciarQuizSync();
     pintarContextoQuiz();
     reiniciarNivelQuiz();

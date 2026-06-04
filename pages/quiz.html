@@ -9,8 +9,10 @@
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/quiz.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraph.css">
+  <link rel="stylesheet" href="../css/ui-toast.css">
 </head>
-<body class="page-quiz">
+<body class="page-quiz is-quiz-loading quiz--sin-mapa">
+  <div id="quiz-preview-banner" class="quiz-preview-banner" role="status" hidden></div>
   <script>
     (function () {
       function textoContextoQuizDesdeUrl() {
@@ -84,7 +86,7 @@
   </div>
 
   <nav class="quiz-nav" aria-label="Navegación del quiz">
-    <a href="topics.html" class="quiz-nav-btn quiz-nav-btn--topics" id="quiz-volver-temas">
+    <a href="topics.html" class="quiz-nav-btn quiz-nav-btn--topics" id="quiz-volver-temas" data-volver-temas-skip="1" data-volver-temas="1">
       <svg class="quiz-nav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
         <path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
       </svg>
@@ -103,12 +105,26 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/auth-service.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/ui-toast.js"></script>
+  <script src="../js/page-load-overlay.js"></script>
   <script src="../js/duck-catalog.js"></script>
   <script src="../js/duck-economia-sync.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-niveles.js"></script>
   <script src="../js/teacher-niveles-db.js"></script>
+  <script src="../js/teacher-auth.js"></script>
   <script src="../js/topic-progress.js"></script>
+  <script src="../js/alumno-guard.js"></script>
+  <script src="../js/quiz-bank-loader.js"></script>
+  <script src="../banco-preguntas/tema-1/basico/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-1/avanzado/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-2/basico/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-2/avanzado/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-3/basico/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-3/avanzado/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-4/basico/preguntas.js"></script>
+  <script src="../banco-preguntas/tema-4/avanzado/preguntas.js"></script>
   <script src="../js/quiz-data.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraphcore.js"></script>
   <script src="../js/quiz-option-jxg.js"></script>
