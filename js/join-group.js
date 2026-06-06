@@ -1,10 +1,12 @@
+/**
+ * Pantalla join-group.html: el alumno ingresa el código de 6 letras de su grupo.
+ * Si ya está vinculado, salta directo a temas.
+ */
 (function () {
   "use strict";
 
+  // Primero Supabase Auth; si no hay sesión, el email guardado en local.
   async function obtenerEmailAlumno() {
-    if (typeof initSupabase === "function") {
-      await initSupabase();
-    }
     if (typeof authEmailActual === "function") {
       var desdeAuth = await authEmailActual();
       if (desdeAuth) {
@@ -17,20 +19,29 @@
     return "";
   }
 
+  // Monta el formulario, listeners y el flujo de unión por código.
   async function iniciar() {
-    try {
-      var email = await obtenerEmailAlumno();
-      if (!email) {
-        window.location.href =
-          typeof pagina === "function" ? pagina("login.html") : "login.html";
+    // No tocamos datos hasta que alumno-guard confirme la sesión.
+    if (typeof alumnoGuardEsperar === "function") {
+      var okGuard = await alumnoGuardEsperar();
+      if (!okGuard) {
         return;
       }
+    }
 
+    try {
+      var email = await obtenerEmailAlumno();
+
+      // Ya tiene grupo → no hace falta pedir el código otra vez.
       if (typeof alumnoTieneGrupoVinculadoAsync === "function") {
         var yaUnido = await alumnoTieneGrupoVinculadoAsync(email);
         if (yaUnido) {
-          window.location.href =
-            typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+          if (typeof pageLoadIrATemas === "function") {
+            pageLoadIrATemas();
+          } else {
+            window.location.href =
+              typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+          }
           return;
         }
       }
@@ -41,6 +52,7 @@
       var btn = document.getElementById("btn-unir-grupo");
       var modal = document.querySelector(".modal-join-group");
 
+      // Quita estilos y mensajes de error del input y el modal.
       function limpiarError() {
         if (err) {
           err.hidden = true;
@@ -57,6 +69,7 @@
         }
       }
 
+      // Muestra el error y marca el input para accesibilidad.
       function mostrarError(msg) {
         if (!msg) {
           limpiarError();
@@ -80,6 +93,7 @@
         }
       }
 
+      // Valida el código con el backend y redirige a temas si todo va bien.
       async function intentarUnir() {
         limpiarError();
         if (btn) {
@@ -94,8 +108,12 @@
             );
             return;
           }
-          window.location.href =
-            typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+          if (typeof pageLoadIrATemas === "function") {
+            pageLoadIrATemas();
+          } else {
+            window.location.href =
+              typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+          }
         } catch (e) {
           mostrarError(e.message || "No se pudo unir al grupo.");
         } finally {
@@ -127,14 +145,25 @@
       } else {
         console.error("join-group:", e);
       }
-      window.location.href =
-        typeof pagina === "function" ? pagina("login.html") : "login.html";
+      if (typeof uiToastError === "function") {
+        uiToastError("No se pudo cargar la página de unión al grupo.");
+      }
     }
   }
 
+  // Espera a alumno-guard antes de arrancar (o escucha el evento ready).
+  function arrancarJoin() {
+    if (typeof alumnoGuardEstaListo === "function" && alumnoGuardEstaListo()) {
+      iniciar();
+      return;
+    }
+    window.addEventListener("alumno-guard-ready", iniciar, { once: true });
+  }
+
+  // Arranque al cargar el DOM.
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", iniciar);
+    document.addEventListener("DOMContentLoaded", arrancarJoin);
   } else {
-    iniciar();
+    arrancarJoin();
   }
 })();

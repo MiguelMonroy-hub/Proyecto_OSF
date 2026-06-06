@@ -1,6 +1,8 @@
 /**
- * Acceso maestro vía Supabase Auth.
+ * Guard de rutas maestro: delega en authExigirMaestro.
+ * Lo usan teacher-dashboard, niveles y otras páginas del panel.
  */
+// Inicia Supabase y comprueba sesión MAESTRO; si no, redirige a login.
 async function teacherExigirSesionAsync() {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -11,13 +13,4 @@ async function teacherExigirSesionAsync() {
   window.location.href =
     typeof pagina === "function" ? pagina("login.html") : "login.html";
   return false;
-}
-
-async function teacherCerrarSesion() {
-  if (typeof authSalir === "function") {
-    return authSalir("login.html");
-  }
-  if (typeof authCerrarSesion === "function") {
-    await authCerrarSesion();
-  }
 }

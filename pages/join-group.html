@@ -9,8 +9,11 @@
   <link rel="stylesheet" href="../css/auth-back.css">
   <link rel="stylesheet" href="../css/login.css">
   <link rel="stylesheet" href="../css/join-group.css">
+  <link rel="stylesheet" href="../css/ui-toast.css">
+  <link rel="stylesheet" href="../css/page-load-overlay.css">
 </head>
 <body class="page-login-new page-join-group">
+  <!-- Volver al inicio -->
   <nav class="auth-nav" aria-label="Navegación">
     <a class="auth-back" href="index.html">
       <span class="auth-back-icon" aria-hidden="true">←</span>
@@ -18,6 +21,7 @@
     </a>
   </nav>
 
+  <!-- Unirse a clase: el alumno pega el código de 6 letras del maestro -->
   <div class="modal-login modal-join-group">
     <h1>Únete a tu grupo</h1>
     <p class="join-lead">Tu maestro te dio un código de <strong>6 caracteres</strong>. Escríbelo aquí para entrar a la clase.</p>
@@ -42,12 +46,17 @@
     <button type="button" class="btn-submit" id="btn-unir-grupo">Entrar al grupo</button>
   </div>
 
+  <!-- Scripts: grupos, guard de alumno y unión -->
   <script src="../js/rutas.js"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/auth-service.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/ui-toast.js"></script>
+  <script src="../js/page-load-overlay.js"></script>
   <script src="../js/grupos-clase.js"></script>
+  <script src="../js/alumno-guard.js"></script>
   <script src="../js/join-group.js"></script>
 </body>
 </html>

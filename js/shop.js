@@ -1,7 +1,11 @@
+// Tienda: muestra piezas del catálogo, descuenta monedas y las guarda en inventario local.
+
+// Lee el saldo actual de monedas del alumno.
 function obtenerMonedas() {
   return typeof duckObtenerSaldoMonedas === "function" ? duckObtenerSaldoMonedas() : 0;
 }
 
+// Escribe el saldo en localStorage (o vía economía si hay sync).
 function guardarMonedas(cantidad) {
   if (typeof duckEconomiaAplicarSaldoLocal === "function") {
     duckEconomiaAplicarSaldoLocal(cantidad);
@@ -10,17 +14,15 @@ function guardarMonedas(cantidad) {
   }
 }
 
+// Actualiza el número de monedas que se ve en pantalla.
 function pintarMonedas(cantidad) {
   var elCoins = document.getElementById("coins-value");
-  var elSaldo = document.getElementById("saldo-value");
   if (elCoins) {
     elCoins.textContent = String(cantidad);
   }
-  if (elSaldo) {
-    elSaldo.textContent = String(cantidad);
-  }
 }
 
+// Marca la tarjeta como "ya lo tienes" y esconde el botón de compra.
 function marcarTarjetaComprada(card) {
   card.classList.add("owned");
   var btn = card.querySelector(".btn-buy");
@@ -36,6 +38,7 @@ function marcarTarjetaComprada(card) {
   card.appendChild(msg);
 }
 
+// Habilita o deshabilita comprar según el saldo de cada ítem.
 function actualizarBotonesComprar() {
   var monedas = obtenerMonedas();
   var tarjetas = document.querySelectorAll(".item-card");
@@ -58,6 +61,7 @@ function actualizarBotonesComprar() {
   }
 }
 
+// Arma el HTML de una tarjeta de producto en el grid.
 function crearTarjetaTienda(entry) {
   var art = document.createElement("article");
   art.className = "item-card";
@@ -90,25 +94,38 @@ function crearTarjetaTienda(entry) {
   return art;
 }
 
+// Monta el catálogo, pinta monedas y enlaza la lógica de compra.
 async function iniciarTienda() {
-  if (typeof initSupabase === "function") {
-    await initSupabase();
-  }
-  duckInvMigrar();
-
-  if (typeof duckEconomiaSyncDesdeDb === "function") {
-    try {
-      await duckEconomiaSyncDesdeDb();
-    } catch (e) {
-      console.warn("[shop] sync:", e);
+  if (typeof alumnoGuardEsperar === "function") {
+    var okGuard = await alumnoGuardEsperar();
+    if (!okGuard) {
+      return;
     }
   }
+
+  if (typeof pageLoadMostrar === "function") {
+    pageLoadMostrar({
+      main:
+        typeof str === "function"
+          ? str("shop.cargando", "Cargando la tienda")
+          : "Cargando la tienda",
+      sub:
+        typeof str === "function"
+          ? str("shop.cargandoSub", "Preparando artículos y tu saldo…")
+          : "Preparando artículos y tu saldo…"
+    });
+  }
+
+  duckInvMigrar();
 
   var monedas = obtenerMonedas();
   pintarMonedas(monedas);
 
   var grid = document.getElementById("shop-grid");
   if (!grid) {
+    if (typeof pageLoadOcultar === "function") {
+      pageLoadOcultar();
+    }
     return;
   }
 
@@ -138,9 +155,25 @@ async function iniciarTienda() {
         if (typeof duckEconomiaComprarItem === "function") {
           var res = await duckEconomiaComprarItem(entry.id);
           if (!res.ok) {
-            alert(res.error || "No se pudo completar la compra.");
+            var errCompra =
+              res.error ||
+              (typeof str === "function"
+                ? str("economia.compraError", "No se pudo completar la compra.")
+                : "No se pudo completar la compra.");
+            if (typeof uiToastError === "function") {
+              uiToastError(errCompra);
+            } else {
+              alert(errCompra);
+            }
             actualizarBotonesComprar();
             return;
+          }
+          if (typeof uiToastSuccess === "function") {
+            uiToastSuccess(
+              typeof str === "function"
+                ? str("economia.compraOk", "¡Comprado!")
+                : "¡Comprado!"
+            );
           }
           pintarMonedas(res.saldo);
           marcarTarjetaComprada(card);
@@ -150,7 +183,9 @@ async function iniciarTienda() {
 
         var m = obtenerMonedas();
         if (m < precio) {
-          alert("No tienes suficientes monedas.");
+          if (typeof uiToastError === "function") {
+            uiToastError("No tienes suficientes monedas.");
+          }
           actualizarBotonesComprar();
           return;
         }
@@ -165,19 +200,28 @@ async function iniciarTienda() {
       });
 
       btn.disabled = monedas < precio;
-      btn.textContent = monedas < precio ? "No alcanza" : "Comprar";
+      var sinSaldo =
+      typeof str === "function" ? str("economia.sinSaldo", "No alcanza") : "No alcanza";
+    btn.textContent = monedas < precio ? sinSaldo : "Comprar";
     })(DUCK_CATALOG[i]);
   }
 
-  setTimeout(function () {
-    if (typeof duckAvatarResolverOutfit === "function") {
-      duckAvatarResolverOutfit();
-    }
-  }, 100);
+  if (typeof pageLoadOcultar === "function") {
+    pageLoadOcultar();
+  }
+}
+
+// Espera a que el guard de alumno esté listo y arranca la tienda.
+function arrancarShop() {
+  if (typeof alumnoGuardEstaListo === "function" && alumnoGuardEstaListo()) {
+    iniciarTienda();
+    return;
+  }
+  window.addEventListener("alumno-guard-ready", iniciarTienda, { once: true });
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", iniciarTienda);
+  document.addEventListener("DOMContentLoaded", arrancarShop);
 } else {
-  iniciarTienda();
+  arrancarShop();
 }

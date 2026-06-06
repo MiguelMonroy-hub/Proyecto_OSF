@@ -1,13 +1,13 @@
-/**
- * Cliente Supabase (CDN). Requiere supabase-config.js y @supabase/supabase-js.
- */
+// Singleton del cliente Supabase. Carga desde CDN; necesita supabase-config.js antes.
 var supabaseClient = null;
 var supabaseInitPromise = null;
 
+// ¿Tenemos URL, key y la librería de Supabase en window?
 function supabaseDisponible() {
   return !!(window.SUPABASE_URL && window.SUPABASE_ANON_KEY && window.supabase);
 }
 
+// Crea el cliente la primera vez. Si ya se llamó, devuelve la misma promesa.
 function initSupabase() {
   if (supabaseInitPromise) {
     return supabaseInitPromise;
@@ -34,10 +34,12 @@ function initSupabase() {
   return supabaseInitPromise;
 }
 
+// Devuelve la instancia ya creada, o null si aún no se inicializó.
 function getSupabase() {
   return supabaseClient;
 }
 
+// Igual que getSupabase, pero crea el cliente al vuelo si hace falta (código síncrono).
 function getSupabaseSync() {
   if (!supabaseClient && supabaseDisponible()) {
     supabaseClient = window.supabase.createClient(

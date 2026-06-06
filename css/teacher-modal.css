@@ -1,0 +1,307 @@
+/* Modal grupos — selector explícito por si game-bg afecta hijos del body */
+body.page-teacher > #teacher-modal-grupos.teacher-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  margin: 0;
+}
+
+body.page-teacher > #teacher-modal-grupos.teacher-modal[hidden] {
+  display: none;
+}
+
+.teacher-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(1.5px);
+}
+
+.teacher-modal-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+body.page-teacher.teacher-modal-open {
+  overflow: hidden;
+}
+
+.teacher-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.teacher-modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1e4d7b;
+}
+
+.teacher-modal-close {
+  border: none;
+  background: #f1f5f9;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.teacher-modal-lead {
+  margin: 0 0 16px;
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.teacher-form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.teacher-input {
+  flex: 1 1 160px;
+  padding: 10px 12px;
+  border: 2px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.teacher-grupos-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.teacher-grupos-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.teacher-grupo-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  color: #0f172a;
+}
+
+.teacher-grupo-info strong {
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.teacher-grupo-codigo {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  width: fit-content;
+}
+
+.teacher-grupo-codigo--large {
+  font-size: 1.1rem;
+  padding: 8px 14px;
+  letter-spacing: 0.2em;
+}
+
+.teacher-grupo-codigo-aviso {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  font-size: 0.88rem;
+  color: #065f46;
+  line-height: 1.5;
+}
+
+.teacher-grupo-codigo-aviso[hidden] {
+  display: none;
+}
+
+.teacher-grupo-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.teacher-grupo-actions button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.teacher-btn-asignar {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.teacher-btn-borrar {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.teacher-asignar h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.teacher-asignar-list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.teacher-asignar-empty {
+  padding: 12px;
+  color: #64748b;
+  font-size: 0.88rem;
+}
+
+.teacher-asignar-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.teacher-asignar-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.teacher-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 12px;
+}
+
+.teacher-page-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  background: rgba(15, 23, 42, 0.65);
+  color: #e2e8f0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.teacher-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.teacher-page-info {
+  font-size: 0.9rem;
+  color: #cbd5e1;
+}
+
+.teacher-action-btn--csv {
+  margin-left: auto;
+}
+
+.teacher-scroll-top {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #fef08a 0%, #facc15 100%);
+  color: #5c3d1e;
+  box-shadow:
+    0 4px 0 #92400e,
+    0 10px 24px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s ease,
+    background 0.15s ease;
+}
+
+.teacher-scroll-top.is-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.teacher-scroll-top:hover {
+  background: linear-gradient(180deg, #fef9c3 0%, #fde047 100%);
+}
+
+.teacher-scroll-top:active {
+  transform: translateY(2px);
+  box-shadow:
+    0 2px 0 #92400e,
+    0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+.teacher-scroll-top:focus-visible {
+  outline: 3px solid #fef08a;
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .teacher-scroll-top {
+    right: 14px;
+    bottom: 18px;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .teacher-scroll-top {
+    transition: none;
+  }
+}

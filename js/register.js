@@ -1,3 +1,9 @@
+/**
+ * Lógica de signup.html: crea la cuenta en Supabase y redirige.
+ * Maestros van al dashboard; alumnos, a unirse a un grupo.
+ */
+
+// Muestra "Creando cuenta…" y deshabilita el botón mientras espera.
 function registerEstadoBoton(btn, cargando) {
   if (!btn) {
     return;
@@ -14,12 +20,44 @@ function registerEstadoBoton(btn, cargando) {
   }
 }
 
+// Textos traducibles de esta pantalla.
+function registerMsg(path, fallback) {
+  return typeof str === "function" ? str(path, fallback) : fallback;
+}
+
+// Si signUp no devolvió sesión, intentamos login inmediato con las mismas credenciales.
+async function registerEntrarTrasCrear(email, password, esMaestro) {
+  if (typeof authIniciarSesion !== "function") {
+    return false;
+  }
+  var resultado = await authIniciarSesion(email, password);
+  if (esMaestro) {
+    if (typeof gruposInicializar === "function") {
+      await gruposInicializar();
+    }
+    window.location.href =
+      typeof pagina === "function"
+        ? pagina("teacher-dashboard.html")
+        : "teacher-dashboard.html";
+    return true;
+  }
+  if (typeof redirigirAlumnoTrasLogin === "function") {
+    await redirigirAlumnoTrasLogin(email);
+    return true;
+  }
+  window.location.href =
+    typeof pagina === "function" ? pagina("join-group.html") : "join-group.html";
+  return true;
+}
+
+// Precalienta Supabase al cargar la página.
 document.addEventListener("DOMContentLoaded", function () {
   if (typeof initSupabase === "function") {
     initSupabase();
   }
 });
 
+// Handler del formulario de alta.
 async function crearCuenta() {
   var nombreEl = document.getElementById("nombre");
   var apellidoEl = document.getElementById("apellido");
@@ -29,6 +67,7 @@ async function crearCuenta() {
   var btn = document.querySelector(".btn-submit");
   var errBox = document.getElementById("signup-error");
 
+  // Pinta el error en la caja o, si no hay, usa alert.
   function mostrarError(msg) {
     if (!errBox) {
       if (msg) {
@@ -53,9 +92,27 @@ async function crearCuenta() {
 
   mostrarError("");
 
-  if (!nombre || !email || password.length < 6) {
-    mostrarError("Completa nombre, correo y contraseña (mínimo 6 caracteres).");
-    return;
+  if (typeof authValidarFormularioRegistro !== "function") {
+    if (!nombre || !email || password.length < 8) {
+      mostrarError(
+        "Completa nombre, correo y contraseña (mínimo 8 caracteres con mayúscula, minúscula, número y carácter especial)."
+      );
+      return;
+    }
+  } else {
+    var validacion = authValidarFormularioRegistro({
+      nombre: nombre,
+      apellido: apellido,
+      email: email,
+      password: password
+    });
+    if (!validacion.ok) {
+      mostrarError(validacion.error);
+      return;
+    }
+    email = validacion.email;
+    nombre = validacion.nombre;
+    apellido = validacion.apellido;
   }
 
   registerEstadoBoton(btn, true);
@@ -76,7 +133,12 @@ async function crearCuenta() {
         data.user &&
         (!data.user.identities || data.user.identities.length === 0)
       ) {
-        mostrarError("Ya hay una cuenta con ese correo. Prueba a iniciar sesión.");
+        mostrarError(
+          registerMsg(
+            "auth.correoYaRegistrado",
+            "Ya hay una cuenta con ese correo. Prueba a iniciar sesión."
+          )
+        );
         registerEstadoBoton(btn, false);
         return;
       }
@@ -101,8 +163,18 @@ async function crearCuenta() {
         return;
       }
 
+      try {
+        await registerEntrarTrasCrear(email, password, esMaestro);
+        return;
+      } catch (loginErr) {
+        console.warn("[registro] sin sesión tras signUp:", loginErr);
+      }
+
       mostrarError(
-        "Cuenta creada. Revisa tu correo para confirmar y luego inicia sesión."
+        registerMsg(
+          "auth.registroSinSesion",
+          "Cuenta creada. Ve a «Iniciar sesión» con tu correo y contraseña."
+        )
       );
       registerEstadoBoton(btn, false);
       return;
@@ -122,6 +194,7 @@ async function crearCuenta() {
   if (typeof redirigirAlumnoTrasLogin === "function") {
     await redirigirAlumnoTrasLogin(email);
   } else {
-    window.location.href = typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+    window.location.href =
+      typeof pagina === "function" ? pagina("topics.html") : "topics.html";
   }
 }

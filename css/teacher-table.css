@@ -1,0 +1,171 @@
+.teacher-table-wrap {
+  overflow-x: auto;
+}
+
+.teacher-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.teacher-table th {
+  text-align: left;
+  padding: 10px 8px;
+  color: #1e4d7b;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid rgba(30, 77, 123, 0.2);
+}
+
+.teacher-table td {
+  padding: 12px 8px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(30, 77, 123, 0.12);
+}
+
+.teacher-table tbody tr {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.teacher-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.teacher-table tbody tr.is-expanded {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.teacher-student {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.teacher-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fde047, #f59e0b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.teacher-avatar--duck {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.teacher-avatar--duck .teacher-avatar-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.teacher-avatar-base {
+  z-index: 1;
+}
+
+.teacher-avatar-shoes {
+  z-index: 2;
+}
+
+.teacher-avatar-neck {
+  z-index: 3;
+}
+
+.teacher-avatar-face {
+  z-index: 4;
+}
+
+.teacher-avatar-head {
+  z-index: 5;
+}
+
+.teacher-student-name {
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.teacher-student-email {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+
+.teacher-cell-bar {
+  min-width: 72px;
+}
+
+.teacher-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teacher-bar-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  min-width: 48px;
+}
+
+.teacher-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.bar-green .teacher-bar-fill {
+  background: linear-gradient(90deg, #4ade80, #22c55e);
+}
+
+.bar-orange .teacher-bar-fill {
+  background: linear-gradient(90deg, #fdba74, #f97316);
+}
+
+.bar-red .teacher-bar-fill {
+  background: linear-gradient(90deg, #fca5a5, #ef4444);
+}
+
+.bar-blue .teacher-bar-fill {
+  background: linear-gradient(90deg, #93c5fd, #3b82f6);
+}
+
+.teacher-bar-score {
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.teacher-time {
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.teacher-expand-row td {
+  padding: 0;
+  border-bottom: none;
+  cursor: default;
+}
+
+.teacher-expand-row:hover {
+  background: transparent !important;
+}

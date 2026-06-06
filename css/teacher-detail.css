@@ -1,0 +1,292 @@
+.teacher-detail {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  margin: 0 0 12px;
+  border: 1px solid rgba(30, 77, 123, 0.15);
+}
+
+.teacher-detail-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+}
+
+.teacher-detail-title {
+  margin: 0;
+  font-size: 1rem;
+  color: #1e4d7b;
+}
+
+.teacher-detail-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 220px;
+  max-width: 340px;
+}
+
+.teacher-detail-progress {
+  flex: 1 1 200px;
+  max-width: none;
+}
+
+.teacher-detail-progress label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.teacher-detail-body {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) 1fr;
+  gap: 16px;
+}
+
+.teacher-detail-side-title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.teacher-detail-side-title + .teacher-levels-mini,
+.teacher-detail-side-title + .teacher-intentos {
+  margin-bottom: 14px;
+}
+
+.teacher-intentos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.teacher-intento {
+  padding: 10px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(30, 77, 123, 0.12);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.teacher-intento:hover {
+  border-color: rgba(59, 130, 246, 0.45);
+}
+
+.teacher-intento.is-selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  background: rgba(239, 246, 255, 0.95);
+}
+
+.teacher-intento:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.teacher-intento-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.78rem;
+}
+
+.teacher-intento-estado {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.15);
+  color: #475569;
+}
+
+.teacher-intento--ok .teacher-intento-estado {
+  background: rgba(22, 163, 74, 0.15);
+  color: #15803d;
+}
+
+.teacher-intento--fail .teacher-intento-estado {
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+}
+
+.teacher-intento--warn .teacher-intento-estado {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.teacher-intento--curso .teacher-intento-estado {
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+}
+
+.teacher-intento-meta {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.teacher-intento .teacher-bar-wrap {
+  margin-top: 0;
+}
+
+.teacher-intento-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.teacher-intento-bar-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.teacher-intento-bar .teacher-bar-wrap {
+  margin-top: 0;
+}
+
+.teacher-intento-empty {
+  font-size: 0.8rem;
+  color: #64748b;
+  padding: 8px 0;
+}
+
+.task-omitida {
+  color: #b45309;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.task-partial {
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 640px) {
+  .teacher-detail-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.teacher-levels-mini {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.teacher-levels-mini li {
+  margin-bottom: 6px;
+}
+
+.teacher-tema-btn {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: rgba(30, 77, 123, 0.08);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e4d7b;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.teacher-tema-btn:hover {
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.teacher-tema-btn.is-selected {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
+}
+
+.teacher-temas-select {
+  margin-bottom: 4px;
+}
+
+.teacher-modos-select {
+  margin-bottom: 4px;
+}
+
+.teacher-tasks {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.teacher-tasks th,
+.teacher-tasks td {
+  padding: 8px 6px;
+  text-align: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.teacher-tasks th:first-child,
+.teacher-tasks td:first-child {
+  text-align: left;
+}
+
+.task-ok {
+  color: #16a34a;
+  font-weight: 800;
+}
+
+.task-fail {
+  color: #dc2626;
+  font-weight: 800;
+}
+
+.teacher-detail-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.teacher-avg-time {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.teacher-btn-collapse {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.teacher-empty {
+  text-align: center;
+  padding: 24px;
+  color: #334155;
+  font-weight: 600;
+  font-size: 0.95rem;
+}

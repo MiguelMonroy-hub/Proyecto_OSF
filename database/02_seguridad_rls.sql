@@ -13,13 +13,11 @@ ALTER TABLE public.alumno_grupo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tema ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nivel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nivel_maestro ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pregunta ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.respuesta ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.pregunta_maestro ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.respuesta_maestro ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.nivel_maestro_grupo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.partida ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.progreso ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.intento_pregunta ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.intento_respuesta ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.item ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.compra ENABLE ROW LEVEL SECURITY;
@@ -69,7 +67,9 @@ CREATE POLICY alumno_update_own ON public.alumno
   USING (usuario_id = public.get_my_usuario_id())
   WITH CHECK (usuario_id = public.get_my_usuario_id());
 
--- grupo
+-- grupo (sin grupo_select_por_codigo: el alumno entra solo vía RPC unirse_a_grupo)
+DROP POLICY IF EXISTS grupo_select_por_codigo ON public.grupo;
+
 CREATE POLICY grupo_select_maestro ON public.grupo
   FOR SELECT TO authenticated
   USING (profesor_id = public.get_my_profesor_id());
@@ -80,10 +80,6 @@ CREATE POLICY grupo_select_alumno_miembro ON public.grupo
     public.is_alumno()
     AND public.soy_miembro_grupo(grupo.id)
   );
-
-CREATE POLICY grupo_select_por_codigo ON public.grupo
-  FOR SELECT TO authenticated
-  USING (public.is_alumno() AND es_sistema = FALSE);
 
 CREATE POLICY grupo_insert_maestro ON public.grupo
   FOR INSERT TO authenticated
@@ -146,16 +142,75 @@ CREATE POLICY nivel_select_all ON public.nivel
 CREATE POLICY item_select_all ON public.item
   FOR SELECT TO authenticated USING (activo = TRUE);
 
-CREATE POLICY pregunta_select_sistema ON public.pregunta
+CREATE POLICY pregunta_maestro_select ON public.pregunta_maestro
   FOR SELECT TO authenticated
-  USING (nivel_id IS NOT NULL AND activa = TRUE);
+  USING (
+    activa = TRUE
+    AND EXISTS (
+      SELECT 1 FROM public.nivel_maestro nm
+      WHERE nm.id = pregunta_maestro.nivel_maestro_id
+        AND (
+          nm.profesor_id = public.get_my_profesor_id()
+          OR (
+            public.is_alumno()
+            AND public.alumno_puede_ver_nivel_maestro(nm.id)
+          )
+        )
+    )
+  );
 
-CREATE POLICY respuesta_select_sistema ON public.respuesta
+CREATE POLICY pregunta_maestro_write ON public.pregunta_maestro
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.nivel_maestro nm
+      WHERE nm.id = pregunta_maestro.nivel_maestro_id
+        AND nm.profesor_id = public.get_my_profesor_id()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.nivel_maestro nm
+      WHERE nm.id = pregunta_maestro.nivel_maestro_id
+        AND nm.profesor_id = public.get_my_profesor_id()
+    )
+  );
+
+CREATE POLICY respuesta_maestro_select ON public.respuesta_maestro
   FOR SELECT TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.pregunta p
-      WHERE p.id = respuesta.pregunta_id AND p.nivel_id IS NOT NULL
+      SELECT 1 FROM public.pregunta_maestro pm
+      JOIN public.nivel_maestro nm ON nm.id = pm.nivel_maestro_id
+      WHERE pm.id = respuesta_maestro.pregunta_maestro_id
+        AND (
+          nm.profesor_id = public.get_my_profesor_id()
+          OR (
+            public.is_alumno()
+            AND public.alumno_puede_ver_nivel_maestro(nm.id)
+          )
+        )
+    )
+  );
+
+CREATE POLICY respuesta_maestro_write ON public.respuesta_maestro
+  FOR ALL TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1
+      FROM public.pregunta_maestro pm
+      JOIN public.nivel_maestro nm ON nm.id = pm.nivel_maestro_id
+      WHERE pm.id = respuesta_maestro.pregunta_maestro_id
+        AND nm.profesor_id = public.get_my_profesor_id()
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1
+      FROM public.pregunta_maestro pm
+      JOIN public.nivel_maestro nm ON nm.id = pm.nivel_maestro_id
+      WHERE pm.id = respuesta_maestro.pregunta_maestro_id
+        AND nm.profesor_id = public.get_my_profesor_id()
     )
   );
 
@@ -184,81 +239,6 @@ CREATE POLICY nivel_maestro_delete ON public.nivel_maestro
   FOR DELETE TO authenticated
   USING (profesor_id = public.get_my_profesor_id());
 
-CREATE POLICY pregunta_maestro_select ON public.pregunta
-  FOR SELECT TO authenticated
-  USING (
-    nivel_maestro_id IS NOT NULL
-    AND activa = TRUE
-    AND EXISTS (
-      SELECT 1 FROM public.nivel_maestro nm
-      WHERE nm.id = pregunta.nivel_maestro_id
-        AND (
-          nm.profesor_id = public.get_my_profesor_id()
-          OR (
-            public.is_alumno()
-            AND public.alumno_puede_ver_nivel_maestro(nm.id)
-          )
-        )
-    )
-  );
-
-CREATE POLICY pregunta_maestro_write ON public.pregunta
-  FOR ALL TO authenticated
-  USING (
-    nivel_maestro_id IS NOT NULL
-    AND EXISTS (
-      SELECT 1 FROM public.nivel_maestro nm
-      WHERE nm.id = pregunta.nivel_maestro_id
-        AND nm.profesor_id = public.get_my_profesor_id()
-    )
-  )
-  WITH CHECK (
-    nivel_maestro_id IS NOT NULL
-    AND EXISTS (
-      SELECT 1 FROM public.nivel_maestro nm
-      WHERE nm.id = pregunta.nivel_maestro_id
-        AND nm.profesor_id = public.get_my_profesor_id()
-    )
-  );
-
-CREATE POLICY respuesta_maestro_select ON public.respuesta
-  FOR SELECT TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.pregunta p
-      JOIN public.nivel_maestro nm ON nm.id = p.nivel_maestro_id
-      WHERE p.id = respuesta.pregunta_id
-        AND (
-          nm.profesor_id = public.get_my_profesor_id()
-          OR (
-            public.is_alumno()
-            AND public.alumno_puede_ver_nivel_maestro(nm.id)
-          )
-        )
-    )
-  );
-
-CREATE POLICY respuesta_maestro_write ON public.respuesta
-  FOR ALL TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.pregunta p
-      JOIN public.nivel_maestro nm ON nm.id = p.nivel_maestro_id
-      WHERE p.id = respuesta.pregunta_id
-        AND nm.profesor_id = public.get_my_profesor_id()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1
-      FROM public.pregunta p
-      JOIN public.nivel_maestro nm ON nm.id = p.nivel_maestro_id
-      WHERE p.id = respuesta.pregunta_id
-        AND nm.profesor_id = public.get_my_profesor_id()
-    )
-  );
-
 CREATE POLICY nmg_maestro_all ON public.nivel_maestro_grupo
   FOR ALL TO authenticated
   USING (
@@ -283,11 +263,10 @@ CREATE POLICY nmg_alumno_select ON public.nivel_maestro_grupo
     AND public.alumno_en_grupo_nmg(nivel_maestro_grupo.grupo_id)
   );
 
--- partidas y progreso
-CREATE POLICY partida_alumno ON public.partida
-  FOR ALL TO authenticated
-  USING (alumno_id = public.get_my_alumno_id())
-  WITH CHECK (alumno_id = public.get_my_alumno_id());
+-- partidas y progreso: alumno solo SELECT; escritura vía registrar_resultado_quiz (RPC)
+CREATE POLICY partida_alumno_select ON public.partida
+  FOR SELECT TO authenticated
+  USING (alumno_id = public.get_my_alumno_id());
 
 CREATE POLICY partida_maestro_select ON public.partida
   FOR SELECT TO authenticated
@@ -296,54 +275,15 @@ CREATE POLICY partida_maestro_select ON public.partida
     AND public.maestro_puede_ver_alumno_id(partida.alumno_id)
   );
 
-CREATE POLICY progreso_alumno ON public.progreso
-  FOR ALL TO authenticated
-  USING (alumno_id = public.get_my_alumno_id())
-  WITH CHECK (alumno_id = public.get_my_alumno_id());
+CREATE POLICY progreso_alumno_select ON public.progreso
+  FOR SELECT TO authenticated
+  USING (alumno_id = public.get_my_alumno_id());
 
 CREATE POLICY progreso_maestro_select ON public.progreso
   FOR SELECT TO authenticated
   USING (
     public.is_maestro()
     AND public.maestro_puede_ver_alumno_id(progreso.alumno_id)
-  );
-
-CREATE POLICY intento_pregunta_alumno ON public.intento_pregunta
-  FOR ALL TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.partida p
-      WHERE p.id = intento_pregunta.partida_id
-        AND p.alumno_id = public.get_my_alumno_id()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.partida p
-      WHERE p.id = intento_pregunta.partida_id
-        AND p.alumno_id = public.get_my_alumno_id()
-    )
-  );
-
-CREATE POLICY intento_respuesta_alumno ON public.intento_respuesta
-  FOR ALL TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.intento_pregunta ip
-      JOIN public.partida p ON p.id = ip.partida_id
-      WHERE ip.id = intento_respuesta.intento_pregunta_id
-        AND p.alumno_id = public.get_my_alumno_id()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1
-      FROM public.intento_pregunta ip
-      JOIN public.partida p ON p.id = ip.partida_id
-      WHERE ip.id = intento_respuesta.intento_pregunta_id
-        AND p.alumno_id = public.get_my_alumno_id()
-    )
   );
 
 -- tienda y avatar

@@ -41,10 +41,23 @@ a {
   color: #fff;
 }
 
-/* Enlace simple tipo botón secundario */
-.link-back {
-  display: inline-block;
-  margin: 12px;
-  color: #333;
-  font-size: 0.9rem;
+/* Guard de alumno: ocultar UI hasta validar sesión (quiz usa su propio overlay) */
+html.alumno-guard-pending body:not(.page-quiz):not(.page-shop):not(.page-customize):not(.page-topics) {
+  visibility: hidden;
+}
+
+html.alumno-guard-ready body {
+  visibility: visible;
+}
+
+/* Contraste texto secundario (pantallas claras; la tienda define el suyo en shop.css) */
+.topics-lead,
+.sub {
+  color: #334155;
+}
+
+input::placeholder,
+.teacher-search::placeholder {
+  color: #475569;
+  opacity: 1;
 }

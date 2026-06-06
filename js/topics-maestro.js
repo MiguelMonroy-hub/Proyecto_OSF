@@ -1,12 +1,11 @@
-/**
- * Niveles del maestro en «Elige tu tema» — mismas tarjetas que los temas.
- */
+// Niveles creados por el maestro en «Elige tu tema»: mismas tarjetas visuales que los temas del catálogo.
 (function () {
   "use strict";
 
   var RUTA_LOGO_DEFAULT = "../MAIN DUCK/BACKGROUND/Quiz_default.png";
   var RUTA_TIMEOUT = "../MAIN DUCK/BACKGROUND/Timeout.png";
 
+  // Escapa texto para meterlo seguro dentro de HTML.
   function escHtml(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -15,10 +14,12 @@
       .replace(/"/g, "&quot;");
   }
 
+  // Igual que escHtml pero también escapa comillas simples para atributos.
   function escAttr(s) {
     return escHtml(s).replace(/'/g, "&#39;");
   }
 
+  // Resuelve la URL del logo del nivel maestro o usa la imagen por defecto.
   function urlLogoNivel(nivel) {
     if (typeof nivelMaestroUrlLogo === "function") {
       return nivelMaestroUrlLogo(nivel);
@@ -32,6 +33,7 @@
     return RUTA_LOGO_DEFAULT;
   }
 
+  // Quita del grid las tarjetas de niveles maestro que ya estaban pintadas.
   function quitarTarjetasMaestro(grid) {
     var previas = grid.querySelectorAll("[data-maestro-nivel]");
     for (var i = 0; i < previas.length; i++) {
@@ -39,6 +41,7 @@
     }
   }
 
+  // Construye una tarjeta de tema para un nivel del maestro (jugable o vencido).
   function crearTarjetaTema(nivel, vinculo) {
     var asig = nivel.grupos[vinculo.grupoId] || {};
     var vencido =
@@ -66,7 +69,7 @@
         "</span>";
     } else {
       nivelHtml =
-        '<a href="/pages/quiz?tn=' +
+        '<a href="/pages/quiz.html?tn=' +
         encodeURIComponent(nivel.id) +
         '" class="level-btn level-facil">' +
         '<span class="lvl-badge">A</span>' +
@@ -110,12 +113,12 @@
       if (play) {
         play.setAttribute(
           "href",
-          "/pages/quiz?tn=" + encodeURIComponent(nivel.id)
+          "/pages/quiz.html?tn=" + encodeURIComponent(nivel.id)
         );
         play.addEventListener("click", function (ev) {
           ev.preventDefault();
           window.location.assign(
-            "/pages/quiz?tn=" + encodeURIComponent(nivel.id)
+            "/pages/quiz.html?tn=" + encodeURIComponent(nivel.id)
           );
         });
       }
@@ -126,6 +129,7 @@
 
   var pintarSeq = 0;
 
+  // Carga los niveles del maestro del grupo del alumno y los muestra en el grid.
   async function pintar() {
     if (typeof nivelMaestroParaGrupo !== "function") {
       return;
@@ -192,6 +196,7 @@
     grid.appendChild(frag);
   }
 
+  // Punto de arranque: pinta la sección de niveles del maestro al cargar la página.
   async function iniciar() {
     await pintar();
   }

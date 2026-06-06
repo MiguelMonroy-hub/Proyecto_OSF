@@ -1,7 +1,8 @@
 /* Seleccionar tema — tarjetas llamativas */
 .page-topics {
-  min-height: 100vh;
-  padding: 20px 16px 36px;
+  min-height: 100dvh;
+  padding: max(20px, env(safe-area-inset-top)) 16px max(36px, env(safe-area-inset-bottom));
+  overflow-x: hidden;
 }
 
 .topics-hero {
@@ -94,6 +95,17 @@
   gap: 22px;
   max-width: 960px;
   margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (max-height: 700px) {
+  .topic-card .levels {
+    gap: 6px;
+  }
+
+  .topic-card .level-btn {
+    padding: 8px 10px;
+  }
 }
 
 .topic-card {

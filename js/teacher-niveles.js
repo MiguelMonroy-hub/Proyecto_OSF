@@ -1,18 +1,24 @@
 /**
- * Niveles personalizados del maestro (Supabase + caché en memoria).
+ * Lógica de dominio para los niveles personalizados del maestro.
+ * Normaliza preguntas, gestiona logos, valida borradores y decide qué niveles
+ * ve o puede jugar cada grupo. La persistencia real va en teacher-niveles-db.js.
  */
+/** Devuelve una copia de todos los niveles que hay en caché en memoria. */
 function nivelMaestroLeerTodos() {
   return _nivelMaestroDbCache ? _nivelMaestroDbCache.slice() : [];
 }
 
+/** Sustituye la caché en memoria por la lista de niveles indicada. */
 function nivelMaestroGuardarTodos(lista) {
   _nivelMaestroDbCache = Array.isArray(lista) ? lista.slice() : [];
 }
 
+/** Reservado para IDs locales; en Supabase el id lo asigna la base de datos. */
 function nivelMaestroGenerarId() {
   return null;
 }
 
+/** Arma un mapa de grupos del maestro, todos ocultos y sin fecha límite. */
 function nivelMaestroGruposVacios() {
   var mapa = {};
   var grupos = typeof gruposLeer === "function" ? gruposLeer() : [];
@@ -24,6 +30,7 @@ function nivelMaestroGruposVacios() {
   return mapa;
 }
 
+/** Combina asignaciones guardadas con los grupos actuales del maestro. */
 function nivelMaestroFusionarGrupos(existentes) {
   var base = nivelMaestroGruposVacios();
   if (!existentes || typeof existentes !== "object") {
@@ -42,7 +49,7 @@ function nivelMaestroFusionarGrupos(existentes) {
 var NIVEL_MAESTRO_LETRAS_OPCION = ["A", "B", "C", "D"];
 var NIVEL_MAESTRO_LOGO_DEFAULT = "MAIN DUCK/BACKGROUND/Quiz_default.png";
 
-/** URL del logo en pantallas dentro de /pages/ */
+/** Devuelve la URL del logo del nivel o la imagen por defecto del quiz. */
 function nivelMaestroUrlLogo(nivel) {
   if (nivelMaestroEsLogoValido(nivel && nivel.logo)) {
     return nivel.logo;
@@ -53,6 +60,7 @@ var NIVEL_LOGO_MAX_LADO = 200;
 var NIVEL_LOGO_MAX_BYTES_ARCHIVO = 3 * 1024 * 1024;
 var NIVEL_LOGO_MAX_DATA_URL = 150000;
 
+/** Comprueba si el logo es un data URL de imagen dentro del tamaño permitido. */
 function nivelMaestroEsLogoValido(str) {
   return (
     typeof str === "string" &&
@@ -62,9 +70,7 @@ function nivelMaestroEsLogoValido(str) {
   );
 }
 
-/**
- * Redimensiona una imagen y devuelve data URL JPEG para guardar en el nivel.
- */
+/** Lee una imagen del disco, la redimensiona y la convierte a JPEG en data URL. */
 function nivelMaestroProcesarArchivoLogo(archivo, callback) {
   callback = typeof callback === "function" ? callback : function () {};
   if (!archivo || !archivo.type || archivo.type.indexOf("image/") !== 0) {
@@ -124,6 +130,7 @@ function nivelMaestroProcesarArchivoLogo(archivo, callback) {
   reader.readAsDataURL(archivo);
 }
 
+/** Añade el prefijo «A)», «B)», etc. al texto de una opción si aún no lo tiene. */
 function nivelMaestroPrefijoOpcion(letra, texto) {
   texto = String(texto || "").trim();
   if (!texto) {
@@ -136,6 +143,7 @@ function nivelMaestroPrefijoOpcion(letra, texto) {
   return pref + texto;
 }
 
+/** Convierte una pregunta en bruto al formato interno con enunciado y cuatro opciones. */
 function nivelMaestroNormalizarPregunta(raw, idx, nivelId) {
   if (!raw) {
     return null;
@@ -183,6 +191,7 @@ function nivelMaestroNormalizarPregunta(raw, idx, nivelId) {
   };
 }
 
+/** Normaliza un array de preguntas y descarta las que no estén completas. */
 function nivelMaestroNormalizarListaPreguntas(arr, nivelId) {
   if (!Array.isArray(arr)) {
     return [];
@@ -197,6 +206,7 @@ function nivelMaestroNormalizarListaPreguntas(arr, nivelId) {
   return out;
 }
 
+/** Mezcla un array al azar y devuelve una copia sin alterar el original. */
 function nivelMaestroBarajar(arr) {
   var copia = arr.slice();
   for (var i = copia.length - 1; i > 0; i--) {
@@ -208,7 +218,7 @@ function nivelMaestroBarajar(arr) {
   return copia;
 }
 
-/** Preguntas que verá el alumno en una partida (todas, en orden aleatorio). */
+/** Devuelve todas las preguntas del nivel en un orden aleatorio para la partida. */
 function nivelMaestroObtenerPreguntasPartida(nivel) {
   var banco = nivel && nivel.preguntas ? nivel.preguntas : [];
   if (!banco.length) {
@@ -217,10 +227,12 @@ function nivelMaestroObtenerPreguntasPartida(nivel) {
   return nivelMaestroBarajar(banco);
 }
 
+/** Cuenta cuántas preguntas tiene un nivel. */
 function nivelMaestroContarPreguntas(nivel) {
   return nivel && nivel.preguntas ? nivel.preguntas.length : 0;
 }
 
+/** Plantilla de pregunta vacía para el editor del maestro. */
 function nivelMaestroPreguntaVacia() {
   return {
     q: "",
@@ -230,6 +242,7 @@ function nivelMaestroPreguntaVacia() {
   };
 }
 
+/** Pasa una pregunta guardada al formato editable del formulario. */
 function nivelMaestroDesdePreguntaGuardada(p) {
   if (!p || !p.opts) {
     return nivelMaestroPreguntaVacia();
@@ -259,6 +272,7 @@ function nivelMaestroDesdePreguntaGuardada(p) {
   };
 }
 
+/** Arma un objeto de nivel completo y coherente a partir de datos sueltos. */
 function nivelMaestroNormalizar(datos) {
   var id = datos.id != null ? String(datos.id) : null;
   var preguntas = nivelMaestroNormalizarListaPreguntas(datos.preguntas, id || "nuevo");
@@ -277,6 +291,7 @@ function nivelMaestroNormalizar(datos) {
   return item;
 }
 
+/** Carga los niveles desde Supabase y actualiza la caché si hace falta. */
 async function nivelMaestroCargarDesdeDb(force) {
   if (typeof nivelMaestroDbCargarTodos !== "function") {
     return [];
@@ -284,6 +299,46 @@ async function nivelMaestroCargarDesdeDb(force) {
   return nivelMaestroDbCargarTodos(!!force);
 }
 
+/** Revisa título, grupos y preguntas antes de guardar; devuelve { ok, errores }. */
+function nivelMaestroValidarBorrador(datos) {
+  var errores = [];
+  datos = datos || {};
+  var titulo = String(datos.titulo || "").trim();
+  if (!titulo) {
+    errores.push("Escribe un nombre para el nivel.");
+  }
+  var grupos = datos.grupos || {};
+  var keysGrupo = Object.keys(grupos);
+  var algunoVisible = false;
+  for (var g = 0; g < keysGrupo.length; g++) {
+    if (grupos[keysGrupo[g]] && grupos[keysGrupo[g]].visible) {
+      algunoVisible = true;
+      break;
+    }
+  }
+  if (!keysGrupo.length) {
+    errores.push("Primero crea un grupo en el panel del maestro.");
+  } else if (!algunoVisible) {
+    errores.push("Activa al menos un grupo para mostrar este nivel.");
+  }
+  var preguntas = datos.preguntas || [];
+  if (!preguntas.length) {
+    errores.push("Añade al menos una pregunta.");
+  } else {
+    var normalizadas = nivelMaestroNormalizarListaPreguntas(
+      preguntas,
+      datos.id || "tn-nuevo"
+    );
+    if (!normalizadas.length) {
+      errores.push(
+        "Cada pregunta necesita enunciado y las 4 opciones con texto."
+      );
+    }
+  }
+  return { ok: errores.length === 0, errores: errores };
+}
+
+/** Persiste un nivel en la base de datos a través de la capa db. */
 async function nivelMaestroGuardarAsync(datos) {
   if (typeof nivelMaestroDbGuardar !== "function") {
     throw new Error("No está disponible el guardado en base de datos.");
@@ -291,13 +346,7 @@ async function nivelMaestroGuardarAsync(datos) {
   return nivelMaestroDbGuardar(datos);
 }
 
-function nivelMaestroGuardar(datos) {
-  console.warn(
-    "[nivel-maestro] Usa nivelMaestroGuardarAsync; el guardado síncrono ya no persiste."
-  );
-  return nivelMaestroNormalizar(datos);
-}
-
+/** Borra un nivel de la base de datos por su identificador. */
 async function nivelMaestroEliminarAsync(id) {
   if (typeof nivelMaestroDbEliminar !== "function") {
     throw new Error("No está disponible el borrado en base de datos.");
@@ -305,13 +354,7 @@ async function nivelMaestroEliminarAsync(id) {
   await nivelMaestroDbEliminar(id);
 }
 
-function nivelMaestroEliminar(id) {
-  console.warn(
-    "[nivel-maestro] Usa nivelMaestroEliminarAsync; el borrado síncrono ya no persiste."
-  );
-  nivelMaestroDbQuitarDeCache(String(id));
-}
-
+/** Busca un nivel en caché por id o dbId; devuelve null si no existe. */
 function nivelMaestroPorId(id) {
   if (id == null || id === "") {
     return null;
@@ -329,6 +372,7 @@ function nivelMaestroPorId(id) {
   return null;
 }
 
+/** Busca un nivel en caché y, si no está, lo pide a Supabase. */
 async function nivelMaestroPorIdAsync(id) {
   if (id == null || id === "") {
     return null;
@@ -343,6 +387,7 @@ async function nivelMaestroPorIdAsync(id) {
   return null;
 }
 
+/** Recarga desde la base de datos y devuelve los niveles visibles para un grupo. */
 async function nivelMaestroParaGrupoAsync(grupoId) {
   if (typeof nivelMaestroCargarDesdeDb === "function") {
     await nivelMaestroCargarDesdeDb(true);
@@ -350,6 +395,7 @@ async function nivelMaestroParaGrupoAsync(grupoId) {
   return nivelMaestroParaGrupo(grupoId);
 }
 
+/** Interpreta una fecha «YYYY-MM-DD» como fin de día o devuelve null si no es válida. */
 function nivelMaestroParseFechaLimite(str) {
   if (!str) {
     return null;
@@ -358,6 +404,7 @@ function nivelMaestroParseFechaLimite(str) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/** Obtiene la configuración de visibilidad y fecha límite de un nivel para un grupo. */
 function nivelMaestroAsignacionGrupo(nivel, grupoId) {
   if (!nivel || !nivel.grupos || grupoId == null || grupoId === "") {
     return null;
@@ -375,13 +422,13 @@ function nivelMaestroAsignacionGrupo(nivel, grupoId) {
   return { visible: false, fechaLimite: "" };
 }
 
-/** ¿El maestro activó este nivel para el grupo? (sigue en Temas aunque venza) */
+/** Indica si el maestro dejó activo este nivel para el grupo (aunque ya haya vencido). */
 function nivelMaestroVisibleParaGrupo(nivel, grupoId) {
   var a = nivelMaestroAsignacionGrupo(nivel, grupoId);
   return !!(a && a.visible);
 }
 
-/** ¿Ya pasó la fecha límite del grupo? */
+/** Indica si la fecha límite del grupo ya pasó para este nivel. */
 function nivelMaestroFechaVencida(nivel, grupoId) {
   if (!nivelMaestroVisibleParaGrupo(nivel, grupoId)) {
     return false;
@@ -391,7 +438,7 @@ function nivelMaestroFechaVencida(nivel, grupoId) {
   return !!(fin && Date.now() > fin.getTime());
 }
 
-/** ¿El alumno puede jugarlo ahora? */
+/** Indica si el alumno puede jugar el nivel ahora: visible, no vencido y con preguntas. */
 function nivelMaestroJugableParaGrupo(nivel, grupoId) {
   return (
     nivelMaestroVisibleParaGrupo(nivel, grupoId) &&
@@ -400,6 +447,7 @@ function nivelMaestroJugableParaGrupo(nivel, grupoId) {
   );
 }
 
+/** Lista los niveles visibles para un grupo, sin duplicados y del más reciente al más antiguo. */
 function nivelMaestroParaGrupo(grupoId) {
   if (!grupoId) {
     return [];
@@ -425,6 +473,7 @@ function nivelMaestroParaGrupo(grupoId) {
     });
 }
 
+/** Devuelve el nombre legible de un tema del currículo por su id. */
 function nivelMaestroNombreTema(temaId) {
   var mapa = {
     "1": "Tema 1 · Coordenadas",
@@ -435,6 +484,7 @@ function nivelMaestroNombreTema(temaId) {
   return mapa[String(temaId)] || "Tema " + temaId;
 }
 
+/** Texto corto con el número de preguntas del nivel para mostrar en listas. */
 function nivelMaestroEtiquetaResumen(nivel) {
   var total = nivelMaestroContarPreguntas(nivel);
   if (!total) {
@@ -443,6 +493,7 @@ function nivelMaestroEtiquetaResumen(nivel) {
   return total + " pregunta" + (total === 1 ? "" : "s");
 }
 
+/** Formatea una fecha ISO «YYYY-MM-DD» a «DD/MM/YYYY» para la interfaz. */
 function nivelMaestroEtiquetaFecha(str) {
   if (!str) {
     return "Sin fecha límite";

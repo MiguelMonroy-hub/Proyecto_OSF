@@ -7,9 +7,30 @@
   <title>Tienda</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
+  <link rel="stylesheet" href="../css/ui-toast.css">
+  <link rel="stylesheet" href="../css/page-load-overlay.css">
   <link rel="stylesheet" href="../css/shop.css">
 </head>
-<body class="page-shop">
+<body class="page-shop is-page-loading">
+  <!-- Pantalla de carga mientras llegan artículos y monedas -->
+  <div id="page-loading-overlay" class="td-page-loading-overlay" aria-live="polite" aria-label="Cargando tienda">
+    <div class="td-page-loading-card">
+      <img
+        class="td-page-loading-duck"
+        src="../MAIN DUCK/DUCK/MAIN DUCK.png"
+        alt="Pato TecDuck"
+        width="86"
+        height="86"
+        onerror="if (typeof pageLoadDuckFallback === 'function') pageLoadDuckFallback();"
+      />
+      <span id="page-loading-duck-fallback" class="td-page-loading-duck-fallback" hidden aria-hidden="true">🦆</span>
+      <span class="td-page-loading-brand">TecDuck</span>
+      <span class="td-page-loading-main">Cargando la tienda</span>
+      <span class="td-page-loading-sub">Preparando artículos y tu saldo…</span>
+      <span class="td-page-loading-bar" aria-hidden="true"><span class="td-page-loading-bar-fill"></span></span>
+    </div>
+  </div>
+  <!-- Cabecera con saldo de monedas -->
   <div class="shop-header">
     <span class="shop-title">Tienda</span>
     <span id="shop-coins" class="shop-coins">🪙 <span id="coins-value">0</span></span>
@@ -19,26 +40,29 @@
     Todo lo que compres aquí se desbloquea en <strong>Mi pato</strong>.
   </p>
 
+  <!-- Navegación: personalizar pato o volver a temas -->
   <nav class="shop-top-nav" aria-label="Navegación de la tienda">
     <a href="customize.html" class="shop-nav-btn shop-nav-btn-mipato">Personalizar pato</a>
-    <a href="topics.html" class="shop-nav-btn shop-nav-btn-temas">← Volver a temas</a>
+    <a href="topics.html" class="shop-nav-btn shop-nav-btn-temas" data-volver-temas="1">← Volver a temas</a>
   </nav>
 
+  <!-- Catálogo de artículos (se llena por JS) -->
   <div class="shop-items" id="shop-grid"></div>
 
-  <div class="shop-footer">
-    Tu saldo: 🪙 <span id="saldo-value">0</span>
-  </div>
-
+  <!-- Scripts: economía del pato y tienda -->
   <script src="../js/rutas.js"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/auth-service.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/ui-toast.js"></script>
+  <script src="../js/page-load-overlay.js"></script>
   <script src="../js/duck-catalog.js"></script>
   <script src="../js/duck-outfit.js"></script>
   <script src="../js/duck-economia-sync.js"></script>
   <script src="../js/duck-avatar-sync.js"></script>
+  <script src="../js/alumno-guard.js"></script>
   <script src="../js/shop.js"></script>
 </body>
 </html>

@@ -60,20 +60,6 @@
   box-sizing: border-box;
 }
 
-.modal-login .row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  font-size: 0.85rem;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.modal-login .row a {
-  color: #7ec8ff;
-}
-
 .modal-login .btn-submit {
   width: 100%;
   padding: 12px;
@@ -100,4 +86,18 @@
 
 .modal-login .switch a {
   color: #7ec8ff;
+}
+
+.modal-login .login-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  font-size: 0.88rem;
+  color: #fecaca;
+}
+
+.modal-login .login-error[hidden] {
+  display: none;
 }

@@ -1,6 +1,14 @@
 (function () {
   "use strict";
 
+  /**
+   * Vista previa JSXGraph fija durante el quiz.
+   *
+   * Muestra un mapa cartesiano al lado de las preguntas de temas 1 y 2.
+   * Al elegir una opción, pinta la escena inferida (punto, vector, cuadrante, etc.)
+   * con animación suave. Expone QuizJXGMapaFijo en window para que quiz.js lo controle.
+   */
+
   var BOX_ID = "quizJXGMapaFijo";
   var brd = null;
   var capaDinamica = [];
@@ -8,6 +16,7 @@
   var animRaf = null;
   var panelEl = null;
 
+  /** Devuelve el contenedor HTML del panel del mapa (lo cachea tras el primer acceso). */
   function panel() {
     if (!panelEl) {
       panelEl = document.getElementById("quiz-jxg-panel");
@@ -15,6 +24,7 @@
     return panelEl;
   }
 
+  /** Cancela la animación en curso del requestAnimationFrame, si hay alguna. */
   function cancelarAnimacion() {
     if (animRaf) {
       cancelAnimationFrame(animRaf);
@@ -22,6 +32,7 @@
     }
   }
 
+  /** Quita del tablero todos los objetos dinámicos creados para la opción actual. */
   function limpiarCapaDinamica() {
     cancelarAnimacion();
     if (!brd || !capaDinamica.length) {
@@ -43,6 +54,7 @@
     }
   }
 
+  /** Libera el tablero JSXGraph y vacía el div del mapa por completo. */
   function destruirTablero() {
     limpiarCapaDinamica();
     if (
@@ -66,10 +78,12 @@
     }
   }
 
+  /** Curva de suavizado ease-out cuadrática para la animación (0 → 1). */
   function easeOutQuad(t) {
     return t < 1 ? t * (2 - t) : 1;
   }
 
+  /** Anima curAnimacion desde el origen hasta (hastaX, hastaY) en la duración indicada. */
   function animarCoordenadas(hastaX, hastaY, dur) {
     if (!brd || !curAnimacion) {
       return;
@@ -105,11 +119,13 @@
     animRaf = requestAnimationFrame(frame);
   }
 
+  /** Registra un objeto en la capa dinámica para poder borrarlo al cambiar de opción. */
   function pushObj(obj) {
     capaDinamica.push(obj);
     return obj;
   }
 
+  /** Dibuja el punto O en el origen con estilo fijo y visible. */
   function origenMarcado(b) {
     pushObj(
       b.create(
@@ -158,6 +174,7 @@
     );
   }
 
+  /** Rellena semitransparente el cuadrante n (1–4) con un polígono cuadrado. */
   function poligonoCuadrante(b, n, R) {
     var rr = R || 8;
     var ps;
@@ -182,6 +199,7 @@
     );
   }
 
+  /** Estilo base que desactiva resaltado, infobox y selección al pasar el cursor. */
   function estiloSinResaltado(extra) {
     var base = {
       fixed: true,
@@ -211,6 +229,7 @@
     return [-h, h, h, -h];
   }
 
+  /** Encuadra el viewport para mostrar solo el cuadrante indicado (1–4). */
   function bboxCuadrante(n, radio) {
     var r = radio != null && isFinite(radio) ? radio : 5;
     var pad = 0.75;
@@ -226,6 +245,7 @@
     return [-pad, pad, r + pad, -r - pad];
   }
 
+  /** Estima el radio del cuadrante a partir del bounding box ya calculado. */
   function radioCuadranteDesdeBbox(bb) {
     return Math.max(
       Math.abs(bb[2] - bb[0]),
@@ -295,6 +315,7 @@
     }
   }
 
+  /** Aplica un nuevo bounding box al tablero activo y fuerza un redraw. */
   function aplicarBoundingBox(bbox) {
     var b = brd;
     if (!b || !bbox || bbox.length !== 4) {
@@ -312,6 +333,7 @@
     }
   }
 
+  /** Opciones de creación del tablero: ejes, colores y bounding box inicial. */
   function opcionesTablero(bbox) {
     var bb = bbox && bbox.length === 4 ? bbox : BBOX_DEFECTO;
     return {
@@ -352,6 +374,7 @@
     };
   }
 
+  /** Crea el tablero si no existe, o solo ajusta el zoom si ya está inicializado. */
   function asegurarTablero(bbox) {
     if (typeof JXG === "undefined") {
       return null;
@@ -370,6 +393,7 @@
     return brd;
   }
 
+  /** Dibuja en el tablero la escena completa según su tipo (cuadrante, punto, vector, eje, etc.). */
   function pintarEscena(scene) {
     if (!scene) {
       return;
@@ -651,6 +675,7 @@
   }
 
   window.QuizJXGMapaFijo = {
+    /** Muestra u oculta el panel del mapa según si la pregunta admite visualización JSXGraph. */
     prepararPregunta: function (temaId, pregunta) {
       var p = panel();
       if (!p) {
@@ -679,6 +704,7 @@
       }
     },
 
+    /** Pinta la escena correspondiente a la opción que el alumno está viendo o eligiendo. */
     vistaOpcion: function (temaId, pregunta, opcion) {
       if (
         typeof quizInferEscenaJXGDesdeOpcion !== "function" ||
@@ -703,6 +729,7 @@
       }
     },
 
+    /** Oculta el panel y destruye el tablero (p. ej. al salir del quiz). */
     ocultar: function () {
       var p = panel();
       if (p) {

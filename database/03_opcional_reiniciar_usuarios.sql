@@ -8,11 +8,10 @@
 -- Elimina:
 --   • Cuentas de login (auth.users, identities, sesiones)
 --   • usuario, profesor, alumno, grupos, partidas, progreso, tienda, avatares
---   • Niveles y preguntas creadas por maestros
+--   • Niveles y preguntas creadas por maestros (pregunta_maestro, respuesta_maestro)
 --
 -- NO elimina (catálogo del sistema):
 --   • tema, nivel (temas del juego), item (tienda)
---   • Preguntas del sistema ligadas a tema/nivel (si las agregaste)
 -- =============================================================================
 
 BEGIN;

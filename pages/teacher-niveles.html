@@ -9,11 +9,11 @@
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/teacher-dashboard.css">
   <link rel="stylesheet" href="../css/teacher-niveles.css">
+  <link rel="stylesheet" href="../css/ui-toast.css">
 </head>
 <body class="page-teacher page-teacher-niveles">
-  <div class="teacher-scene" aria-hidden="true"></div>
-
   <div class="teacher-frame teacher-niveles-frame" id="teacher-niveles-page">
+    <!-- Cabecera: volver al panel y crear nivel nuevo -->
     <header class="tn-topbar">
       <a href="teacher-dashboard.html" class="tn-topbar-back" aria-label="Volver al panel">
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
@@ -33,6 +33,7 @@
     </header>
 
     <div class="tn-workspace">
+      <!-- Lista lateral de niveles ya creados -->
       <aside class="tn-sidebar" aria-label="Lista de niveles">
         <div class="tn-sidebar-head">
           <h2 class="tn-sidebar-title">Tus niveles</h2>
@@ -45,6 +46,7 @@
         <ul id="lista-niveles-maestro" class="tn-level-list"></ul>
       </aside>
 
+      <!-- Editor: pantalla vacía o formulario del nivel -->
       <main class="tn-editor">
         <div id="tn-empty-hint" class="tn-welcome">
           <div class="tn-welcome-visual" aria-hidden="true">
@@ -54,6 +56,7 @@
           <p class="tn-welcome-text">Crea enunciados con cuatro opciones, elige la respuesta correcta y compártelo con los grupos que quieras.</p>
         </div>
 
+        <!-- Formulario: nombre, logo, preguntas y grupos -->
         <div id="tn-form-wrap" class="tn-form-panel" hidden>
           <form id="form-nivel-maestro" class="tn-form">
             <section class="tn-section">
@@ -113,6 +116,7 @@
               <div id="tn-grupos-list" class="tn-grupos-grid"></div>
             </section>
 
+            <div id="tn-validation-errors" class="tn-validation-errors" role="alert" hidden></div>
             <footer class="tn-form-footer">
               <button type="submit" class="tn-btn-primary tn-btn-primary--lg">Guardar nivel</button>
               <button type="button" class="tn-btn-ghost-danger" id="btn-tn-eliminar" hidden>Eliminar nivel</button>
@@ -123,11 +127,27 @@
     </div>
   </div>
 
+  <!-- Botón flotante para subir al inicio -->
+  <button
+    type="button"
+    id="teacher-scroll-top"
+    class="teacher-scroll-top"
+    aria-label="Volver arriba"
+    title="Volver arriba"
+  >
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.59 5.58L20 12l-8-8-8 8z"/>
+    </svg>
+  </button>
+
+  <!-- Scripts: CRUD de niveles del maestro -->
   <script src="../js/rutas.js"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/auth-service.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/ui-toast.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-auth.js"></script>
   <script src="../js/teacher-niveles.js"></script>

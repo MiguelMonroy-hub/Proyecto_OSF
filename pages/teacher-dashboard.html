@@ -8,16 +8,12 @@
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/teacher-dashboard.css">
+  <link rel="stylesheet" href="../css/ui-toast.css">
+  <link rel="stylesheet" href="../css/ui-loading.css">
 </head>
 <body class="page-teacher">
-  <div class="teacher-scene" aria-hidden="true">
-    <span class="teacher-deco teacher-deco--rocket">🚀</span>
-    <span class="teacher-deco teacher-deco--beaker">🧪</span>
-    <span class="teacher-deco teacher-deco--apple">🍎</span>
-    <span class="teacher-deco teacher-deco--formula">F=ma</span>
-  </div>
-
   <div class="teacher-frame">
+    <!-- Cabecera: búsqueda, niveles, grupos y salir -->
     <header class="teacher-header">
       <div class="teacher-header-left">
         <img
@@ -44,13 +40,13 @@
             </svg>
             <span class="teacher-action-label">Mis niveles</span>
           </a>
-          <button type="button" class="teacher-action-btn teacher-action-btn--groups" id="btn-grupos">
+          <button type="button" class="teacher-action-btn teacher-action-btn--groups" id="btn-grupos" title="Grupos">
             <svg class="teacher-action-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
             </svg>
             <span class="teacher-action-label">Grupos</span>
           </button>
-          <button type="button" class="teacher-action-btn teacher-action-btn--logout" id="btn-logout" data-auth-logout="login.html">
+          <button type="button" class="teacher-action-btn teacher-action-btn--logout" id="btn-logout" data-auth-logout="login.html" title="Salir">
             <svg class="teacher-action-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
             </svg>
@@ -60,25 +56,23 @@
       </div>
     </header>
 
+    <!-- Filtros: grupo, periodo y exportar -->
     <div class="teacher-toolbar">
       <label class="teacher-select-wrap">
         <span class="teacher-select-label">Grupo</span>
         <select id="teacher-grupo-filter" class="teacher-select"></select>
-      </label>
-      <label class="teacher-select-wrap">
-        <span class="teacher-select-label">Vista</span>
-        <select id="teacher-vista" class="teacher-select">
-          <option value="temas">Progreso por tema</option>
-          <option value="niveles">Resumen por nivel</option>
-        </select>
       </label>
       <div class="teacher-period" role="group" aria-label="Periodo">
         <button type="button" class="teacher-period-btn is-active" data-period="today">Hoy</button>
         <button type="button" class="teacher-period-btn" data-period="week">Semana</button>
         <button type="button" class="teacher-period-btn" data-period="month">Mes</button>
       </div>
+      <button type="button" class="teacher-action-btn teacher-action-btn--csv" id="btn-teacher-export-csv">
+        Exportar Excel
+      </button>
     </div>
 
+    <!-- Tabla de alumnos con paginación -->
     <div class="teacher-panel">
       <div class="teacher-table-wrap">
         <table class="teacher-table" id="teacher-table">
@@ -89,10 +83,24 @@
         </table>
       </div>
       <p id="teacher-empty" class="teacher-empty" hidden>Aún no hay alumnos registrados.</p>
+      <nav id="teacher-pagination" class="teacher-pagination" aria-label="Paginación de alumnos" hidden></nav>
     </div>
   </div>
 
-  <!-- Modal grupos -->
+  <!-- Botón flotante para subir al inicio de la tabla -->
+  <button
+    type="button"
+    id="teacher-scroll-top"
+    class="teacher-scroll-top"
+    aria-label="Volver arriba"
+    title="Volver arriba"
+  >
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.59 5.58L20 12l-8-8-8 8z"/>
+    </svg>
+  </button>
+
+  <!-- Modal: crear grupos y asignar alumnos -->
   <div id="teacher-modal-grupos" class="teacher-modal" hidden aria-modal="true" role="dialog" aria-labelledby="modal-grupos-title">
     <div class="teacher-modal-backdrop" data-close-modal></div>
     <div class="teacher-modal-card">
@@ -119,15 +127,23 @@
     </div>
   </div>
 
+  <!-- Scripts: datos del panel, grupos y exportación -->
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/auth-service.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/ui-toast.js"></script>
+  <script src="../js/ui-loading.js"></script>
   <script src="../js/rutas.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-auth.js"></script>
   <script src="../js/duck-catalog.js"></script>
+  <script src="../js/temas-config.js"></script>
+  <script src="../js/partida-actividad.js"></script>
   <script src="../js/teacher-data.js"></script>
+  <script src="../js/teacher-dashboard-state.js"></script>
+  <script src="../js/teacher-export-excel.js"></script>
   <script src="../js/teacher-dashboard.js"></script>
 </body>
 </html>

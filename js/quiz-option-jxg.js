@@ -2,11 +2,14 @@
   "use strict";
 
   /**
-   * Infiera una mini escena JSXGraph opcional desde el texto del quiz.
-   * Soportado: punto o vector (coordenadas), cuadrante romano I–IV, eje X/Y,
-   * texto de origen, y número puro usando el vector mencionado en la pregunta.
+   * Inferencia de escenas JSXGraph a partir del texto del quiz.
+   *
+   * Cuando una opción no trae el campo jxg explícito, intenta deducir
+   * una mini escena desde coordenadas, cuadrantes romanos, ejes u origen.
+   * Pensado para los temas 1 (plano cartesiano) y 2 (vectores).
    */
 
+  /** Convierte un texto numérico a float; acepta coma como separador decimal. */
   function num(s) {
     if (s == null || s === "") {
       return NaN;
@@ -15,6 +18,7 @@
     return parseFloat(t);
   }
 
+  /** Busca la primera tupla (x, y) en un texto; descarta valores fuera de ±20. */
   function extraerTupla(texto) {
     var re = /\(\s*(-?\d+(?:[\.,]\d+)?)\s*,\s*(-?\d+(?:[\.,]\d+)?)\s*\)/;
     var m = texto.match(re);
@@ -32,13 +36,12 @@
     return [x, y];
   }
 
-  /**
-   * Primer vector (a,b) en el enunciado; útil en preguntas de magnitud solo con números en opciones.
-   */
+  /** Primer vector (a,b) en el enunciado; útil en preguntas de magnitud solo con números en opciones. */
   function extraerTuplaDelEnunciado(q) {
     return extraerTupla(q || "");
   }
 
+  /** Detecta un cuadrante en formato romano (I–IV) dentro del texto de una opción. */
   function romanCuadrante(t) {
     var m = t.match(/\b[A-D]\)\s*(III|II|IV|I)\b/i);
     if (!m) {
@@ -47,6 +50,7 @@
     return String(m[1]).toUpperCase();
   }
 
+  /** Interpreta menciones al origen, ejes X/Y o vectores horizontales/verticales en el texto. */
   function detectarOrigenYEjes(tNorm) {
     if (/[\(\[\{]\s*0\s*[,\.;]\s*0\s*[\)\]\}]/.test(tNorm)) {
       return { tipo: "origenCoords" };
@@ -108,6 +112,7 @@
     return null;
   }
 
+  /** Pasa de numeral romano (I–IV) al número de cuadrante (1–4). */
   function cuadranteRomaNumeral(roman) {
     switch (roman) {
       case "I":
@@ -123,6 +128,10 @@
     }
   }
 
+  /**
+   * Construye el descriptor de escena JSXGraph para una opción concreta.
+   * Respeta jxg explícito; si no hay, infiere desde el texto de la opción y el enunciado.
+   */
   function quizInferEscenaJXGDesdeOpcion(temaId, textoPregunta, opcion) {
     if (!opcion) {
       return null;
@@ -191,7 +200,7 @@
     return null;
   }
 
-  /** Temas 1 y 2: mapa si alguna opción admite escena JSXGraph. */
+  /** Indica si alguna opción de la pregunta admite visualización en el mapa JSXGraph (temas 1 y 2). */
   function quizPreguntaUsaMapaJXG(temaId, pregunta) {
     var tema = String(temaId || "");
     if ((tema !== "1" && tema !== "2") || !pregunta) {

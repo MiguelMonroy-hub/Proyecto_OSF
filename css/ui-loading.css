@@ -1,0 +1,79 @@
+/* Overlay de carga reutilizable */
+.ui-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 6, 23, 0.82);
+  backdrop-filter: blur(3px);
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.ui-loading-overlay.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.ui-loading-card {
+  width: min(420px, 92vw);
+  border-radius: 16px;
+  padding: 22px 20px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  text-align: center;
+  color: #e2e8f0;
+}
+
+.ui-loading-spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 14px;
+  border: 3px solid rgba(125, 211, 252, 0.25);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: ui-spin 0.75s linear infinite;
+}
+
+.ui-loading-text {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Skeleton filas (panel maestro) */
+.teacher-skeleton-row td {
+  padding: 12px 10px;
+}
+
+.teacher-skeleton-bar {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.15) 0%,
+    rgba(148, 163, 184, 0.35) 50%,
+    rgba(148, 163, 184, 0.15) 100%
+  );
+  background-size: 200% 100%;
+  animation: teacher-skeleton-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes teacher-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}

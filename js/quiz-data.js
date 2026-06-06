@@ -1,19 +1,18 @@
 /**
- * Lógica del banco de preguntas (colas, barajado, selección por partida).
+ * Selección y rotación de preguntas del quiz.
  *
- * Las preguntas viven en:
- *   banco-preguntas/tema-1|2|3|4/{basico,avanzado}/preguntas.js
+ * Gestiona colas en localStorage para no repetir preguntas entre partidas
+ * hasta agotar el banco. Las preguntas se cargan antes en QUIZ_BANK
+ * (ver quiz-bank-loader.js y banco-preguntas/tema-N/{basico,avanzado}/preguntas.js).
  *
- * Esquema por pregunta:
- *   { id, q, opts: [{ t, ok, fb?, jxg? }, ...] }
- *
- * Cargar en quiz.html: quiz-bank-loader.js → cada preguntas.js → este archivo.
+ * Esquema por pregunta: { id, q, opts: [{ t, ok, fb?, jxg? }, ...] }
  */
 var QUIZ_PREGUNTAS_FACIL = 10;
 var QUIZ_PREGUNTAS_DIFICIL = 7;
 
 var CLAVE_QUIZ_COLA_PREGUNTAS = "tec_duck_quiz_cola_preguntas";
 
+/** Devuelve un entero aleatorio entre 0 y maxExcl - 1; usa crypto si está disponible. */
 function quizEnteroAleatorio(maxExcl) {
   if (maxExcl <= 0) {
     return 0;
@@ -38,6 +37,7 @@ function quizBarajar(arr) {
   return copia;
 }
 
+/** Lee del localStorage el mapa de colas pendientes por tema y modo. */
 function quizLeerColasPreguntas() {
   try {
     var raw = localStorage.getItem(CLAVE_QUIZ_COLA_PREGUNTAS);
@@ -47,10 +47,12 @@ function quizLeerColasPreguntas() {
   }
 }
 
+/** Persiste en localStorage el mapa completo de colas de preguntas. */
 function quizGuardarColasPreguntas(mapa) {
   localStorage.setItem(CLAVE_QUIZ_COLA_PREGUNTAS, JSON.stringify(mapa));
 }
 
+/** Arma la clave única de cola: tema, modo (fácil/difícil) y nivel de maestro opcional. */
 function quizClaveCola(temaId, modo, nivelMaestroId) {
   var clave =
     String(temaId || "1") + "_" + String(modo || "facil").toLowerCase();
@@ -131,8 +133,89 @@ function quizReiniciarColaPreguntas(temaId, modo) {
   quizGuardarColasPreguntas(colas);
 }
 
+/** Indica cuántas preguntas lleva una partida según el modo (fácil o difícil). */
 function quizTotalPreguntas(modo) {
   return String(modo).toLowerCase() === "dificil"
     ? QUIZ_PREGUNTAS_DIFICIL
     : QUIZ_PREGUNTAS_FACIL;
+}
+
+/** Reconstruye la lista de la partida en el mismo orden guardado en la nube. */
+function quizPreguntasPorIds(temaId, modo, ids) {
+  var id = String(temaId || "1");
+  var m = String(modo || "facil").toLowerCase();
+  if (m !== "facil" && m !== "dificil") {
+    m = "facil";
+  }
+  if (!QUIZ_BANK[id] || !Array.isArray(ids) || !ids.length) {
+    return null;
+  }
+  var banco = QUIZ_BANK[id][m] || [];
+  var porId = {};
+  var i;
+  for (i = 0; i < banco.length; i++) {
+    porId[banco[i].id] = banco[i];
+  }
+  var salida = [];
+  for (i = 0; i < ids.length; i++) {
+    if (!porId[ids[i]]) {
+      return null;
+    }
+    salida.push(porId[ids[i]]);
+  }
+  return salida.length ? salida : null;
+}
+
+/** Ordena un arreglo de preguntas ya cargado según una lista de IDs; falla si falta alguno. */
+function quizFiltrarPreguntasPorIds(preguntas, ids) {
+  if (!Array.isArray(preguntas) || !Array.isArray(ids) || !ids.length) {
+    return null;
+  }
+  var porId = {};
+  var i;
+  for (i = 0; i < preguntas.length; i++) {
+    if (preguntas[i] && preguntas[i].id) {
+      porId[preguntas[i].id] = preguntas[i];
+    }
+  }
+  var salida = [];
+  for (i = 0; i < ids.length; i++) {
+    if (!porId[ids[i]]) {
+      return null;
+    }
+    salida.push(porId[ids[i]]);
+  }
+  return salida.length ? salida : null;
+}
+
+/** Sincroniza la cola local con los IDs ya usados en una partida reanudada. */
+function quizRestaurarColaDesdePartida(temaId, modo, preguntaIds, opts) {
+  if (!Array.isArray(preguntaIds) || !preguntaIds.length) {
+    return;
+  }
+  opts = opts || {};
+  var id = String(temaId || "1");
+  var m = String(modo || "facil").toLowerCase();
+  if (m !== "facil" && m !== "dificil") {
+    m = "facil";
+  }
+  if (!QUIZ_BANK[id] || !QUIZ_BANK[id][m]) {
+    return;
+  }
+  var banco = QUIZ_BANK[id][m];
+  var todosLosIds = [];
+  var usados = {};
+  var i;
+  for (i = 0; i < banco.length; i++) {
+    todosLosIds.push(banco[i].id);
+  }
+  for (i = 0; i < preguntaIds.length; i++) {
+    usados[preguntaIds[i]] = true;
+  }
+  var colas = quizLeerColasPreguntas();
+  var clave = quizClaveCola(id, m, opts.nivelMaestroId);
+  colas[clave] = todosLosIds.filter(function (pid) {
+    return !usados[pid];
+  });
+  quizGuardarColasPreguntas(colas);
 }

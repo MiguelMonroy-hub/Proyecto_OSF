@@ -1,8 +1,10 @@
 /**
- * Autenticación con Supabase Auth + perfil en tabla usuario.
+ * Capa central de autenticación: Supabase Auth + perfil en tabla usuario.
+ * Aquí vive el login, registro, renovación de sesión, guards por rol y la limpieza al salir.
  */
 var authPerfilCache = null;
 
+// ¿Modo debug? Se activa con ?debug=1 en la URL o tec_duck_auth_debug en localStorage.
 function authDebugActivo() {
   try {
     if (typeof window !== "undefined" && window.location) {
@@ -19,12 +21,14 @@ function authDebugActivo() {
   return false;
 }
 
+// Solo escribe en consola si el debug está prendido.
 function authLog(contexto, detalle) {
   if (authDebugActivo()) {
     console.log("[auth:" + contexto + "]", detalle);
   }
 }
 
+// Siempre registra el error; con debug activo añade message, code, details…
 function authLogError(contexto, error) {
   console.error("[auth:" + contexto + "]", error);
   if (authDebugActivo() && error && typeof error === "object") {
@@ -37,19 +41,19 @@ function authLogError(contexto, error) {
   }
 }
 
+// Trim + minúsculas para que "Usuario@Mail.COM" y "usuario@mail.com" cuenten igual.
 function normalizarCorreoAuth(correo) {
   return String(correo || "")
     .trim()
     .toLowerCase();
 }
 
+// Borra el perfil cacheado (tras login, logout o refresh de token).
 function authLimpiarCache() {
   authPerfilCache = null;
 }
 
-/**
- * Convierte errores técnicos de Supabase/red en mensajes claros para el usuario.
- */
+// Saca un string legible del objeto error (Supabase, fetch, etc.).
 function authExtraerMensaje(error) {
   if (!error) {
     return "Error desconocido";
@@ -69,6 +73,7 @@ function authExtraerMensaje(error) {
   return "Error desconocido";
 }
 
+// Pasa errores crudos a mensajes que el alumno o maestro puedan entender.
 function authTraducirError(error, contexto) {
   var msg = authExtraerMensaje(error);
   var code = error && error.code ? String(error.code).toLowerCase() : "";
@@ -113,7 +118,12 @@ function authTraducirError(error, contexto) {
   }
 
   if (lower.indexOf("email not confirmed") >= 0) {
-    return "Debes confirmar tu correo antes de entrar. Revisa tu bandeja de entrada.";
+    return typeof str === "function"
+      ? str(
+          "auth.cuentaNoActiva",
+          "No pudimos iniciar sesión con esta cuenta. Vuelve a intentarlo o habla con tu maestro."
+        )
+      : "No pudimos iniciar sesión con esta cuenta. Vuelve a intentarlo o habla con tu maestro.";
   }
 
   if (
@@ -129,9 +139,15 @@ function authTraducirError(error, contexto) {
   if (
     lower.indexOf("password should be at least") >= 0 ||
     lower.indexOf("weak password") >= 0 ||
-    lower.indexOf("password is too short") >= 0
+    lower.indexOf("password is too short") >= 0 ||
+    lower.indexOf("password strength") >= 0
   ) {
-    return "La contraseña debe tener al menos 6 caracteres.";
+    return typeof str === "function"
+      ? str(
+          "auth.passRequisitos",
+          "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial."
+        )
+      : "La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.";
   }
 
   if (lower.indexOf("unable to validate email") >= 0 || lower.indexOf("invalid email") >= 0) {
@@ -151,7 +167,12 @@ function authTraducirError(error, contexto) {
   }
 
   if (lower.indexOf("error sending confirmation email") >= 0) {
-    return "No pudimos enviar el correo de confirmación. Revisa que el correo sea válido o inténtalo más tarde.";
+    return typeof str === "function"
+      ? str(
+          "auth.registroFallido",
+          "No se pudo crear la cuenta. Revisa tus datos e inténtalo de nuevo."
+        )
+      : "No se pudo crear la cuenta. Revisa tus datos e inténtalo de nuevo.";
   }
 
   if (lower.indexOf("no se encontró el perfil") >= 0) {
@@ -183,10 +204,12 @@ function authTraducirError(error, contexto) {
   return "Ocurrió un error. Inténtalo de nuevo.";
 }
 
+// Traduce el error y lo lanza como Error estándar de JS.
 function authLanzarError(error, contexto) {
   throw new Error(authTraducirError(error, contexto));
 }
 
+// Lee la sesión del cliente
 async function authObtenerSesion() {
   var sb = await initSupabase();
   if (!sb) {
@@ -199,10 +222,7 @@ async function authObtenerSesion() {
   return res.data.session;
 }
 
-/**
- * Valida la sesión con el servidor y renueva el token si hace falta.
- * Evita usar getSession() solo, que puede devolver un JWT ya expirado.
- */
+// Valida con el servidor y refresca la sesión
 async function authRenovarSesionSiHaceFalta() {
   var sb = await initSupabase();
   if (!sb) {
@@ -231,6 +251,7 @@ async function authRenovarSesionSiHaceFalta() {
   return refresh.data.session;
 }
 
+// Compara rol del perfil sin importar mayúsculas.
 function authEsRol(perfil, rol) {
   if (!perfil || !perfil.rol) {
     return false;
@@ -238,6 +259,7 @@ function authEsRol(perfil, rol) {
   return String(perfil.rol).toUpperCase() === String(rol).toUpperCase();
 }
 
+// Trae la fila de usuario por auth_id; usa caché salvo que pidas force.
 async function authCargarPerfil(force, sesionExplicita) {
   if (authPerfilCache && !force) {
     return authPerfilCache;
@@ -270,10 +292,18 @@ async function authCargarPerfil(force, sesionExplicita) {
   return authPerfilCache;
 }
 
+// signInWithPassword + validación previa + carga de perfil en tabla usuario.
 async function authIniciarSesion(correo, contrasena) {
   var sb = await initSupabase();
   if (!sb) {
     authLanzarError("Supabase no está configurado.", "login");
+  }
+  if (typeof authValidarFormularioLogin === "function") {
+    var validacionLogin = authValidarFormularioLogin(correo, contrasena);
+    if (!validacionLogin.ok) {
+      authLanzarError(validacionLogin.error, "login");
+    }
+    correo = validacionLogin.email;
   }
   try {
     var res = await sb.auth.signInWithPassword({
@@ -305,16 +335,29 @@ async function authIniciarSesion(correo, contrasena) {
   }
 }
 
+// Atajo de registro con rol ALUMNO por defecto.
 async function authRegistrarAlumno(datos) {
   return authRegistrarUsuario(
     Object.assign({}, datos, { rol: datos.rol || "ALUMNO" })
   );
 }
 
+// signUp genérico: alumno o maestro según datos.rol.
 async function authRegistrarUsuario(datos) {
   var sb = await initSupabase();
   if (!sb) {
     authLanzarError("Supabase no está configurado.", "registro");
+  }
+  if (typeof authValidarFormularioRegistro === "function") {
+    var validacion = authValidarFormularioRegistro(datos);
+    if (!validacion.ok) {
+      authLanzarError(validacion.error, "registro");
+    }
+    datos = Object.assign({}, datos, {
+      email: validacion.email,
+      nombre: validacion.nombre,
+      apellido: validacion.apellido
+    });
   }
   var rol = datos.rol === "MAESTRO" ? "MAESTRO" : "ALUMNO";
   try {
@@ -344,12 +387,25 @@ async function authRegistrarUsuario(datos) {
   }
 }
 
+// Alta de maestro; los errores van sin traducir (lo usan scripts internos).
 async function authRegistrarMaestro(datos) {
   var sb = await initSupabase();
   if (!sb) {
     throw new Error("Supabase no está configurado.");
   }
   var email = normalizarCorreoAuth(datos.email);
+  if (typeof authValidarFormularioRegistro === "function") {
+    var vMaestro = authValidarFormularioRegistro(datos);
+    if (!vMaestro.ok) {
+      throw new Error(vMaestro.error);
+    }
+    datos = Object.assign({}, datos, {
+      email: vMaestro.email,
+      nombre: vMaestro.nombre,
+      apellido: vMaestro.apellido
+    });
+    email = vMaestro.email;
+  }
   var res = await sb.auth.signUp({
     email: email,
     password: String(datos.password || ""),
@@ -368,6 +424,7 @@ async function authRegistrarMaestro(datos) {
   return res.data;
 }
 
+// Claves tec_duck_* que borramos al cerrar sesión.
 function authClavesLocalStorageSesion() {
   return [
     "tec_duck_personaje",
@@ -386,6 +443,7 @@ function authClavesLocalStorageSesion() {
   ];
 }
 
+// Vacía cachés en memoria y todo lo de localStorage ligado a la sesión.
 function authLimpiarDatosLocalesSesion() {
   if (typeof progresoTemasLimpiar === "function") {
     progresoTemasLimpiar();
@@ -395,6 +453,9 @@ function authLimpiarDatosLocalesSesion() {
   }
   if (typeof duckEconomiaLimpiarCache === "function") {
     duckEconomiaLimpiarCache();
+  }
+  if (typeof alumnoGuardReiniciar === "function") {
+    alumnoGuardReiniciar();
   }
   if (typeof alumnoSesionLimpiarLocal === "function") {
     alumnoSesionLimpiarLocal();
@@ -419,6 +480,7 @@ function authLimpiarDatosLocalesSesion() {
   }
 }
 
+// signOut en Supabase y limpieza local.
 async function authCerrarSesion() {
   var sb = getSupabaseSync();
   authLimpiarCache();
@@ -428,6 +490,7 @@ async function authCerrarSesion() {
   }
 }
 
+// ¿JWT válido y perfil con rol MAESTRO?
 async function authSesionMaestroActiva() {
   try {
     var sesion = await authRenovarSesionSiHaceFalta();
@@ -442,6 +505,7 @@ async function authSesionMaestroActiva() {
   }
 }
 
+// ¿JWT válido y perfil con rol ALUMNO?
 async function authSesionAlumnoActiva() {
   try {
     var sesion = await authRenovarSesionSiHaceFalta();
@@ -456,6 +520,7 @@ async function authSesionAlumnoActiva() {
   }
 }
 
+// Correo del usuario logueado, o cadena vacía si no hay sesión.
 async function authEmailActual() {
   var sesion = await authRenovarSesionSiHaceFalta();
   if (!sesion) {
@@ -467,6 +532,7 @@ async function authEmailActual() {
   return "";
 }
 
+// Guard de rutas maestro: si no hay sesión MAESTRO, manda a login.
 async function authExigirMaestro() {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -479,6 +545,7 @@ async function authExigirMaestro() {
   return true;
 }
 
+// Guard de rutas alumno: si no hay sesión ALUMNO, manda a login.
 async function authExigirAlumno() {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -496,6 +563,7 @@ async function authExigirAlumno() {
   return true;
 }
 
+// Guarda avatar pendiente, cierra sesión y redirige.
 async function authSalir(destino) {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -512,6 +580,7 @@ async function authSalir(destino) {
   window.location.href = typeof pagina === "function" ? pagina(dest) : dest;
 }
 
+// Engancha el click en [data-auth-logout] sin duplicar listeners.
 function authEnlazarBotonesSalir(root) {
   var scope = root || document;
   var botones = scope.querySelectorAll("[data-auth-logout]");
@@ -537,10 +606,12 @@ function authEnlazarBotonesSalir(root) {
   }
 }
 
+// Enlaza botones de salir en todo el documento.
 function authInitSalirListeners() {
   authEnlazarBotonesSalir();
 }
 
+// Al volver a la pestaña, intenta renovar el token en segundo plano.
 function authInitRenovacionSesion() {
   if (typeof document === "undefined") {
     return;
@@ -558,6 +629,7 @@ function authInitRenovacionSesion() {
   });
 }
 
+// Arranque global: salir, renovación al volver y reacción a cambios de auth.
 function authInitListenersAuth() {
   authInitSalirListeners();
   authInitRenovacionSesion();
@@ -584,6 +656,7 @@ function authInitListenersAuth() {
     });
 }
 
+// Monta los listeners en cuanto el DOM esté listo.
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", authInitListenersAuth);
 } else {

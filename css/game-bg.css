@@ -33,16 +33,15 @@ body.page-teacher::before {
   z-index: 0;
 }
 
-body.page-topics > *,
-body.page-customize > *,
-body.page-quiz > *,
-body.page-shop > * {
+body.page-topics > *:not(.td-page-loading-overlay):not(.quiz-loading-overlay),
+body.page-customize > *:not(.td-page-loading-overlay):not(.quiz-loading-overlay),
+body.page-quiz > *:not(.td-page-loading-overlay):not(.quiz-loading-overlay),
+body.page-shop > *:not(.td-page-loading-overlay):not(.quiz-loading-overlay) {
   position: relative;
   z-index: 1;
 }
 
 /* Solo capas de contenido; los modales deben poder usar position: fixed */
-body.page-teacher > .teacher-scene,
 body.page-teacher > .teacher-frame {
   position: relative;
   z-index: 1;

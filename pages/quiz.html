@@ -12,7 +12,9 @@
   <link rel="stylesheet" href="../css/ui-toast.css">
 </head>
 <body class="page-quiz is-quiz-loading quiz--sin-mapa">
+  <!-- Aviso cuando el maestro está en vista previa del nivel -->
   <div id="quiz-preview-banner" class="quiz-preview-banner" role="status" hidden></div>
+  <!-- Tema y modo leídos de la URL antes de cargar el quiz -->
   <script>
     (function () {
       function textoContextoQuizDesdeUrl() {
@@ -45,6 +47,7 @@
       window.addEventListener("pageshow", pintarContextoInicial);
     })();
   </script>
+  <!-- Pantalla de carga del nivel -->
   <div id="quiz-loading-overlay" class="quiz-loading-overlay" aria-live="polite" aria-label="Cargando nivel">
     <div class="quiz-loading-card">
       <img
@@ -62,6 +65,7 @@
       <span class="quiz-loading-bar" aria-hidden="true"><span class="quiz-loading-bar-fill"></span></span>
     </div>
   </div>
+  <!-- Barra superior: contexto, avance, monedas y vidas -->
   <div class="quiz-top">
     <div class="quiz-top-left">
       <span id="quiz-context" class="quiz-context"></span>
@@ -71,6 +75,7 @@
     <span id="quiz-hearts" class="hearts" aria-label="Vidas">❤️❤️❤️</span>
   </div>
 
+  <!-- Área de juego: pregunta, opciones, feedback y recompensas -->
   <div class="quiz-box">
     <div id="quiz-jxg-panel" class="quiz-jxg-panel" hidden aria-hidden="true">
       <p class="quiz-jxg-panel-hint">Plano de coordenadas — elige una opción para verla dibujada</p>
@@ -85,6 +90,7 @@
     <p id="quiz-gameover" class="quiz-gameover" hidden></p>
   </div>
 
+  <!-- Volver a temas o reiniciar el nivel -->
   <nav class="quiz-nav" aria-label="Navegación del quiz">
     <a href="topics.html" class="quiz-nav-btn quiz-nav-btn--topics" id="quiz-volver-temas" data-volver-temas-skip="1" data-volver-temas="1">
       <svg class="quiz-nav-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false">
@@ -100,6 +106,7 @@
     </button>
   </nav>
 
+  <!-- Scripts: banco de preguntas, JSXGraph y lógica del quiz -->
   <script src="../js/rutas.js"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -114,7 +121,9 @@
   <script src="../js/teacher-niveles.js"></script>
   <script src="../js/teacher-niveles-db.js"></script>
   <script src="../js/teacher-auth.js"></script>
-  <script src="../js/topic-progress.js"></script>
+  <script src="../js/partida-actividad.js"></script>
+  <script src="../js/topic-progress-data.js"></script>
+  <script src="../js/topic-progress-ui.js"></script>
   <script src="../js/alumno-guard.js"></script>
   <script src="../js/quiz-bank-loader.js"></script>
   <script src="../banco-preguntas/tema-1/basico/preguntas.js"></script>
@@ -129,6 +138,6 @@
   <script src="https://cdn.jsdelivr.net/npm/jsxgraph@1.12.2/distrib/jsxgraphcore.js"></script>
   <script src="../js/quiz-option-jxg.js"></script>
   <script src="../js/quiz-jxg-preview.js"></script>
-  <script src="../js/quiz.js?v=20260529"></script>
+  <script src="../js/quiz.js"></script>
 </body>
 </html>

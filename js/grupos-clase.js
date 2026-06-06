@@ -6,12 +6,14 @@ var CLAVE_ALUMNO_SESION = "tec_duck_alumno_sesion";
 var GRUPO_CODIGO_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 var _gruposCache = null;
 
+// Deja el correo en minúsculas y sin espacios de más.
 function normalizarEmailAlumno(correo) {
   return String(correo || "")
     .trim()
     .toLowerCase();
 }
 
+// Código de 6 caracteres en mayúsculas, solo letras y números.
 function normalizarCodigoGrupo(codigo) {
   return String(codigo || "")
     .trim()
@@ -19,6 +21,7 @@ function normalizarCodigoGrupo(codigo) {
     .replace(/[^A-Z0-9]/g, "");
 }
 
+// Convierte una fila de Supabase al formato que usa el front.
 function mapGrupoDesdeDb(row) {
   return {
     id: row.es_sistema ? "grupo-todos" : String(row.id),
@@ -29,6 +32,7 @@ function mapGrupoDesdeDb(row) {
   };
 }
 
+// Genera un código aleatorio de 6 caracteres.
 function gruposGenerarCodigo() {
   var s = "";
   for (var i = 0; i < 6; i++) {
@@ -39,6 +43,7 @@ function gruposGenerarCodigo() {
   return s;
 }
 
+// Mapa de códigos que ya están ocupados por otros grupos.
 function gruposCodigosEnUso(lista) {
   var usados = {};
   for (var i = 0; i < lista.length; i++) {
@@ -49,6 +54,7 @@ function gruposCodigosEnUso(lista) {
   return usados;
 }
 
+// Código nuevo que no choque con los que ya existen.
 function gruposGenerarCodigoUnico(lista) {
   lista = lista || gruposLeer();
   var usados = gruposCodigosEnUso(lista);
@@ -61,10 +67,12 @@ function gruposGenerarCodigoUnico(lista) {
   return codigo;
 }
 
+// Devuelve una copia de los grupos en caché (solo maestro).
 function gruposLeer() {
   return _gruposCache ? _gruposCache.slice() : [];
 }
 
+// Sesión de Supabase + perfil + ID de profesor, o null si no es maestro.
 async function gruposPerfilMaestro() {
   var sb = await initSupabase();
   if (!sb || typeof authCargarPerfil !== "function") {
@@ -94,6 +102,7 @@ async function gruposPerfilMaestro() {
   };
 }
 
+// Trae todos los grupos del maestro logueado y los guarda en caché.
 async function gruposCargarDesdeSupabase() {
   var sb = await initSupabase();
   if (!sb) {
@@ -117,6 +126,7 @@ async function gruposCargarDesdeSupabase() {
   return _gruposCache;
 }
 
+// Carga grupos al arrancar si hay un maestro con sesión activa.
 function gruposInicializar() {
   return initSupabase().then(function (sb) {
     if (!sb) {
@@ -133,6 +143,7 @@ function gruposInicializar() {
   });
 }
 
+// Recuerda el correo del alumno en localStorage tras el login.
 function alumnoSesionGuardar(correo) {
   localStorage.setItem(
     CLAVE_ALUMNO_SESION,
@@ -143,14 +154,12 @@ function alumnoSesionGuardar(correo) {
   );
 }
 
+// Borra los datos de sesión del alumno del navegador.
 function alumnoSesionLimpiarLocal() {
   localStorage.removeItem(CLAVE_ALUMNO_SESION);
 }
 
-function alumnoSesionEmail() {
-  return alumnoSesionEmailSync();
-}
-
+// Lee el correo guardado en sesión local (sincrónico).
 function alumnoSesionEmailSync() {
   try {
     var raw = localStorage.getItem(CLAVE_ALUMNO_SESION);
@@ -164,6 +173,7 @@ function alumnoSesionEmailSync() {
   }
 }
 
+// Consulta a qué grupo está vinculado el alumno actual.
 async function alumnoObtenerVinculoSupabase() {
   var sb = await initSupabase();
   if (!sb) {
@@ -195,6 +205,7 @@ async function alumnoObtenerVinculoSupabase() {
   };
 }
 
+// ¿El alumno ya se unió a algún grupo?
 async function alumnoTieneGrupoVinculadoAsync(correo) {
   var sb = await initSupabase();
   if (!sb) {
@@ -214,6 +225,7 @@ async function alumnoTieneGrupoVinculadoAsync(correo) {
   }
 }
 
+// Datos del grupo vinculado, o null si aún no se ha unido.
 async function alumnoObtenerGrupoVinculadoAsync(correo) {
   var sb = await initSupabase();
   if (!sb) {
@@ -232,6 +244,7 @@ async function alumnoObtenerGrupoVinculadoAsync(correo) {
   }
 }
 
+// Une al alumno a un grupo con el código de 6 caracteres del maestro.
 async function alumnoVincularPorCodigo(correo, codigo) {
   var c = normalizarCodigoGrupo(codigo);
   if (c.length !== 6) {
@@ -279,6 +292,7 @@ async function alumnoVincularPorCodigo(correo, codigo) {
   };
 }
 
+// Tras login: a temas si ya tiene grupo, si no a join-group.
 async function redirigirAlumnoTrasLogin(correo) {
   alumnoSesionGuardar(correo);
   var tieneGrupo = await alumnoTieneGrupoVinculadoAsync(correo);
@@ -291,10 +305,12 @@ async function redirigirAlumnoTrasLogin(correo) {
       : "join-group.html";
 }
 
+// Wrapper síncrono que delega en gruposCrearAsync.
 function gruposCrear(nombre) {
   return gruposCrearAsync(nombre);
 }
 
+// Crea un grupo nuevo en Supabase con código único de invitación.
 async function gruposCrearAsync(nombre) {
   nombre = String(nombre || "").trim();
   if (!nombre) {
@@ -329,6 +345,7 @@ async function gruposCrearAsync(nombre) {
   return nuevo;
 }
 
+// Elimina un grupo del maestro (no toca el grupo sistema "todos").
 async function gruposEliminar(id) {
   if (!id || id === "grupo-todos") {
     return false;

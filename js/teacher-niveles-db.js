@@ -1,5 +1,7 @@
 /**
- * Niveles del maestro en Supabase (nivel_maestro, pregunta, respuesta, nivel_maestro_grupo).
+ * Capa de persistencia de niveles del maestro en Supabase.
+ * Lee y escribe en las tablas nivel_maestro, pregunta_maestro, respuesta_maestro
+ * y nivel_maestro_grupo, y mantiene una caché en memoria para evitar consultas repetidas.
  */
 var _nivelMaestroDbCache = null;
 var _nivelMaestroDbCargando = null;
@@ -7,8 +9,9 @@ var _nivelMaestroDbCargando = null;
 var NIVEL_MAESTRO_DB_SELECT =
   "id, titulo, logo, creado_en, actualizado_en, activo, " +
   "nivel_maestro_grupo ( grupo_id, visible, fecha_limite ), " +
-  "pregunta ( id, enunciado, orden, activa, respuesta ( letra, texto, es_correcta, retroalimentacion, orden ) )";
+  "pregunta_maestro ( id, enunciado, orden, activa, respuesta_maestro ( letra, texto, es_correcta, retroalimentacion, orden ) )";
 
+/** Quita el prefijo «A)», «B)», etc. del texto de una opción antes de guardarla. */
 function nivelMaestroDbTextoOpcionSinPrefijo(letra, texto) {
   texto = String(texto || "").trim();
   if (!texto) {
@@ -22,6 +25,7 @@ function nivelMaestroDbTextoOpcionSinPrefijo(letra, texto) {
   return texto;
 }
 
+/** Convierte la clave de grupo del front a número de base de datos, o null si no aplica. */
 function nivelMaestroDbGrupoIdNumerico(grupoKey) {
   if (!grupoKey || grupoKey === "grupo-todos") {
     return null;
@@ -30,6 +34,7 @@ function nivelMaestroDbGrupoIdNumerico(grupoKey) {
   return isNaN(n) ? null : n;
 }
 
+/** Transforma una fila de Supabase al objeto de nivel que usa el resto de la app. */
 function nivelMaestroDbMapRow(row) {
   if (!row) {
     return null;
@@ -49,7 +54,7 @@ function nivelMaestroDbMapRow(row) {
     grupos = nivelMaestroFusionarGrupos(grupos);
   }
 
-  var rawPreguntas = row.pregunta || [];
+  var rawPreguntas = row.pregunta_maestro || [];
   rawPreguntas.sort(function (a, b) {
     return (a.orden || 0) - (b.orden || 0);
   });
@@ -60,7 +65,7 @@ function nivelMaestroDbMapRow(row) {
     if (pr.activa === false) {
       continue;
     }
-    var respuestas = (pr.respuesta || []).slice();
+    var respuestas = (pr.respuesta_maestro || []).slice();
     respuestas.sort(function (a, b) {
       var la = NIVEL_MAESTRO_LETRAS_OPCION.indexOf(String(a.letra));
       var lb = NIVEL_MAESTRO_LETRAS_OPCION.indexOf(String(b.letra));
@@ -114,6 +119,7 @@ function nivelMaestroDbMapRow(row) {
   };
 }
 
+/** Inserta o reemplaza un nivel en la caché local tras leerlo o guardarlo. */
 function nivelMaestroDbActualizarCacheItem(item) {
   if (!item || !_nivelMaestroDbCache) {
     return;
@@ -132,6 +138,7 @@ function nivelMaestroDbActualizarCacheItem(item) {
   }
 }
 
+/** Elimina un nivel de la caché local cuando se borra de la base de datos. */
 function nivelMaestroDbQuitarDeCache(id) {
   if (!_nivelMaestroDbCache) {
     return;
@@ -141,6 +148,7 @@ function nivelMaestroDbQuitarDeCache(id) {
   });
 }
 
+/** Trae todos los niveles activos del maestro desde Supabase y los guarda en caché. */
 async function nivelMaestroDbCargarTodos(force) {
   if (_nivelMaestroDbCache && !force) {
     return _nivelMaestroDbCache.slice();
@@ -182,6 +190,7 @@ async function nivelMaestroDbCargarTodos(force) {
   }
 }
 
+/** Carga un solo nivel por id, primero en caché y luego con una consulta a Supabase. */
 async function nivelMaestroDbCargarUno(id) {
   if (!id) {
     return null;
@@ -222,9 +231,10 @@ async function nivelMaestroDbCargarUno(id) {
   return item;
 }
 
+/** Reemplaza por completo las preguntas y respuestas de un nivel en la base de datos. */
 async function nivelMaestroDbGuardarPreguntas(sb, nivelId, preguntas) {
   var delRes = await sb
-    .from("pregunta")
+    .from("pregunta_maestro")
     .delete()
     .eq("nivel_maestro_id", nivelId);
   if (delRes.error) {
@@ -234,7 +244,7 @@ async function nivelMaestroDbGuardarPreguntas(sb, nivelId, preguntas) {
   for (var i = 0; i < preguntas.length; i++) {
     var p = preguntas[i];
     var insP = await sb
-      .from("pregunta")
+      .from("pregunta_maestro")
       .insert({
         nivel_maestro_id: nivelId,
         enunciado: p.q,
@@ -254,7 +264,7 @@ async function nivelMaestroDbGuardarPreguntas(sb, nivelId, preguntas) {
       var letra = NIVEL_MAESTRO_LETRAS_OPCION[j];
       var op = p.opts[j];
       respRows.push({
-        pregunta_id: insP.data.id,
+        pregunta_maestro_id: insP.data.id,
         letra: letra,
         texto: nivelMaestroDbTextoOpcionSinPrefijo(letra, op.t),
         es_correcta: !!op.ok,
@@ -263,7 +273,7 @@ async function nivelMaestroDbGuardarPreguntas(sb, nivelId, preguntas) {
       });
     }
     if (respRows.length) {
-      var insR = await sb.from("respuesta").insert(respRows);
+      var insR = await sb.from("respuesta_maestro").insert(respRows);
       if (insR.error) {
         throw new Error(insR.error.message);
       }
@@ -271,6 +281,7 @@ async function nivelMaestroDbGuardarPreguntas(sb, nivelId, preguntas) {
   }
 }
 
+/** Reemplaza las asignaciones de visibilidad y fecha límite por grupo de un nivel. */
 async function nivelMaestroDbGuardarGrupos(sb, nivelId, gruposMap) {
   var delRes = await sb
     .from("nivel_maestro_grupo")
@@ -304,6 +315,7 @@ async function nivelMaestroDbGuardarGrupos(sb, nivelId, gruposMap) {
   }
 }
 
+/** Crea o actualiza un nivel completo: cabecera, grupos, preguntas y logo. */
 async function nivelMaestroDbGuardar(datos) {
   if (typeof gruposPerfilMaestro !== "function") {
     throw new Error("No se pudo verificar la sesión del maestro.");
@@ -388,6 +400,7 @@ async function nivelMaestroDbGuardar(datos) {
   return guardado;
 }
 
+/** Borra un nivel de Supabase y lo quita de la caché local. */
 async function nivelMaestroDbEliminar(id) {
   var numId = parseInt(id, 10);
   if (isNaN(numId)) {

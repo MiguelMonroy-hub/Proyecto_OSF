@@ -120,3 +120,15 @@
 .signup-error[hidden] {
   display: none;
 }
+
+.signup-pass-hint {
+  margin: -8px 0 14px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #555;
+}
+
+.auth-required {
+  color: #c2410c;
+  font-weight: 700;
+}

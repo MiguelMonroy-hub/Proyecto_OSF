@@ -9,8 +9,29 @@
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/topics.css">
   <link rel="stylesheet" href="../css/topics-maestro.css">
+  <link rel="stylesheet" href="../css/ui-toast.css">
+  <link rel="stylesheet" href="../css/page-load-overlay.css">
 </head>
-<body class="page-topics">
+<body class="page-topics is-page-loading">
+  <!-- Pantalla de carga mientras llegan temas y progreso -->
+  <div id="page-loading-overlay" class="td-page-loading-overlay" aria-live="polite" aria-label="Cargando temas">
+    <div class="td-page-loading-card">
+      <img
+        class="td-page-loading-duck"
+        src="../MAIN DUCK/DUCK/MAIN DUCK.png"
+        alt="Pato TecDuck"
+        width="86"
+        height="86"
+        onerror="if (typeof pageLoadDuckFallback === 'function') pageLoadDuckFallback();"
+      />
+      <span id="page-loading-duck-fallback" class="td-page-loading-duck-fallback" hidden aria-hidden="true">🦆</span>
+      <span class="td-page-loading-brand">TecDuck</span>
+      <span class="td-page-loading-main">Volviendo a temas</span>
+      <span class="td-page-loading-sub">Cargando tus temas y progreso…</span>
+      <span class="td-page-loading-bar" aria-hidden="true"><span class="td-page-loading-bar-fill"></span></span>
+    </div>
+  </div>
+  <!-- Cabecera: título, accesos a pato/tienda y cerrar sesión -->
   <header class="topics-hero">
     <div>
       <h1>Elige tu tema</h1>
@@ -24,114 +45,42 @@
     </div>
   </header>
 
-  <div class="topic-grid" id="topics-grid-temas">
-    <article class="topic-card c-tema1" data-tema="1">
-      <div class="topic-visual topic-visual--logo" aria-hidden="true">
-        <img
-          class="topic-logo"
-          src="../MAIN DUCK/BACKGROUND/Ubicación de puntos en el plano cartesiano.png"
-          alt=""
-          width="142"
-          height="142"
-        />
-      </div>
-      <div class="topic-body">
-        <h2>Tema 1</h2>
-        <p class="topic-title">Ubicación de puntos en el plano cartesiano</p>
-        <p class="topic-tagline">Coordenadas, ejes y cuadrantes</p>
-        <div class="levels">
-          <a href="/pages/quiz?tema=1&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="/pages/quiz?tema=1&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
-        </div>
-      </div>
-    </article>
+  <!-- Tarjetas de temas del curso (básico / avanzado) -->
+  <div class="topic-grid" id="topics-grid-temas"></div>
 
-    <article class="topic-card c-tema2" data-tema="2">
-      <div class="topic-visual topic-visual--logo" aria-hidden="true">
-        <img
-          class="topic-logo"
-          src="../MAIN DUCK/BACKGROUND/Dibujo y Representación de Vectores.png"
-          alt=""
-          width="142"
-          height="142"
-        />
-      </div>
-      <div class="topic-body">
-        <h2>Tema 2</h2>
-        <p class="topic-title">Dibujo y representación de vectores</p>
-        <p class="topic-tagline">Módulo, dirección y sentido</p>
-        <div class="levels">
-          <a href="/pages/quiz?tema=2&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="/pages/quiz?tema=2&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
-        </div>
-      </div>
-    </article>
-
-    <article class="topic-card c-tema3" data-tema="3">
-      <div class="topic-visual topic-visual--logo" aria-hidden="true">
-        <img
-          class="topic-logo"
-          src="../MAIN DUCK/BACKGROUND/Suma y Resta de Vectores.png"
-          alt=""
-          width="142"
-          height="142"
-        />
-      </div>
-      <div class="topic-body">
-        <h2>Tema 3</h2>
-        <p class="topic-title">Suma y resta de vectores</p>
-        <p class="topic-tagline">Método del paralelogramo y del triángulo</p>
-        <div class="levels">
-          <a href="/pages/quiz?tema=3&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="/pages/quiz?tema=3&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
-        </div>
-      </div>
-    </article>
-
-    <article class="topic-card c-tema4" data-tema="4">
-      <div class="topic-visual topic-visual--logo" aria-hidden="true">
-        <img
-          class="topic-logo"
-          src="../MAIN DUCK/BACKGROUND/Multiplicación por escalar.png"
-          alt=""
-          width="142"
-          height="142"
-        />
-      </div>
-      <div class="topic-body">
-        <h2>Tema 4</h2>
-        <p class="topic-title">Multiplicación por escalar</p>
-        <p class="topic-tagline">Amplía o invierte un vector</p>
-        <div class="levels">
-          <a href="/pages/quiz?tema=4&amp;modo=facil" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>
-          <a href="/pages/quiz?tema=4&amp;modo=dificil" class="level-btn level-btn-2 level-dificil"><span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span></a>
-        </div>
-      </div>
-    </article>
-  </div>
-
+  <!-- Título de la sección de prácticas que asignó el maestro -->
   <section id="topics-maestro-niveles" class="topics-maestro-section" hidden aria-labelledby="topics-maestro-title">
     <h2 id="topics-maestro-title" class="topics-maestro-heading">Niveles de tu maestro</h2>
     <p class="topics-maestro-lead">Prácticas asignadas a tu grupo.</p>
   </section>
 
+  <!-- Tarjetas de niveles personalizados del maestro -->
   <div class="topic-grid topics-maestro-grid" id="topics-maestro-grid"></div>
 
+  <!-- Scripts: progreso, temas y niveles del maestro -->
   <script src="../js/rutas.js"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/auth-service.js"></script>
+  <script src="../js/strings.js"></script>
+  <script src="../js/ui-toast.js"></script>
+  <script src="../js/page-load-overlay.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/duck-catalog.js"></script>
   <script src="../js/duck-outfit.js"></script>
   <script src="../js/duck-economia-sync.js"></script>
   <script src="../js/duck-avatar-sync.js"></script>
+  <script src="../js/alumno-guard.js"></script>
   <script src="../js/teacher-niveles.js"></script>
   <script src="../js/teacher-niveles-db.js"></script>
-  <script src="../js/topic-progress.js"></script>
+  <script src="../js/temas-config.js"></script>
+  <script src="../js/partida-actividad.js"></script>
+  <script src="../js/topic-progress-data.js"></script>
+  <script src="../js/topic-progress-ui.js"></script>
   <script src="../js/topics-entry.js"></script>
   <script src="../js/topics-maestro.js"></script>
+  <!-- Al volver con el botón atrás del navegador, refresca los bloqueos de nivel avanzado -->
   <script>
     window.addEventListener("pageshow", function (ev) {
       if (!ev.persisted) {

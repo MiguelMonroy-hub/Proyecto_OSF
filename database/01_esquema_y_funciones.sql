@@ -349,32 +349,26 @@ CREATE TRIGGER trg_nivel_maestro_actualizado
   BEFORE UPDATE ON public.nivel_maestro
   FOR EACH ROW EXECUTE FUNCTION public.set_actualizado_en();
 
-CREATE TABLE public.pregunta (
-  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  nivel_id        BIGINT REFERENCES public.nivel (id) ON DELETE CASCADE,
-  nivel_maestro_id BIGINT REFERENCES public.nivel_maestro (id) ON DELETE CASCADE,
-  enunciado       TEXT NOT NULL,
-  orden           SMALLINT NOT NULL DEFAULT 0,
-  activa          BOOLEAN NOT NULL DEFAULT TRUE,
-  creado_en       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  CONSTRAINT chk_pregunta_origen CHECK (
-    (nivel_id IS NOT NULL AND nivel_maestro_id IS NULL)
-    OR (nivel_id IS NULL AND nivel_maestro_id IS NOT NULL)
-  )
+CREATE TABLE public.pregunta_maestro (
+  id               BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  nivel_maestro_id BIGINT NOT NULL REFERENCES public.nivel_maestro (id) ON DELETE CASCADE,
+  enunciado        TEXT NOT NULL,
+  orden            SMALLINT NOT NULL DEFAULT 0,
+  activa           BOOLEAN NOT NULL DEFAULT TRUE,
+  creado_en        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_pregunta_nivel ON public.pregunta (nivel_id);
-CREATE INDEX idx_pregunta_nivel_maestro ON public.pregunta (nivel_maestro_id);
+CREATE INDEX idx_pregunta_maestro_nivel ON public.pregunta_maestro (nivel_maestro_id);
 
-CREATE TABLE public.respuesta (
-  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  pregunta_id     BIGINT NOT NULL REFERENCES public.pregunta (id) ON DELETE CASCADE,
-  letra           letra_respuesta NOT NULL,
-  texto           VARCHAR(500) NOT NULL,
-  es_correcta     BOOLEAN NOT NULL DEFAULT FALSE,
-  retroalimentacion TEXT,
-  orden           SMALLINT NOT NULL DEFAULT 0,
-  UNIQUE (pregunta_id, letra)
+CREATE TABLE public.respuesta_maestro (
+  id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  pregunta_maestro_id BIGINT NOT NULL REFERENCES public.pregunta_maestro (id) ON DELETE CASCADE,
+  letra               letra_respuesta NOT NULL,
+  texto               VARCHAR(500) NOT NULL,
+  es_correcta         BOOLEAN NOT NULL DEFAULT FALSE,
+  retroalimentacion   TEXT,
+  orden               SMALLINT NOT NULL DEFAULT 0,
+  UNIQUE (pregunta_maestro_id, letra)
 );
 
 CREATE TABLE public.nivel_maestro_grupo (
@@ -387,7 +381,7 @@ CREATE TABLE public.nivel_maestro_grupo (
 );
 
 -- -----------------------------------------------------------------------------
--- PARTIDAS, PROGRESO E INTENTOS
+-- PARTIDAS Y PROGRESO
 -- -----------------------------------------------------------------------------
 
 CREATE TABLE public.partida (
@@ -442,32 +436,6 @@ CREATE UNIQUE INDEX uk_progreso_alumno_nm
 CREATE TRIGGER trg_progreso_actualizado
   BEFORE UPDATE ON public.progreso
   FOR EACH ROW EXECUTE FUNCTION public.set_actualizado_en();
-
-CREATE TABLE public.intento_pregunta (
-  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  partida_id      BIGINT NOT NULL REFERENCES public.partida (id) ON DELETE CASCADE,
-  pregunta_id     BIGINT NOT NULL REFERENCES public.pregunta (id) ON DELETE CASCADE,
-  orden_en_partida SMALLINT NOT NULL,
-  respondida_bien BOOLEAN NOT NULL DEFAULT FALSE,
-  num_errores     SMALLINT NOT NULL DEFAULT 0,
-  monedas_otorgadas SMALLINT NOT NULL DEFAULT 0,
-  tiempo_segundos SMALLINT,
-  iniciado_en     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  terminado_en    TIMESTAMPTZ
-);
-
-CREATE INDEX idx_ip_partida ON public.intento_pregunta (partida_id);
-
-CREATE TABLE public.intento_respuesta (
-  id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  intento_pregunta_id BIGINT NOT NULL REFERENCES public.intento_pregunta (id) ON DELETE CASCADE,
-  respuesta_id    BIGINT NOT NULL REFERENCES public.respuesta (id) ON DELETE CASCADE,
-  es_correcta     BOOLEAN NOT NULL,
-  orden_intento   SMALLINT NOT NULL DEFAULT 1,
-  respondido_en   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_ir_intento ON public.intento_respuesta (intento_pregunta_id);
 
 -- -----------------------------------------------------------------------------
 -- TIENDA
@@ -645,7 +613,9 @@ BEGIN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.agregar_monedas_alumno(INTEGER) TO authenticated;
+-- Solo uso interno; el cliente ya no puede llamarla (monedas vía registrar_resultado_quiz).
+REVOKE EXECUTE ON FUNCTION public.agregar_monedas_alumno(INTEGER) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.agregar_monedas_alumno(INTEGER) FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION public.comprar_item_tienda(p_item_id VARCHAR)
 RETURNS TABLE (saldo_restante INTEGER, ya_tenia BOOLEAN)
@@ -744,6 +714,129 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.otorgar_item_inventario(VARCHAR, origen_item) TO authenticated;
 
+-- Helpers: actividad JSONB → métricas ponderadas y monedas 10/5/2
+CREATE OR REPLACE FUNCTION public._partida_actividad_items(p_actividad JSONB)
+RETURNS JSONB
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT CASE
+    WHEN jsonb_typeof(COALESCE(p_actividad, '[]'::jsonb)) = 'array'
+      THEN COALESCE(p_actividad, '[]'::jsonb)
+    WHEN jsonb_typeof(COALESCE(p_actividad, '{}'::jsonb)) = 'object'
+      AND jsonb_typeof(COALESCE(p_actividad -> 'items', '[]'::jsonb)) = 'array'
+      THEN COALESCE(p_actividad -> 'items', '[]'::jsonb)
+    ELSE '[]'::jsonb
+  END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._partida_peso_pregunta(p_item JSONB)
+RETURNS NUMERIC
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  v_ok BOOLEAN;
+  v_omitida BOOLEAN;
+  v_errores INTEGER;
+BEGIN
+  IF p_item IS NULL OR p_item = 'null'::jsonb THEN
+    RETURN 0;
+  END IF;
+  v_ok := COALESCE((p_item ->> 'ok')::boolean, FALSE);
+  v_omitida := COALESCE((p_item ->> 'omitida')::boolean, FALSE);
+  IF v_omitida OR NOT v_ok THEN
+    RETURN 0;
+  END IF;
+  v_errores := GREATEST(COALESCE((p_item ->> 'errores')::integer, 0), 0);
+  IF v_errores <= 0 THEN
+    RETURN 1;
+  ELSIF v_errores = 1 THEN
+    RETURN 0.5;
+  END IF;
+  RETURN 0.2;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._partida_monedas_pregunta(p_item JSONB)
+RETURNS INTEGER
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  v_ok BOOLEAN;
+  v_errores INTEGER;
+BEGIN
+  IF p_item IS NULL OR p_item = 'null'::jsonb THEN
+    RETURN 0;
+  END IF;
+  v_ok := COALESCE((p_item ->> 'ok')::boolean, FALSE);
+  IF NOT v_ok THEN
+    RETURN 0;
+  END IF;
+  v_errores := GREATEST(COALESCE((p_item ->> 'errores')::integer, 0), 0);
+  IF v_errores <= 0 THEN
+    RETURN 10;
+  ELSIF v_errores = 1 THEN
+    RETURN 5;
+  END IF;
+  RETURN 2;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public._partida_metricas_desde_actividad(
+  p_actividad JSONB,
+  p_total SMALLINT
+)
+RETURNS TABLE (
+  preguntas_ok SMALLINT,
+  suma_peso NUMERIC,
+  monedas_validas INTEGER,
+  puntaje SMALLINT
+)
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  v_items JSONB;
+  v_elem JSONB;
+  v_ok_count SMALLINT := 0;
+  v_suma NUMERIC := 0;
+  v_monedas INTEGER := 0;
+  v_total SMALLINT;
+  v_puntaje SMALLINT;
+BEGIN
+  v_items := public._partida_actividad_items(p_actividad);
+  v_total := GREATEST(COALESCE(p_total, 0), 0);
+
+  IF jsonb_typeof(v_items) = 'array' THEN
+    FOR v_elem IN SELECT value FROM jsonb_array_elements(v_items)
+    LOOP
+      IF COALESCE((v_elem ->> 'ok')::boolean, FALSE) THEN
+        v_ok_count := v_ok_count + 1;
+      END IF;
+      v_suma := v_suma + public._partida_peso_pregunta(v_elem);
+      v_monedas := v_monedas + public._partida_monedas_pregunta(v_elem);
+    END LOOP;
+  END IF;
+
+  IF v_total > 0 THEN
+    v_puntaje := LEAST(
+      10,
+      GREATEST(0, ROUND((v_suma / v_total::numeric) * 10)::integer)
+    )::smallint;
+  ELSE
+    v_puntaje := 0;
+  END IF;
+
+  RETURN QUERY SELECT v_ok_count, v_suma, v_monedas, v_puntaje;
+END;
+$$;
+
+DROP FUNCTION IF EXISTS public.registrar_resultado_quiz(
+  BIGINT, BIGINT, VARCHAR, VARCHAR, SMALLINT, SMALLINT, SMALLINT, INTEGER, SMALLINT, SMALLINT, JSONB
+);
+
 CREATE OR REPLACE FUNCTION public.registrar_resultado_quiz(
   p_tema_id BIGINT DEFAULT NULL,
   p_nivel_maestro_id BIGINT DEFAULT NULL,
@@ -757,7 +850,7 @@ CREATE OR REPLACE FUNCTION public.registrar_resultado_quiz(
   p_indice_pregunta SMALLINT DEFAULT 0,
   p_actividad JSONB DEFAULT '[]'::jsonb
 )
-RETURNS BIGINT
+RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
@@ -770,8 +863,16 @@ DECLARE
   v_puntaje SMALLINT;
   v_modo codigo_nivel;
   v_estado estado_partida;
+  v_estado_previo estado_partida;
   v_total SMALLINT;
   v_ok SMALLINT;
+  v_ok_calc SMALLINT;
+  v_monedas_validas INTEGER;
+  v_monedas_prev INTEGER;
+  v_monedas_delta INTEGER;
+  v_saldo INTEGER;
+  v_items JSONB;
+  v_item_count INTEGER;
 BEGIN
   v_alumno_id := public.get_my_alumno_id();
   IF v_alumno_id IS NULL THEN
@@ -803,17 +904,31 @@ BEGIN
   END IF;
 
   v_total := GREATEST(COALESCE(p_preguntas_total, 0), 0);
-  v_ok := GREATEST(COALESCE(p_preguntas_ok, 0), 0);
+  v_ok := LEAST(GREATEST(COALESCE(p_preguntas_ok, 0), 0), v_total);
 
-  v_puntaje := CASE
-    WHEN v_total > 0 THEN LEAST(
-      10,
-      GREATEST(0, ROUND((v_ok::numeric / v_total::numeric) * 10)::integer)
-    )::smallint
+  IF GREATEST(COALESCE(p_indice_pregunta, 0), 0) > v_total AND v_total > 0 THEN
+    RAISE EXCEPTION 'indice_pregunta fuera de rango';
+  END IF;
+
+  v_items := public._partida_actividad_items(p_actividad);
+  v_item_count := CASE
+    WHEN jsonb_typeof(v_items) = 'array' THEN jsonb_array_length(v_items)
     ELSE 0
   END;
 
-  SELECT p.id INTO v_partida_id
+  IF v_total > 0 AND v_item_count > v_total + 1 THEN
+    RAISE EXCEPTION 'Demasiados items de actividad';
+  END IF;
+
+  SELECT m.preguntas_ok, m.monedas_validas, m.puntaje
+  INTO v_ok_calc, v_monedas_validas, v_puntaje
+  FROM public._partida_metricas_desde_actividad(p_actividad, v_total) AS m;
+
+  v_ok := LEAST(GREATEST(v_ok_calc, v_ok), v_total);
+  v_monedas_validas := GREATEST(COALESCE(v_monedas_validas, 0), 0);
+
+  SELECT p.id, p.estado, COALESCE(p.monedas_ganadas, 0)
+  INTO v_partida_id, v_estado_previo, v_monedas_prev
   FROM public.partida p
   WHERE p.alumno_id = v_alumno_id
     AND p.estado = 'EN_CURSO'
@@ -834,12 +949,17 @@ BEGIN
   LIMIT 1;
 
   IF v_partida_id IS NOT NULL THEN
+    IF v_estado_previo IN ('COMPLETADA', 'GAME_OVER', 'ABANDONADA')
+       AND v_estado = 'EN_CURSO' THEN
+      RAISE EXCEPTION 'No se puede reabrir una partida cerrada';
+    END IF;
+
     UPDATE public.partida SET
       vidas_restantes = COALESCE(p_vidas_restantes, 0),
-      indice_pregunta = GREATEST(COALESCE(p_indice_pregunta, 0), 0),
+      indice_pregunta = LEAST(GREATEST(COALESCE(p_indice_pregunta, 0), 0), v_total),
       preguntas_total = v_total,
       estado = v_estado,
-      monedas_ganadas = COALESCE(p_monedas_ganadas, 0),
+      monedas_ganadas = v_monedas_validas,
       actividad = COALESCE(p_actividad, '[]'::jsonb),
       terminado_en = CASE
         WHEN v_estado IN ('COMPLETADA', 'GAME_OVER', 'ABANDONADA') THEN NOW()
@@ -868,10 +988,10 @@ BEGIN
       v_modo,
       3,
       COALESCE(p_vidas_restantes, 0),
-      GREATEST(COALESCE(p_indice_pregunta, 0), 0),
+      LEAST(GREATEST(COALESCE(p_indice_pregunta, 0), 0), v_total),
       v_total,
       v_estado,
-      COALESCE(p_monedas_ganadas, 0),
+      v_monedas_validas,
       CASE
         WHEN v_estado IN ('COMPLETADA', 'GAME_OVER', 'ABANDONADA') THEN NOW()
         ELSE NULL
@@ -879,6 +999,18 @@ BEGIN
       COALESCE(p_actividad, '[]'::jsonb)
     )
     RETURNING id INTO v_partida_id;
+    v_monedas_prev := 0;
+  END IF;
+
+  v_monedas_delta := GREATEST(v_monedas_validas - COALESCE(v_monedas_prev, 0), 0);
+
+  IF v_monedas_delta > 0 THEN
+    UPDATE public.alumno
+    SET saldo_monedas = saldo_monedas + v_monedas_delta
+    WHERE id = v_alumno_id
+    RETURNING saldo_monedas INTO v_saldo;
+  ELSE
+    SELECT a.saldo_monedas INTO v_saldo FROM public.alumno a WHERE a.id = v_alumno_id;
   END IF;
 
   IF v_estado IN ('COMPLETADA', 'GAME_OVER') THEN
@@ -935,13 +1067,64 @@ BEGIN
     END IF;
   END IF;
 
-  RETURN v_partida_id;
+  RETURN jsonb_build_object(
+    'partida_id', v_partida_id,
+    'saldo_monedas', COALESCE(v_saldo, 0),
+    'monedas_partida', v_monedas_validas
+  );
 END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.registrar_resultado_quiz(
   BIGINT, BIGINT, VARCHAR, VARCHAR, SMALLINT, SMALLINT, SMALLINT, INTEGER, SMALLINT, SMALLINT, JSONB
 ) TO authenticated;
+
+-- -----------------------------------------------------------------------------
+-- Asignación de alumnos a grupo (maestro, transacción única)
+-- -----------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.sincronizar_alumnos_grupo(
+  p_grupo_id BIGINT,
+  p_alumno_ids BIGINT[]
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_codigo VARCHAR;
+BEGIN
+  IF NOT public.is_maestro() THEN
+    RAISE EXCEPTION 'Solo maestros pueden asignar grupos';
+  END IF;
+
+  IF NOT public.grupo_es_de_mi_profesor(p_grupo_id) THEN
+    RAISE EXCEPTION 'Grupo no autorizado';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM public.grupo g
+    WHERE g.id = p_grupo_id AND g.es_sistema = TRUE
+  ) THEN
+    RAISE EXCEPTION 'No se puede editar el grupo del sistema';
+  END IF;
+
+  SELECT g.codigo INTO v_codigo FROM public.grupo g WHERE g.id = p_grupo_id;
+
+  DELETE FROM public.alumno_grupo ag WHERE ag.grupo_id = p_grupo_id;
+
+  IF p_alumno_ids IS NOT NULL AND array_length(p_alumno_ids, 1) > 0 THEN
+    INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
+    SELECT DISTINCT unnest(p_alumno_ids), p_grupo_id, v_codigo
+    FROM public.alumno a
+    WHERE a.id = ANY(p_alumno_ids)
+      AND public.maestro_puede_ver_alumno_id(a.id);
+  END IF;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.sincronizar_alumnos_grupo(BIGINT, BIGINT[]) TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- DATOS INICIALES

@@ -4,6 +4,7 @@
  */
 var DUCK_OUTFIT_STORAGE_KEY = "tec_duck_personaje";
 
+// Outfit vacío; usa duck-catalog si ya cargó.
 function duckOutfitDefecto() {
   if (typeof duckOutfitPorDefecto === "function") {
     return duckOutfitPorDefecto();
@@ -17,6 +18,7 @@ function duckOutfitDefecto() {
   };
 }
 
+// Rellena huecos y limpia valores raros del objeto outfit.
 function duckOutfitNormalizar(obj) {
   var d = duckOutfitDefecto();
   if (!obj || typeof obj !== "object") {
@@ -30,6 +32,7 @@ function duckOutfitNormalizar(obj) {
   return d;
 }
 
+// Lee el pato guardado y cuándo se guardó por última vez.
 function duckOutfitLeerLocalConMeta() {
   var raw = localStorage.getItem(DUCK_OUTFIT_STORAGE_KEY);
   if (!raw) {
@@ -46,10 +49,12 @@ function duckOutfitLeerLocalConMeta() {
   }
 }
 
+// Solo el outfit, sin la fecha de guardado.
 function duckOutfitLeerLocal() {
   return duckOutfitLeerLocalConMeta().outfit;
 }
 
+// Persiste el outfit en localStorage del navegador.
 function duckOutfitGuardarLocal(outfit, guardadoEn) {
   var o = duckOutfitNormalizar(outfit);
   localStorage.setItem(
@@ -65,10 +70,12 @@ function duckOutfitGuardarLocal(outfit, guardadoEn) {
   );
 }
 
+// Serializa el outfit para comparar si hubo cambios.
 function duckOutfitAString(outfit) {
   return JSON.stringify(duckOutfitNormalizar(outfit));
 }
 
+// Ruta de la imagen de una capa (cara, cabeza, etc.).
 function duckOutfitSrcCampo(campo, archivo) {
   if (typeof duckSrcDesdeOutfitCampo === "function") {
     return duckSrcDesdeOutfitCampo(campo, archivo);
@@ -83,6 +90,7 @@ function duckOutfitSrcCampo(campo, archivo) {
   return "../MAIN DUCK/" + (carpetas[campo] || "") + "/" + archivo;
 }
 
+// Pone o quita una capa en un <img> del DOM.
 function duckOutfitPintarCapa(el, campo, archivo) {
   if (!el) {
     return;
@@ -96,10 +104,7 @@ function duckOutfitPintarCapa(el, campo, archivo) {
   el.hidden = false;
 }
 
-/**
- * @param {Object} ids - mapa campo → id de elemento img
- * @param {Object} [outfit] - si se omite, se lee de localStorage
- */
+// Pinta todas las capas del pato según los IDs de los <img> en la página.
 function duckOutfitPintarEnIds(ids, outfit) {
   ids = ids || {};
   var o = outfit ? duckOutfitNormalizar(outfit) : duckOutfitLeerLocal();
@@ -114,6 +119,7 @@ function duckOutfitPintarEnIds(ids, outfit) {
   duckOutfitPintarCapa(document.getElementById(ids.shoes || "home-img-shoes"), "shoes", o.shoes);
 }
 
+// Quita piezas que el alumno no tiene compradas.
 function duckOutfitAjustarAlInventario(outfit) {
   var o = duckOutfitNormalizar(outfit);
   if (typeof duckInvMigrar !== "function" || typeof duckTengoId !== "function") {
@@ -154,12 +160,14 @@ var DUCK_OUTFIT_IDS_CUSTOMIZE = {
   shoes: "img-shoes"
 };
 
+// Repinta el pato en la pantalla de inicio si está el contenedor.
 function duckOutfitRefrescarPortada() {
   if (document.getElementById(DUCK_OUTFIT_IDS_PORTADA.base)) {
     duckOutfitPintarEnIds(DUCK_OUTFIT_IDS_PORTADA);
   }
 }
 
+// Arranca el refresco del pato al cargar y al volver con el botón atrás.
 function duckOutfitIniciarPortada() {
   duckOutfitRefrescarPortada();
   if (document.readyState === "loading") {

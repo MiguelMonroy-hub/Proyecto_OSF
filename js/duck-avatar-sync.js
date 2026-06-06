@@ -6,33 +6,45 @@ var _duckAvatarAlumnoDbId = null;
 var _duckAvatarSyncTimer = null;
 var _duckAvatarSyncPromesa = null;
 var _duckAvatarPendiente = null;
+var _duckAvatarListo = false;
 
+// ¿Ya resolvimos qué outfit mostrar al alumno?
+function duckAvatarEstaListo() {
+  return _duckAvatarListo === true;
+}
+
+// Limpia caché y cancela sincronizaciones pendientes.
 function duckAvatarLimpiarCache() {
   _duckAvatarAlumnoDbId = null;
+  _duckAvatarListo = false;
   if (_duckAvatarSyncTimer) {
     clearTimeout(_duckAvatarSyncTimer);
     _duckAvatarSyncTimer = null;
   }
 }
 
+// Lee outfit local con metadata; delega en duck-outfit.js.
 function duckAvatarLeerOutfitLocalConMeta() {
   return typeof duckOutfitLeerLocalConMeta === "function"
     ? duckOutfitLeerLocalConMeta()
     : { outfit: duckOutfitDefecto(), guardadoEn: 0 };
 }
 
+// Atajo para leer solo el outfit del localStorage.
 function duckAvatarLeerOutfitLocal() {
   return typeof duckOutfitLeerLocal === "function"
     ? duckOutfitLeerLocal()
     : duckOutfitDefecto();
 }
 
+// Guarda en local a través de duck-outfit si está disponible.
 function duckAvatarGuardarLocal(outfit, guardadoEn) {
   if (typeof duckOutfitGuardarLocal === "function") {
     duckOutfitGuardarLocal(outfit, guardadoEn);
   }
 }
 
+// ID del alumno en la BD, cacheado para no repetir consultas.
 async function duckAvatarObtenerAlumnoDbId(force) {
   if (_duckAvatarAlumnoDbId && !force) {
     return _duckAvatarAlumnoDbId;
@@ -65,6 +77,7 @@ async function duckAvatarObtenerAlumnoDbId(force) {
   }
 }
 
+// Descarga el avatar guardado en la tabla avatar de Supabase.
 async function duckAvatarCargarRemoto() {
   var sb = await initSupabase();
   if (!sb) {
@@ -93,10 +106,12 @@ async function duckAvatarCargarRemoto() {
   };
 }
 
+// Formato uniforme { ok, error } para las respuestas de sync.
 function duckAvatarResultado(ok, error) {
   return { ok: !!ok, error: error || "" };
 }
 
+// Convierte errores técnicos en mensajes que el alumno entienda.
 function duckAvatarErrorAmigable(msg) {
   var lower = String(msg || "").toLowerCase();
   if (
@@ -124,6 +139,7 @@ function duckAvatarErrorAmigable(msg) {
   return "";
 }
 
+// Sube el outfit a la nube (RPC primero, upsert directo si falla).
 async function duckAvatarSincronizar(outfit) {
   var ultimoError = "";
   try {
@@ -220,6 +236,7 @@ async function duckAvatarSincronizar(outfit) {
   }
 }
 
+// Guarda local al instante y sube a la nube con un pequeño retraso.
 function duckAvatarProgramarSincronizacion(outfit) {
   duckOutfitGuardarLocal(outfit, Date.now());
   _duckAvatarPendiente = outfit;
@@ -237,6 +254,7 @@ function duckAvatarProgramarSincronizacion(outfit) {
   }, 350);
 }
 
+// Fuerza la subida de lo que quedó pendiente sin esperar el timer.
 async function duckAvatarFlushSync() {
   if (_duckAvatarSyncTimer) {
     clearTimeout(_duckAvatarSyncTimer);
@@ -258,18 +276,22 @@ async function duckAvatarFlushSync() {
   return true;
 }
 
+// Al abrir la app: fusiona outfit local y remoto y elige el más reciente.
 async function duckAvatarResolverOutfit() {
   try {
     if (typeof authCargarPerfil !== "function") {
+      _duckAvatarListo = true;
       return duckAvatarLeerOutfitLocal();
     }
     var perfil = null;
     try {
       perfil = await authCargarPerfil();
     } catch (e) {
+      _duckAvatarListo = true;
       return duckAvatarLeerOutfitLocal();
     }
     if (!perfil || perfil.rol !== "ALUMNO") {
+      _duckAvatarListo = true;
       return duckAvatarLeerOutfitLocal();
     }
 
@@ -278,41 +300,30 @@ async function duckAvatarResolverOutfit() {
     var local = duckAvatarLeerOutfitLocalConMeta();
     var remoto = await duckAvatarCargarRemoto();
 
+    if (_duckAvatarPendiente) {
+      _duckAvatarListo = true;
+      return local.outfit;
+    }
+
     if (!remoto) {
       if (local.outfit) {
         await duckAvatarSincronizar(local.outfit);
       }
+      _duckAvatarListo = true;
       return local.outfit;
     }
 
     var remotoTs = remoto.actualizadoEn
       ? new Date(remoto.actualizadoEn).getTime()
       : 0;
-    var localTs = local.guardadoEn || 0;
-
-    if (localTs > remotoTs + 1500) {
-      await duckAvatarSincronizar(local.outfit);
-      return local.outfit;
-    }
-
     duckAvatarGuardarLocal(remoto.outfit, remotoTs || Date.now());
+    _duckAvatarListo = true;
     return remoto.outfit;
   } catch (e) {
     console.warn("[avatar] resolver:", e);
+    _duckAvatarListo = true;
     return duckAvatarLeerOutfitLocal();
   }
-}
-
-async function duckAvatarSincronizarDesdeLocal() {
-  var local = duckAvatarLeerOutfitLocalConMeta();
-  if (!local.outfit) {
-    return duckAvatarResultado(false, "No hay pato local para guardar.");
-  }
-  return duckAvatarSincronizar(local.outfit);
-}
-
-async function duckAvatarSincronizarSiAlumno() {
-  return duckAvatarResolverOutfit();
 }
 
 window.addEventListener("pagehide", function () {

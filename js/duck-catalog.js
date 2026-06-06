@@ -2,6 +2,7 @@ var TEC_DUCK_STORAGE_COINS = "tec_duck_monedas";
 var TEC_DUCK_STORAGE_INV = "tec_duck_inventario";
 var TEC_DUCK_INV_FORMAT = "tec_duck_inv_format";
 
+// Piezas que todos tienen desde el inicio, sin comprarlas.
 function duckIdsSiempreGratis() {
   return ["BASE:MAIN DUCK.png"];
 }
@@ -43,7 +44,14 @@ var DUCK_CATALOG = [
   { id: "SHOES:S_silver.png", cat: "shoes", sub: "SHOES", file: "S_silver.png", label: "Botas vaqueras", price: 120 }
 ];
 
+// Cuántas monedas hay guardadas en el navegador.
 function duckObtenerSaldoMonedas() {
+  if (
+    typeof duckEconomiaEstaListo === "function" &&
+    !duckEconomiaEstaListo()
+  ) {
+    return 0;
+  }
   var g = localStorage.getItem(TEC_DUCK_STORAGE_COINS);
   if (g === null) {
     return 0;
@@ -52,6 +60,7 @@ function duckObtenerSaldoMonedas() {
   return isNaN(n) ? 0 : n;
 }
 
+// Suma monedas al saldo local (por ejemplo tras un quiz).
 function duckAgregarMonedas(cantidad) {
   var n = parseInt(cantidad, 10);
   if (isNaN(n) || n <= 0) {
@@ -59,16 +68,10 @@ function duckAgregarMonedas(cantidad) {
   }
   var total = duckObtenerSaldoMonedas() + n;
   localStorage.setItem(TEC_DUCK_STORAGE_COINS, String(total));
-  if (typeof duckEconomiaAgregarMonedasDb === "function") {
-    duckEconomiaAgregarMonedasDb(n).then(function (res) {
-      if (res && res.ok && typeof res.saldo === "number") {
-        localStorage.setItem(TEC_DUCK_STORAGE_COINS, String(res.saldo));
-      }
-    });
-  }
   return total;
 }
 
+// Arma la ruta relativa de la imagen de un ítem del catálogo.
 function duckSrcDesdeEntrada(entry) {
   if (entry.sub) {
     return "../MAIN DUCK/" + entry.sub + "/" + entry.file;
@@ -79,6 +82,7 @@ function duckSrcDesdeEntrada(entry) {
   return "../MAIN DUCK/" + entry.file;
 }
 
+// Pasa el inventario viejo al formato v2 y traduce IDs antiguos.
 function duckInvMigrar() {
   if (localStorage.getItem(TEC_DUCK_INV_FORMAT) === "v2") {
     try {
@@ -115,16 +119,25 @@ function duckInvMigrar() {
   return nuevos;
 }
 
+// Lista de IDs que el alumno ya compró.
 function duckInvObtener() {
+  if (
+    typeof duckEconomiaEstaListo === "function" &&
+    !duckEconomiaEstaListo()
+  ) {
+    return [];
+  }
   var lista = duckInvMigrar();
   return Array.isArray(lista) ? lista : [];
 }
 
+// Guarda el inventario en localStorage.
 function duckInvGuardar(ids) {
   localStorage.setItem(TEC_DUCK_STORAGE_INV, JSON.stringify(ids));
   localStorage.setItem(TEC_DUCK_INV_FORMAT, "v2");
 }
 
+// ¿El alumno ya tiene este ítem? (o es gratis de fábrica)
 function duckTengoId(id) {
   if (duckIdsSiempreGratis().indexOf(id) >= 0) {
     return true;
@@ -132,6 +145,7 @@ function duckTengoId(id) {
   return duckInvObtener().indexOf(id) >= 0;
 }
 
+// Filtra el catálogo: base, face, head, neck o shoes.
 function duckCatalogPorCategoria(cat) {
   var r = [];
   for (var i = 0; i < DUCK_CATALOG.length; i++) {
@@ -142,6 +156,7 @@ function duckCatalogPorCategoria(cat) {
   return r;
 }
 
+// Busca un ítem del catálogo por su ID completo.
 function duckEntradaPorId(id) {
   for (var i = 0; i < DUCK_CATALOG.length; i++) {
     if (DUCK_CATALOG[i].id === id) {
@@ -151,6 +166,7 @@ function duckEntradaPorId(id) {
   return null;
 }
 
+// Convierte "head" + "H_bow.png" → "HEAD:H_bow.png".
 function duckIdDesdePieza(grupo, archivo) {
   if (!archivo) {
     return "";
@@ -163,6 +179,7 @@ function duckIdDesdePieza(grupo, archivo) {
   return p + ":" + archivo;
 }
 
+// Pato básico, sin accesorios puestos.
 function duckOutfitPorDefecto() {
   return {
     base: "MAIN DUCK.png",
@@ -173,10 +190,12 @@ function duckOutfitPorDefecto() {
   };
 }
 
+// Traduce una fila de la tabla avatar a nombres de archivo locales.
 function duckOutfitDesdeDbRow(row) {
   if (!row) {
     return duckOutfitPorDefecto();
   }
+  // De un ID de catálogo saca solo el nombre del png.
   function archivoDesdeId(id) {
     if (!id) {
       return "";
@@ -193,6 +212,7 @@ function duckOutfitDesdeDbRow(row) {
   };
 }
 
+// Outfit local → columnas item_*_id para guardar en Supabase.
 function duckOutfitADbIds(outfit) {
   var o = outfit || duckOutfitPorDefecto();
   return {
@@ -205,6 +225,7 @@ function duckOutfitADbIds(outfit) {
   };
 }
 
+// Ruta de imagen para una capa concreta del pato (base, cara, etc.).
 function duckSrcDesdeOutfitCampo(campo, archivo) {
   if (campo === "base") {
     var idBase = duckIdDesdePieza("base", archivo || "MAIN DUCK.png");
@@ -226,6 +247,7 @@ function duckSrcDesdeOutfitCampo(campo, archivo) {
   return "../MAIN DUCK/" + carpetas[campo] + "/" + archivo;
 }
 
+// HTML apilado de capas para el avatar mini del panel de maestro.
 function duckHtmlAvatarMini(outfit, version) {
   var o = outfit || duckOutfitPorDefecto();
   var bust = version

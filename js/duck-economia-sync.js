@@ -1,16 +1,23 @@
 /**
  * Monedas e inventario del alumno: Supabase es la fuente de verdad.
- * localStorage actúa como caché para la UI offline/inmediata.
+ * localStorage actúa como caché tras duckEconomiaSyncDesdeDb().
  */
-var DUCK_ECONOMIA_MIGRADA = "tec_duck_economia_migrada_v1";
-
 var _duckEcoAlumnoId = null;
 var _duckEcoSyncProm = null;
+var _duckEcoListo = false;
 
-function duckEconomiaLimpiarCache() {
-  _duckEcoAlumnoId = null;
+// ¿Ya trajimos monedas e inventario de la nube?
+function duckEconomiaEstaListo() {
+  return _duckEcoListo === true;
 }
 
+// Resetea el estado al cerrar sesión o cambiar de usuario.
+function duckEconomiaLimpiarCache() {
+  _duckEcoAlumnoId = null;
+  _duckEcoListo = false;
+}
+
+// Busca el ID de alumno en Supabase para el usuario logueado.
 async function duckEconomiaObtenerAlumnoId(force) {
   if (_duckEcoAlumnoId && !force) {
     return _duckEcoAlumnoId;
@@ -43,10 +50,12 @@ async function duckEconomiaObtenerAlumnoId(force) {
   }
 }
 
+// Escribe el saldo de monedas en localStorage.
 function duckEconomiaAplicarSaldoLocal(saldo) {
   localStorage.setItem(TEC_DUCK_STORAGE_COINS, String(Math.max(0, saldo || 0)));
 }
 
+// Actualiza la copia local del inventario sin duplicados.
 function duckEconomiaAplicarInventarioLocal(ids) {
   var lista = [];
   if (Array.isArray(ids)) {
@@ -59,55 +68,10 @@ function duckEconomiaAplicarInventarioLocal(ids) {
   duckInvGuardar(lista);
 }
 
-async function duckEconomiaMigrarLocalADb(sb) {
-  if (localStorage.getItem(DUCK_ECONOMIA_MIGRADA) === "1") {
-    return;
-  }
-
-  var saldoLocal = duckObtenerSaldoMonedas();
-  var invLocal = duckInvObtener().slice();
-
-  var alumnoRes = await sb
-    .from("alumno")
-    .select("saldo_monedas")
-    .maybeSingle();
-  if (alumnoRes.error || !alumnoRes.data) {
-    return;
-  }
-
-  var saldoDb = Number(alumnoRes.data.saldo_monedas) || 0;
-  if (saldoLocal > saldoDb) {
-    var delta = saldoLocal - saldoDb;
-    await sb.rpc("agregar_monedas_alumno", { p_cantidad: delta });
-  }
-
-  var invDbRes = await sb.from("inventario").select("item_id");
-  var enDb = {};
-  if (!invDbRes.error && invDbRes.data) {
-    for (var i = 0; i < invDbRes.data.length; i++) {
-      enDb[invDbRes.data[i].item_id] = true;
-    }
-  }
-
-  for (var j = 0; j < invLocal.length; j++) {
-    var id = invLocal[j];
-    if (!id || enDb[id]) {
-      continue;
-    }
-    if (typeof duckEntradaPorId === "function" && !duckEntradaPorId(id)) {
-      continue;
-    }
-    await sb.rpc("otorgar_item_inventario", {
-      p_item_id: id,
-      p_origen: "GRATIS"
-    });
-  }
-
-  localStorage.setItem(DUCK_ECONOMIA_MIGRADA, "1");
-}
-
+// Trae saldo e inventario de Supabase y los deja en caché local.
 async function duckEconomiaSyncDesdeDb() {
   if (typeof initSupabase !== "function") {
+    _duckEcoListo = false;
     return { ok: false };
   }
   if (_duckEcoSyncProm) {
@@ -117,15 +81,16 @@ async function duckEconomiaSyncDesdeDb() {
   _duckEcoSyncProm = (async function () {
     var sb = await initSupabase();
     if (!sb) {
+      _duckEcoListo = false;
       return { ok: false };
     }
     var alumnoId = await duckEconomiaObtenerAlumnoId(true);
     if (!alumnoId) {
+      _duckEcoListo = false;
       return { ok: false, sinSesion: true };
     }
 
     duckInvMigrar();
-    await duckEconomiaMigrarLocalADb(sb);
 
     var alumnoRes = await sb
       .from("alumno")
@@ -133,6 +98,7 @@ async function duckEconomiaSyncDesdeDb() {
       .eq("id", alumnoId)
       .maybeSingle();
     if (alumnoRes.error || !alumnoRes.data) {
+      _duckEcoListo = false;
       return { ok: false, error: alumnoRes.error && alumnoRes.error.message };
     }
 
@@ -141,6 +107,7 @@ async function duckEconomiaSyncDesdeDb() {
       .select("item_id")
       .eq("alumno_id", alumnoId);
     if (invRes.error) {
+      _duckEcoListo = false;
       return { ok: false, error: invRes.error.message };
     }
 
@@ -151,6 +118,7 @@ async function duckEconomiaSyncDesdeDb() {
 
     duckEconomiaAplicarSaldoLocal(alumnoRes.data.saldo_monedas);
     duckEconomiaAplicarInventarioLocal(ids);
+    _duckEcoListo = true;
 
     return {
       ok: true,
@@ -166,36 +134,15 @@ async function duckEconomiaSyncDesdeDb() {
   }
 }
 
-async function duckEconomiaAgregarMonedasDb(cantidad) {
-  var n = parseInt(cantidad, 10);
-  if (isNaN(n) || n <= 0) {
-    return { ok: true, saldo: duckObtenerSaldoMonedas() };
-  }
-  if (typeof initSupabase !== "function") {
-    return { ok: false };
-  }
-  try {
-    var sb = await initSupabase();
-    if (!sb) {
-      return { ok: false };
-    }
-    if (!(await duckEconomiaObtenerAlumnoId())) {
-      return { ok: false, sinSesion: true };
-    }
-    var res = await sb.rpc("agregar_monedas_alumno", { p_cantidad: n });
-    if (res.error) {
-      console.warn("[economia] monedas:", res.error.message);
-      return { ok: false, error: res.error.message };
-    }
-    var saldo = Number(res.data) || 0;
-    duckEconomiaAplicarSaldoLocal(saldo);
-    return { ok: true, saldo: saldo };
-  } catch (e) {
-    console.warn("[economia] monedas:", e);
-    return { ok: false, error: e.message || String(e) };
-  }
+// Ya no se usa; las monedas entran por registrar_resultado_quiz.
+async function duckEconomiaAgregarMonedasDb() {
+  console.warn(
+    "[economia] agregar_monedas_alumno ya no está disponible; use registrar_resultado_quiz."
+  );
+  return { ok: false, obsoleto: true };
 }
 
+// Compra un ítem en la tienda vía RPC y actualiza saldo e inventario.
 async function duckEconomiaComprarItem(itemId) {
   if (!itemId) {
     return { ok: false, error: "Artículo no válido" };
@@ -224,6 +171,7 @@ async function duckEconomiaComprarItem(itemId) {
       return { ok: false, error: "Respuesta vacía del servidor" };
     }
     duckEconomiaAplicarSaldoLocal(row.saldo_restante);
+    _duckEcoListo = true;
     if (!row.ya_tenia) {
       var lista = duckInvObtener().slice();
       if (lista.indexOf(itemId) < 0) {

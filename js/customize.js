@@ -2,10 +2,12 @@
 var _outfitBorrador = null;
 var _outfitGuardadoJson = "";
 
+// Compara el borrador con lo último que se guardó.
 function hayCambiosSinGuardar() {
   return duckOutfitAString(_outfitBorrador) !== _outfitGuardadoJson;
 }
 
+// Muestra el mensaje verde de éxito o el rojo de error al guardar.
 function mostrarMensajeGuardado(texto, esError) {
   var ok = document.getElementById("customize-save-msg");
   var err = document.getElementById("customize-save-error");
@@ -26,6 +28,7 @@ function mostrarMensajeGuardado(texto, esError) {
   }
 }
 
+// Activa el botón Guardar solo si hay cambios pendientes.
 function actualizarBotonGuardar() {
   var btn = document.getElementById("btn-guardar-pato");
   if (btn) {
@@ -40,15 +43,18 @@ function actualizarBotonGuardar() {
   }
 }
 
+// Sincroniza el estado "guardado" con el borrador actual.
 function marcarOutfitComoGuardado() {
   _outfitGuardadoJson = duckOutfitAString(_outfitBorrador);
   actualizarBotonGuardar();
 }
 
+// Pinta el pato en la vista previa de personalización.
 function aplicarVistaPrevia(outfit) {
   duckOutfitPintarEnIds(DUCK_OUTFIT_IDS_CUSTOMIZE, outfit);
 }
 
+// Guarda local y sube el outfit a Supabase si hay sesión de alumno.
 async function guardarPatoPersonalizado() {
   var btn = document.getElementById("btn-guardar-pato");
   if (!hayCambiosSinGuardar()) {
@@ -97,6 +103,7 @@ async function guardarPatoPersonalizado() {
   return ok;
 }
 
+// Limpia la lista de opciones de un panel antes de rellenarla.
 function vaciarOpts(panel) {
   var opts = panel.querySelector(".opts");
   if (opts) {
@@ -105,6 +112,7 @@ function vaciarOpts(panel) {
   return opts;
 }
 
+// Botón para quitar un accesorio de esa zona.
 function crearBotonNinguno(activo) {
   var b = document.createElement("button");
   b.type = "button";
@@ -114,6 +122,7 @@ function crearBotonNinguno(activo) {
   return b;
 }
 
+// Botón con miniatura de un ítem del inventario.
 function crearBotonItem(entry, activo) {
   var b = document.createElement("button");
   b.type = "button";
@@ -127,6 +136,7 @@ function crearBotonItem(entry, activo) {
   return b;
 }
 
+// Rellena el panel de cuerpo/base con lo que el alumno tiene.
 function construirPanelBase(outfit) {
   var panel = document.querySelector('.panel[data-grupo="base"]');
   if (!panel) {
@@ -149,6 +159,7 @@ function construirPanelBase(outfit) {
   }
 }
 
+// Panel de cara, cabeza, cuello o zapatos con opción "Ninguno".
 function construirPanelAccesorio(grupo, categoria, outfit, clave) {
   var panel = document.querySelector('.panel[data-grupo="' + grupo + '"]');
   if (!panel) {
@@ -175,6 +186,7 @@ function construirPanelAccesorio(grupo, categoria, outfit, clave) {
   }
 }
 
+// Al elegir una pieza, actualiza el borrador y la vista previa.
 function enlazarPaneles() {
   var paneles = document.querySelectorAll(".panel");
   for (var p = 0; p < paneles.length; p++) {
@@ -243,6 +255,7 @@ function enlazarPaneles() {
   }
 }
 
+// Enlaza el clic del botón Guardar pato.
 function enlazarGuardar() {
   var btn = document.getElementById("btn-guardar-pato");
   if (!btn) {
@@ -253,6 +266,7 @@ function enlazarGuardar() {
   });
 }
 
+// Volver a temas, avisando si hay cambios sin guardar.
 function enlazarNavegacion() {
   var volver = document.querySelector(".customize-nav-btn--topics");
   if (!volver) {
@@ -263,7 +277,12 @@ function enlazarNavegacion() {
     var destino =
       typeof pagina === "function" ? pagina("topics.html") : "topics.html";
 
+    // Navega a temas con overlay de carga si existe.
     function ir() {
+      if (typeof pageLoadIrATemas === "function") {
+        pageLoadIrATemas();
+        return;
+      }
       window.location.href = destino;
     }
 
@@ -280,6 +299,7 @@ function enlazarNavegacion() {
   });
 }
 
+// Monta paneles, vista previa y listeners de la pantalla.
 function montarInterfaz(outfit) {
   _outfitBorrador = duckOutfitAjustarAlInventario(outfit);
   marcarOutfitComoGuardado();
@@ -294,37 +314,57 @@ function montarInterfaz(outfit) {
   enlazarNavegacion();
 }
 
-function iniciar() {
-  duckInvMigrar();
-  var arranque = Promise.resolve();
-  if (typeof initSupabase === "function") {
-    arranque = initSupabase();
+// Punto de entrada: carga outfit y arma la UI de personalización.
+async function iniciar() {
+  if (typeof alumnoGuardEsperar === "function") {
+    var okGuard = await alumnoGuardEsperar();
+    if (!okGuard) {
+      return;
+    }
   }
-  arranque = arranque.then(function () {
-    if (typeof duckEconomiaSyncDesdeDb === "function") {
-      return duckEconomiaSyncDesdeDb().catch(function (e) {
-        console.warn("[customize] economia:", e);
-      });
-    }
-  });
-  arranque = arranque.then(function () {
-    if (typeof duckAvatarResolverOutfit === "function") {
-      return duckAvatarResolverOutfit();
-    }
-  });
 
-  arranque
-    .then(function () {
-      montarInterfaz(duckOutfitLeerLocal());
-    })
-    .catch(function (e) {
-      console.warn("No se pudo cargar el avatar:", e);
-      montarInterfaz(duckOutfitLeerLocal());
+  if (typeof pageLoadMostrar === "function") {
+    pageLoadMostrar({
+      main:
+        typeof str === "function"
+          ? str("avatar.cargando", "Cargando tu pato")
+          : "Cargando tu pato",
+      sub:
+        typeof str === "function"
+          ? str("avatar.cargandoSub", "Preparando piezas y vista previa…")
+          : "Preparando piezas y vista previa…"
     });
+  }
+
+  duckInvMigrar();
+  var outfit = duckOutfitLeerLocal();
+  if (typeof duckAvatarEstaListo === "function" && duckAvatarEstaListo()) {
+    outfit = duckOutfitLeerLocal();
+  }
+
+  try {
+    montarInterfaz(outfit);
+  } catch (e) {
+    console.warn("No se pudo cargar el avatar:", e);
+    montarInterfaz(duckOutfitLeerLocal());
+  }
+
+  if (typeof pageLoadOcultar === "function") {
+    pageLoadOcultar();
+  }
+}
+
+// Espera al guard de alumno antes de iniciar customize.
+function arrancarCustomize() {
+  if (typeof alumnoGuardEstaListo === "function" && alumnoGuardEstaListo()) {
+    iniciar();
+    return;
+  }
+  window.addEventListener("alumno-guard-ready", iniciar, { once: true });
 }
 
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", iniciar);
+  document.addEventListener("DOMContentLoaded", arrancarCustomize);
 } else {
-  iniciar();
+  arrancarCustomize();
 }

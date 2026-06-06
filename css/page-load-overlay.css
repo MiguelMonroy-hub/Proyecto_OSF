@@ -1,0 +1,135 @@
+/* Overlay TecDuck (tienda, personalizar, etc.) — pantalla completa */
+html:has(body.is-page-loading) {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.is-page-loading {
+  overflow: hidden;
+  min-height: 100dvh;
+}
+
+body.is-page-loading.page-shop::before,
+body.is-page-loading.page-customize::before,
+body.is-page-loading.page-topics::before {
+  display: none;
+}
+
+body.is-page-loading > *:not(.td-page-loading-overlay) {
+  display: none;
+}
+
+.td-page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100vw;
+  min-height: 100dvh;
+  min-height: 100svh;
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #020617;
+  background-image:
+    radial-gradient(90% 80% at 50% 10%, rgba(14, 116, 144, 0.35) 0%, rgba(2, 6, 23, 0.95) 72%),
+    linear-gradient(180deg, #0c4a6e 0%, #020617 55%, #020617 100%);
+}
+
+.td-page-loading-overlay.is-hidden {
+  display: none;
+}
+
+.td-page-loading-card {
+  width: min(460px, 94vw);
+  border-radius: 20px;
+  padding: 24px 22px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(125, 211, 252, 0.38);
+  box-shadow:
+    0 14px 32px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.td-page-loading-duck {
+  width: 86px;
+  height: 86px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+  animation: td-page-duck-bob 1.8s ease-in-out infinite;
+}
+
+.td-page-loading-duck-fallback {
+  font-size: 3rem;
+  line-height: 1;
+  animation: td-page-duck-bob 1.8s ease-in-out infinite;
+}
+
+.td-page-loading-brand {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #67e8f9;
+}
+
+.td-page-loading-main {
+  font-size: clamp(1.02rem, 3.5vw, 1.2rem);
+  font-weight: 900;
+  color: #f0f9ff;
+}
+
+.td-page-loading-sub {
+  font-size: 0.84rem;
+  color: #bae6fd;
+  opacity: 0.96;
+}
+
+.td-page-loading-bar {
+  width: min(280px, 78vw);
+  height: 8px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.24);
+  overflow: hidden;
+}
+
+.td-page-loading-bar-fill {
+  display: block;
+  width: 45%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee, #38bdf8, #22d3ee);
+  animation: td-page-loading-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes td-page-loading-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(280%);
+  }
+}
+
+@keyframes td-page-duck-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
