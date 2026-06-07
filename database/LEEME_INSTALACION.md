@@ -45,11 +45,11 @@ Si **ya ejecutaste** `01_esquema_y_funciones.sql` antes:
 | `type "rol_usuario" already exists` | Volviste a ejecutar el **01** entero | **No repitas el 01** |
 | `relation "public.pregunta" does not exist` | Ejecutaste el **02** entero, una migración antigua o un script viejo | **No ejecutes el 02 entero** por actualizar registro |
 
-Para la **lista de maestros en Crear cuenta**:
+Para la **lista de maestros en Crear cuenta** y que el **panel del maestro** muestre a los alumnos que eligieron su nombre al registrarse:
 
 1. Abre `04_crear_maestro.sql`.
 2. Copia y ejecuta **solo la PARTE A** (desde el inicio hasta justo antes de `PARTE B — Crear cuenta MAESTRO`).
-3. Debe terminar en los dos `GRANT EXECUTE ON FUNCTION ...` y la línea `NOTIFY pgrst, 'reload schema';` — **no** incluyas el `CREATE EXTENSION` ni el bloque `DO $$` de la PARTE B.
+3. Debe terminar en los `GRANT EXECUTE ON FUNCTION ...` y la línea `NOTIFY pgrst, 'reload schema';` — **no** incluyas el `CREATE EXTENSION` ni el bloque `DO $$` de la PARTE B.
 
 4. Comprueba en el mismo SQL Editor:
    ```sql

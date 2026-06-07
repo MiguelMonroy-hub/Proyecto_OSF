@@ -1025,7 +1025,7 @@
       } else {
         elEmpty.textContent =
           !estado.grupoId || estado.grupoId === "grupo-todos"
-            ? "Aún no hay alumnos registrados."
+            ? "Aún no hay alumnos inscritos para mostrar."
             : "No hay alumnos en este grupo.";
       }
       return;
@@ -1301,7 +1301,7 @@
 
     if (!alumnos.length) {
       ul.innerHTML =
-        '<li class="teacher-asignar-empty">Aún no hay alumnos registrados.</li>';
+        '<li class="teacher-asignar-empty">Aún no hay alumnos inscritos.</li>';
       return;
     }
 
@@ -1769,15 +1769,17 @@
           typeof gruposInicializar === "function"
             ? gruposInicializar()
             : Promise.resolve([]);
-        var cargarAlumnos =
-          typeof teacherCargarAlumnos === "function"
-            ? teacherCargarAlumnos()
-            : Promise.resolve([]);
-        var cargarPracticas =
-          typeof teacherCargarAlumnosNivelesMaestro === "function"
-            ? teacherCargarAlumnosNivelesMaestro()
-            : Promise.resolve([]);
-        return Promise.all([cargarGrupos, cargarAlumnos, cargarPracticas]).then(
+        return cargarGrupos.then(function () {
+          var cargarAlumnos =
+            typeof teacherCargarAlumnos === "function"
+              ? teacherCargarAlumnos()
+              : Promise.resolve([]);
+          var cargarPracticas =
+            typeof teacherCargarAlumnosNivelesMaestro === "function"
+              ? teacherCargarAlumnosNivelesMaestro()
+              : Promise.resolve([]);
+          return Promise.all([cargarAlumnos, cargarPracticas]);
+        }).then(
           function () {
             var err =
               typeof teacherUltimoErrorCarga === "function"

@@ -1,5 +1,6 @@
 /**
  * Grupos de clase y vínculos de alumnos (Supabase).
+ * Hay dos tipos de vínculo: maestro (registro) y grupo de clase (código de 6 caracteres).
  */
 var CLAVE_ALUMNO_SESION = "tec_duck_alumno_sesion";
 
@@ -173,8 +174,24 @@ function alumnoSesionEmailSync() {
   }
 }
 
-// Consulta a qué grupo está vinculado el alumno actual.
-async function alumnoObtenerVinculoSupabase() {
+// Pasa una fila de alumno_grupo al formato que usa el front.
+function alumnoMapVinculoDesdeFila(row) {
+  if (!row || !row.grupo) {
+    return null;
+  }
+  var g = row.grupo;
+  return {
+    grupoId: g.es_sistema ? "grupo-todos" : String(g.id),
+    dbId: g.id,
+    codigo: row.codigo_usado || g.codigo,
+    nombreGrupo: g.nombre,
+    vinculadoEn: row.vinculado_en,
+    esSistema: !!g.es_sistema
+  };
+}
+
+// Grupo de clase (código de 6 caracteres), no el grupo sistema «Todos los alumnos».
+async function alumnoObtenerVinculoClaseSupabase() {
   var sb = await initSupabase();
   if (!sb) {
     return null;
@@ -189,23 +206,25 @@ async function alumnoObtenerVinculoSupabase() {
       "grupo_id, codigo_usado, vinculado_en, grupo:grupo_id (id, nombre, codigo, es_sistema)"
     )
     .eq("alumno_id", alumnoRes.data.id)
-    .order("vinculado_en", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (linkRes.error || !linkRes.data || !linkRes.data.grupo) {
+    .order("vinculado_en", { ascending: false });
+  if (linkRes.error || !linkRes.data || !linkRes.data.length) {
     return null;
   }
-  var g = linkRes.data.grupo;
-  return {
-    grupoId: g.es_sistema ? "grupo-todos" : String(g.id),
-    dbId: g.id,
-    codigo: linkRes.data.codigo_usado || g.codigo,
-    nombreGrupo: g.nombre,
-    vinculadoEn: linkRes.data.vinculado_en
-  };
+  for (var i = 0; i < linkRes.data.length; i++) {
+    var row = linkRes.data[i];
+    if (row.grupo && !row.grupo.es_sistema) {
+      return alumnoMapVinculoDesdeFila(row);
+    }
+  }
+  return null;
 }
 
-// ¿El alumno ya se unió a algún grupo?
+// Consulta el vínculo de clase del alumno (alias usado en temas y quiz).
+async function alumnoObtenerVinculoSupabase() {
+  return alumnoObtenerVinculoClaseSupabase();
+}
+
+// ¿El alumno ya ingresó el código de su clase?
 async function alumnoTieneGrupoVinculadoAsync(correo) {
   var sb = await initSupabase();
   if (!sb) {
@@ -218,14 +237,56 @@ async function alumnoTieneGrupoVinculadoAsync(correo) {
     }
   }
   try {
-    var v = await alumnoObtenerVinculoSupabase();
+    var v = await alumnoObtenerVinculoClaseSupabase();
     return !!v;
   } catch (e) {
     return false;
   }
 }
 
-// Datos del grupo vinculado, o null si aún no se ha unido.
+// ¿Ya eligió maestro al registrarse (aunque falte el código de clase)?
+async function alumnoTieneMaestroVinculadoAsync() {
+  var sb = await initSupabase();
+  if (!sb) {
+    return false;
+  }
+  if (typeof authObtenerSesion === "function") {
+    var sesion = await authObtenerSesion();
+    if (!sesion || !sesion.user) {
+      return false;
+    }
+  }
+  try {
+    var alumnoRes = await sb
+      .from("alumno")
+      .select("id, profesor_id")
+      .maybeSingle();
+    if (alumnoRes.error || !alumnoRes.data) {
+      return false;
+    }
+    if (alumnoRes.data.profesor_id) {
+      return true;
+    }
+    var linkRes = await sb
+      .from("alumno_grupo")
+      .select("grupo:grupo_id ( es_sistema )")
+      .eq("alumno_id", alumnoRes.data.id);
+    if (linkRes.error || !linkRes.data) {
+      return false;
+    }
+    for (var i = 0; i < linkRes.data.length; i++) {
+      var g = linkRes.data[i].grupo;
+      if (g && g.es_sistema) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Datos del grupo de clase vinculado, o null si aún no ingresó el código.
 async function alumnoObtenerGrupoVinculadoAsync(correo) {
   var sb = await initSupabase();
   if (!sb) {
@@ -238,7 +299,7 @@ async function alumnoObtenerGrupoVinculadoAsync(correo) {
     }
   }
   try {
-    return await alumnoObtenerVinculoSupabase();
+    return await alumnoObtenerVinculoClaseSupabase();
   } catch (e) {
     return null;
   }
@@ -324,7 +385,7 @@ async function alumnoVincularPorCodigo(correo, codigo) {
   };
 }
 
-// Tras login: a temas si ya tiene grupo, si no a join-group.
+// Tras login o registro: a temas si ya ingresó el código de clase; si no, a join-group.
 async function redirigirAlumnoTrasLogin(correo) {
   alumnoSesionGuardar(correo);
   var tieneGrupo = await alumnoTieneGrupoVinculadoAsync(correo);

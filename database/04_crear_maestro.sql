@@ -3,7 +3,8 @@
 -- =============================================================================
 -- Este archivo tiene DOS partes independientes. Ejecuta solo la que necesites.
 --
--- PARTE A — Actualizar registro (lista de maestros en «Crear cuenta»)
+-- PARTE A — Registro, panel del maestro y código de clase
+--   • Lista de maestros en «Crear cuenta», vínculo alumno→maestro y permisos.
 --   • Bases que YA existían: ejecuta SOLO la PARTE A (hasta el separador PARTE B).
 --   • No ejecutes 01 ni 02 completos otra vez (ver errores rol_usuario / pregunta).
 --
@@ -12,8 +13,141 @@
 -- =============================================================================
 
 -- =============================================================================
--- PARTE A — Actualizar registro (ejecuta solo esto en bases existentes)
+-- PARTE A — Actualizar registro y panel del maestro (bases existentes)
 -- =============================================================================
+
+-- Columna para saber qué maestro eligió el alumno al registrarse.
+ALTER TABLE public.alumno
+  ADD COLUMN IF NOT EXISTS profesor_id BIGINT REFERENCES public.profesor (id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_alumno_profesor ON public.alumno (profesor_id);
+
+-- Rellena profesor_id en alumnos que ya tenían grupo (instalaciones anteriores).
+UPDATE public.alumno a
+SET profesor_id = g.profesor_id
+FROM public.alumno_grupo ag
+JOIN public.grupo g ON g.id = ag.grupo_id
+WHERE ag.alumno_id = a.id
+  AND a.profesor_id IS NULL;
+
+-- El maestro puede ver alumnos que lo eligieron o que están en alguno de sus grupos.
+CREATE OR REPLACE FUNCTION public.maestro_puede_ver_alumno_id(p_alumno_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.profesor p ON p.id = a.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.id = p_alumno_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.alumno_grupo ag
+    JOIN public.grupo g ON g.id = ag.grupo_id
+    JOIN public.profesor p ON p.id = g.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE ag.alumno_id = p_alumno_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.maestro_puede_ver_usuario_alumno(p_usuario_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.profesor p ON p.id = a.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.usuario_id = p_usuario_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.alumno_grupo ag ON ag.alumno_id = a.id
+    JOIN public.grupo g ON g.id = ag.grupo_id
+    JOIN public.profesor p ON p.id = g.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.usuario_id = p_usuario_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+-- Al unirse con código: guarda el maestro y también el grupo «Todos los alumnos».
+CREATE OR REPLACE FUNCTION public.unirse_a_grupo(p_codigo CHAR(6))
+RETURNS TABLE (
+  grupo_id BIGINT,
+  nombre VARCHAR(80),
+  codigo CHAR(6)
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_alumno_id BIGINT;
+  v_grupo public.grupo%ROWTYPE;
+BEGIN
+  v_alumno_id := public.get_my_alumno_id();
+  IF v_alumno_id IS NULL THEN
+    RAISE EXCEPTION 'Solo alumnos autenticados pueden unirse a un grupo';
+  END IF;
+
+  SELECT * INTO v_grupo
+  FROM public.grupo g
+  WHERE g.codigo = UPPER(TRIM(p_codigo))
+    AND g.es_sistema = FALSE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Código no válido. Revisa con tu maestro.';
+  END IF;
+
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.es_sistema = FALSE
+    AND g_old.id <> v_grupo.id
+    AND g_old.profesor_id = v_grupo.profesor_id;
+
+  UPDATE public.alumno
+  SET profesor_id = v_grupo.profesor_id
+  WHERE id = v_alumno_id;
+
+  INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
+  VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
+  ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
+    SET codigo_usado = EXCLUDED.codigo_usado,
+        vinculado_en = NOW();
+
+  INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
+  SELECT v_alumno_id, g_sys.id, g_sys.codigo
+  FROM public.grupo g_sys
+  WHERE g_sys.profesor_id = v_grupo.profesor_id
+    AND g_sys.es_sistema = TRUE
+  ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
+    SET codigo_usado = EXCLUDED.codigo_usado,
+        vinculado_en = NOW();
+
+  RETURN QUERY
+  SELECT v_grupo.id, v_grupo.nombre, v_grupo.codigo;
+END;
+$$;
 
 CREATE OR REPLACE FUNCTION public.listar_maestros_registro()
 RETURNS TABLE (
@@ -44,6 +178,7 @@ AS $$
   ORDER BY u.nombre, u.apellido;
 $$;
 
+-- Tras elegir maestro en el registro: guarda profesor_id y grupo «Todos los alumnos».
 CREATE OR REPLACE FUNCTION public.vincular_alumno_a_maestro(p_profesor_id BIGINT)
 RETURNS TABLE (
   grupo_id BIGINT,
@@ -76,12 +211,24 @@ BEGIN
     RAISE EXCEPTION 'Maestro no encontrado';
   END IF;
 
+  -- Si cambió de maestro, quita el vínculo con el anterior.
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.es_sistema = TRUE
+    AND g_old.profesor_id <> p_profesor_id;
+
   DELETE FROM public.alumno_grupo ag
   USING public.grupo g_old
   WHERE ag.alumno_id = v_alumno_id
     AND g_old.id = ag.grupo_id
     AND g_old.profesor_id = p_profesor_id
     AND g_old.es_sistema = FALSE;
+
+  UPDATE public.alumno
+  SET profesor_id = p_profesor_id
+  WHERE id = v_alumno_id;
 
   INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
   VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
@@ -96,6 +243,7 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.listar_maestros_registro() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.vincular_alumno_a_maestro(BIGINT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.unirse_a_grupo(CHAR(6)) TO authenticated;
 
 -- Refresca la API de Supabase para que el front pueda llamar al RPC de inmediato
 NOTIFY pgrst, 'reload schema';

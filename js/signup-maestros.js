@@ -1,5 +1,6 @@
 /**
- * Lista de maestros en signup.html y vinculación tras crear cuenta.
+ * Lista de maestros en signup.html (desplegable al crear cuenta).
+ * El alumno elige uno; register.js lo vincula tras el alta con vincular_alumno_a_maestro.
  */
 (function () {
   "use strict";

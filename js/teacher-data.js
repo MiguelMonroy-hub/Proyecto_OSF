@@ -893,7 +893,7 @@ function teacherNombreNivelMaestro(id) {
   };
 }
 
-// Alumnos del grupo elegido, o todos si es "grupo-todos".
+// Alumnos del grupo elegido; «grupo-todos» = todos los inscritos con ese maestro.
 function teacherAlumnosEnGrupo(grupoId) {
   var todos = teacherListarAlumnos();
   if (!grupoId || grupoId === "grupo-todos") {
@@ -942,35 +942,86 @@ function teacherAplicarOutfitAlumno(alumnoObj, avatarRow) {
   }
 }
 
+// Consultas Supabase reutilizadas al armar la lista de alumnos del panel.
+var TEACHER_SELECT_ALUMNO =
+  "id, usuario:usuario_id ( nombre, apellido, email ), avatar ( item_base_id, item_face_id, item_head_id, item_neck_id, item_shoes_id, actualizado_en )";
+var TEACHER_SELECT_ALUMNO_BASICO =
+  "id, usuario:usuario_id ( nombre, apellido, email )";
+var TEACHER_SELECT_ALUMNO_GRUPO =
+  "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ), avatar ( item_base_id, item_face_id, item_head_id, item_neck_id, item_shoes_id, actualizado_en ) ), grupo:grupo_id ( id, es_sistema )";
+var TEACHER_SELECT_ALUMNO_GRUPO_BASICO =
+  "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ) ), grupo:grupo_id ( id, es_sistema )";
+
+// ID del profesor logueado (para listar sus alumnos).
+async function teacherResolverProfesorId(sb) {
+  if (typeof gruposPerfilMaestro === "function") {
+    try {
+      var ctx = await gruposPerfilMaestro();
+      if (ctx && ctx.profesorId) {
+        return ctx.profesorId;
+      }
+    } catch (e) {
+      console.warn("[teacher] profesor:", e);
+    }
+  }
+  var pr = await sb.from("profesor").select("id").maybeSingle();
+  if (pr.error || !pr.data) {
+    return null;
+  }
+  return pr.data.id;
+}
+
+// Nombre para mostrar: nombre + apellido, o correo si faltan.
+function teacherNombreDesdeUsuario(u) {
+  return (
+    [u.nombre, u.apellido].filter(Boolean).join(" ").trim() ||
+    u.email ||
+    "Alumno"
+  );
+}
+
+// Objeto base de un alumno en el panel (sin progreso cargado aún).
+function teacherCrearEntradaAlumno(alumnoId, usuario, extras) {
+  extras = extras || {};
+  return {
+    id: String(alumnoId),
+    dbId: alumnoId,
+    nombre: teacherNombreDesdeUsuario(usuario),
+    email: usuario.email || "",
+    outfit:
+      typeof duckOutfitPorDefecto === "function"
+        ? duckOutfitPorDefecto()
+        : { base: "MAIN DUCK.png", face: "", head: "", neck: "", shoes: "" },
+    grupos: [],
+    temas: teacherTemasVacios(),
+    temasModo: teacherTemasModoVacios(),
+    temasEnCurso: teacherTemasEnCursoVacios(),
+    tiempoPromedio: 0,
+    detalle: teacherDetalleVacio(),
+    nivelesMaestro: extras.nivelesMaestro || null
+  };
+}
+
+// Mete o actualiza un alumno en el mapa desde la tabla alumno.
+function teacherMapAlumnoDesdeFila(map, row, extras) {
+  if (!row || !row.usuario) {
+    return;
+  }
+  var aid = String(row.id);
+  if (!map[aid]) {
+    map[aid] = teacherCrearEntradaAlumno(row.id, row.usuario, extras);
+  }
+  teacherAplicarOutfitAlumno(map[aid], teacherAvatarDesdeAlumno(row));
+}
+
 // Crea o actualiza un alumno en el mapa desde un link alumno_grupo.
-function teacherMapAlumnoDesdeLinks(map, row) {
+function teacherMapAlumnoDesdeLinks(map, row, extras) {
   if (!row || !row.alumno || !row.alumno.usuario) {
     return;
   }
   var aid = String(row.alumno.id);
-  var u = row.alumno.usuario;
-  var nombre =
-    [u.nombre, u.apellido].filter(Boolean).join(" ").trim() ||
-    u.email ||
-    "Alumno";
-
   if (!map[aid]) {
-    map[aid] = {
-      id: aid,
-      dbId: row.alumno.id,
-      nombre: nombre,
-      email: u.email || "",
-      outfit:
-        typeof duckOutfitPorDefecto === "function"
-          ? duckOutfitPorDefecto()
-          : { base: "MAIN DUCK.png", face: "", head: "", neck: "", shoes: "" },
-      grupos: [],
-      temas: teacherTemasVacios(),
-      temasModo: teacherTemasModoVacios(),
-      temasEnCurso: teacherTemasEnCursoVacios(),
-      tiempoPromedio: 0,
-      detalle: teacherDetalleVacio()
-    };
+    map[aid] = teacherCrearEntradaAlumno(row.alumno.id, row.alumno.usuario, extras);
   }
 
   teacherAplicarOutfitAlumno(map[aid], teacherAvatarDesdeAlumno(row.alumno));
@@ -981,6 +1032,60 @@ function teacherMapAlumnoDesdeLinks(map, row) {
       map[aid].grupos.push(gid);
     }
   }
+}
+
+// Arma el mapa de alumnos: primero por maestro elegido, luego por grupo de clase.
+async function teacherCargarMapaAlumnosBase(sb, profesorId, extras) {
+  var map = {};
+
+  if (profesorId) {
+    var porProf = await sb
+      .from("alumno")
+      .select(TEACHER_SELECT_ALUMNO)
+      .eq("profesor_id", profesorId);
+    if (
+      porProf.error &&
+      porProf.error.message &&
+      porProf.error.message.indexOf("profesor_id") >= 0
+    ) {
+      console.warn(
+        "[teacher] Falta columna alumno.profesor_id. Ejecuta PARTE A de database/04_crear_maestro.sql"
+      );
+    } else if (porProf.error) {
+      throw new Error(porProf.error.message);
+    } else {
+      var filasProf = porProf.data || [];
+      for (var p = 0; p < filasProf.length; p++) {
+        teacherMapAlumnoDesdeFila(map, filasProf[p], extras);
+      }
+    }
+  }
+
+  var linksRes = await sb.from("alumno_grupo").select(TEACHER_SELECT_ALUMNO_GRUPO);
+  if (linksRes.error) {
+    linksRes = await sb.from("alumno_grupo").select(TEACHER_SELECT_ALUMNO_GRUPO_BASICO);
+    if (linksRes.error) {
+      throw new Error(linksRes.error.message);
+    }
+  }
+
+  var rows = linksRes.data || [];
+  for (var i = 0; i < rows.length; i++) {
+    teacherMapAlumnoDesdeLinks(map, rows[i], extras);
+  }
+
+  return map;
+}
+
+// IDs numéricos de alumnos a partir del mapa en memoria.
+function teacherIdsDesdeMapa(map) {
+  return Object.keys(map)
+    .map(function (k) {
+      return parseInt(k, 10);
+    })
+    .filter(function (n) {
+      return !isNaN(n);
+    });
 }
 
 function teacherAplicarProgresoNivelesMaestro(map, filas) {
@@ -1036,32 +1141,17 @@ async function teacherCargarAlumnos() {
     return [];
   }
 
-  var linksRes = await sb.from("alumno_grupo").select(
-    "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ), avatar ( item_base_id, item_face_id, item_head_id, item_neck_id, item_shoes_id, actualizado_en ) ), grupo:grupo_id ( id, es_sistema )"
-  );
-  if (linksRes.error) {
-    linksRes = await sb.from("alumno_grupo").select(
-      "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ) ), grupo:grupo_id ( id, es_sistema )"
-    );
-    if (linksRes.error) {
-      _teacherUltimoErrorCarga = linksRes.error.message;
-      return [];
+  if (typeof gruposCargarDesdeSupabase === "function") {
+    try {
+      await gruposCargarDesdeSupabase();
+    } catch (e) {
+      console.warn("[teacher] grupos:", e);
     }
   }
 
-  var map = {};
-  var rows = linksRes.data || [];
-  for (var i = 0; i < rows.length; i++) {
-    teacherMapAlumnoDesdeLinks(map, rows[i]);
-  }
-
-  var ids = Object.keys(map)
-    .map(function (k) {
-      return parseInt(k, 10);
-    })
-    .filter(function (n) {
-      return !isNaN(n);
-    });
+  var profesorId = await teacherResolverProfesorId(sb);
+  var map = await teacherCargarMapaAlumnosBase(sb, profesorId);
+  var ids = teacherIdsDesdeMapa(map);
 
   if (ids.length) {
     var avRes = await sb
@@ -1211,40 +1301,25 @@ async function teacherCargarAlumnosNivelesMaestro() {
       });
     }
 
-    var linksRes = await sb.from("alumno_grupo").select(
-      "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ), avatar ( item_base_id, item_face_id, item_head_id, item_neck_id, item_shoes_id, actualizado_en ) ), grupo:grupo_id ( id, es_sistema )"
-    );
-    if (linksRes.error) {
-      linksRes = await sb.from("alumno_grupo").select(
-        "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ) ), grupo:grupo_id ( id, es_sistema )"
-      );
-      if (linksRes.error) {
-        return [];
+    if (typeof gruposCargarDesdeSupabase === "function") {
+      try {
+        await gruposCargarDesdeSupabase();
+      } catch (e) {
+        console.warn("[teacher] grupos:", e);
       }
     }
 
-    var map = {};
-    var rows = linksRes.data || [];
-    for (var i = 0; i < rows.length; i++) {
-      var row = rows[i];
-      if (!row || !row.alumno || !row.alumno.usuario) {
-        continue;
+    var profesorId = await teacherResolverProfesorId(sb);
+    var map = await teacherCargarMapaAlumnosBase(sb, profesorId, {
+      nivelesMaestro: teacherNivelesMaestroVacios()
+    });
+    var ids = teacherIdsDesdeMapa(map);
+    Object.keys(map).forEach(function (k) {
+      if (!map[k].nivelesMaestro) {
+        map[k].nivelesMaestro = teacherNivelesMaestroVacios();
       }
-      teacherMapAlumnoDesdeLinks(map, row);
-      var aid = String(row.alumno.id);
-      if (map[aid]) {
-        map[aid].nivelesMaestro = teacherNivelesMaestroVacios();
-        map[aid].tiempoPromedio = 0;
-      }
-    }
-
-    var ids = Object.keys(map)
-      .map(function (k) {
-        return parseInt(k, 10);
-      })
-      .filter(function (num) {
-        return !isNaN(num);
-      });
+      map[k].tiempoPromedio = 0;
+    });
 
     if (ids.length && nivelIds.length) {
       var avRes = await sb

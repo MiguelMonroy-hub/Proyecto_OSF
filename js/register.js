@@ -1,6 +1,6 @@
 /**
  * Lógica de signup.html: crea la cuenta en Supabase y redirige.
- * Solo alumnos; el maestro se elige en la lista y se vincula tras el alta.
+ * Solo alumnos: elige maestro, se vincula a él y luego va a ingresar el código de clase.
  */
 
 function registerEstadoBoton(btn, cargando) {
@@ -42,7 +42,7 @@ async function registerEntrarTrasCrear(email, password, profesorId) {
     return true;
   }
   window.location.href =
-    typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+    typeof pagina === "function" ? pagina("join-group.html") : "join-group.html";
   return true;
 }
 
@@ -53,13 +53,14 @@ async function registerVincularMaestroTrasAlta(profesorId) {
   return alumnoVincularAMaestro(profesorId);
 }
 
+// Tras el alta: join-group si aún no tiene código de clase; si no, temas.
 async function registerRedirigirAlumno(email) {
   if (typeof redirigirAlumnoTrasLogin === "function") {
     await redirigirAlumnoTrasLogin(email);
     return;
   }
   window.location.href =
-    typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+    typeof pagina === "function" ? pagina("join-group.html") : "join-group.html";
 }
 
 document.addEventListener("DOMContentLoaded", function () {

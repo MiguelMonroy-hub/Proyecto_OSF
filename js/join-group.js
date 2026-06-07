@@ -1,6 +1,6 @@
 /**
- * Pantalla join-group.html: el alumno ingresa el código de 6 letras de su grupo.
- * Si ya está vinculado, salta directo a temas.
+ * Pantalla join-group.html: el alumno ingresa el código de 6 letras de su clase.
+ * Tras registrarse y elegir maestro, pasa por aquí antes de ir a temas.
  */
 (function () {
   "use strict";
@@ -32,7 +32,7 @@
     try {
       var email = await obtenerEmailAlumno();
 
-      // Ya tiene grupo → no hace falta pedir el código otra vez.
+      // Ya ingresó el código de clase → no hace falta pedirlo otra vez.
       if (typeof alumnoTieneGrupoVinculadoAsync === "function") {
         var yaUnido = await alumnoTieneGrupoVinculadoAsync(email);
         if (yaUnido) {
@@ -51,6 +51,17 @@
       var errText = document.getElementById("join-error-text");
       var btn = document.getElementById("btn-unir-grupo");
       var modal = document.querySelector(".modal-join-group");
+      var lead = document.querySelector(".join-lead");
+
+      // Tras el registro el maestro ya está guardado; falta el código de la clase.
+      if (
+        lead &&
+        typeof alumnoTieneMaestroVinculadoAsync === "function" &&
+        (await alumnoTieneMaestroVinculadoAsync())
+      ) {
+        lead.innerHTML =
+          "Tu maestro ya quedó registrado en tu cuenta. Pide el código de <strong>6 caracteres</strong> de tu clase y escríbelo aquí para entrar al grupo.";
+      }
 
       // Quita estilos y mensajes de error del input y el modal.
       function limpiarError() {

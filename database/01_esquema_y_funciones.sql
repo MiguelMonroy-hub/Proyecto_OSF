@@ -53,12 +53,16 @@ CREATE TABLE public.profesor (
   creado_en       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- profesor_id: maestro que el alumno eligió al registrarse (aparece en «Todos los alumnos»).
 CREATE TABLE public.alumno (
   id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   usuario_id      BIGINT NOT NULL UNIQUE REFERENCES public.usuario (id) ON DELETE CASCADE,
+  profesor_id     BIGINT REFERENCES public.profesor (id) ON DELETE SET NULL,
   saldo_monedas   INTEGER NOT NULL DEFAULT 0 CHECK (saldo_monedas >= 0),
   creado_en       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_alumno_profesor ON public.alumno (profesor_id);
 
 -- Perfil automático al registrarse en Supabase Auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -211,6 +215,15 @@ SET search_path = public
 AS $$
   SELECT EXISTS (
     SELECT 1
+    FROM public.alumno a
+    JOIN public.profesor p ON p.id = a.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.id = p_alumno_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  )
+  OR EXISTS (
+    SELECT 1
     FROM public.alumno_grupo ag
     JOIN public.grupo g ON g.id = ag.grupo_id
     JOIN public.profesor p ON p.id = g.profesor_id
@@ -229,6 +242,15 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.profesor p ON p.id = a.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.usuario_id = p_usuario_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  )
+  OR EXISTS (
     SELECT 1
     FROM public.alumno a
     JOIN public.alumno_grupo ag ON ag.alumno_id = a.id
@@ -527,8 +549,21 @@ BEGIN
     AND g_old.id <> v_grupo.id
     AND g_old.profesor_id = v_grupo.profesor_id;
 
+  UPDATE public.alumno
+  SET profesor_id = v_grupo.profesor_id
+  WHERE id = v_alumno_id;
+
   INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
   VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
+  ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
+    SET codigo_usado = EXCLUDED.codigo_usado,
+        vinculado_en = NOW();
+
+  INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
+  SELECT v_alumno_id, g_sys.id, g_sys.codigo
+  FROM public.grupo g_sys
+  WHERE g_sys.profesor_id = v_grupo.profesor_id
+    AND g_sys.es_sistema = TRUE
   ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
     SET codigo_usado = EXCLUDED.codigo_usado,
         vinculado_en = NOW();
@@ -1240,8 +1275,19 @@ BEGIN
   USING public.grupo g_old
   WHERE ag.alumno_id = v_alumno_id
     AND g_old.id = ag.grupo_id
+    AND g_old.es_sistema = TRUE
+    AND g_old.profesor_id <> p_profesor_id;
+
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
     AND g_old.profesor_id = p_profesor_id
     AND g_old.es_sistema = FALSE;
+
+  UPDATE public.alumno
+  SET profesor_id = p_profesor_id
+  WHERE id = v_alumno_id;
 
   INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
   VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
