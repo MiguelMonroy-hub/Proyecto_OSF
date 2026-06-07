@@ -161,7 +161,7 @@ function authTraducirError(error, contexto) {
     lower.indexOf("relation") >= 0 && lower.indexOf("does not exist") >= 0
   ) {
     if (lower.indexOf("database error querying schema") >= 0) {
-      return "La cuenta existe en la base de datos pero Auth no puede iniciar sesión. Vuelve a crear el maestro con: node scripts/crear-maestro-admin.mjs";
+      return "La cuenta existe en la base de datos pero Auth no puede iniciar sesión. Créala con database/04_crear_maestro.sql en Supabase.";
     }
     return "El servidor aún no está listo para registrar cuentas. Avísale a tu maestro o inténtalo más tarde.";
   }

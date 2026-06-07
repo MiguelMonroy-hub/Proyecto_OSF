@@ -244,6 +244,38 @@ async function alumnoObtenerGrupoVinculadoAsync(correo) {
   }
 }
 
+// Une al alumno al maestro elegido en el registro (grupo «Todos los alumnos»).
+async function alumnoVincularAMaestro(profesorId) {
+  var sb = await initSupabase();
+  if (!sb) {
+    return { ok: false, error: "Supabase no está configurado." };
+  }
+  var perfil = await authCargarPerfil();
+  if (!perfil || perfil.rol !== "ALUMNO") {
+    return { ok: false, error: "Debes iniciar sesión como alumno." };
+  }
+  var rpc = await sb.rpc("vincular_alumno_a_maestro", {
+    p_profesor_id: Number(profesorId)
+  });
+  if (rpc.error) {
+    return {
+      ok: false,
+      error: rpc.error.message || "No se pudo vincular con el maestro."
+    };
+  }
+  var row = rpc.data && rpc.data[0] ? rpc.data[0] : null;
+  return {
+    ok: true,
+    vinculo: row
+      ? {
+          dbId: row.grupo_id,
+          nombreGrupo: row.nombre,
+          vinculadoEn: Date.now()
+        }
+      : null
+  };
+}
+
 // Une al alumno a un grupo con el código de 6 caracteres del maestro.
 async function alumnoVincularPorCodigo(correo, codigo) {
   var c = normalizarCodigoGrupo(codigo);

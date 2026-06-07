@@ -7,6 +7,7 @@ var STRINGS = {
     soloMaestro: "Debes iniciar sesión como maestro.",
     errorConexion: "No se pudo conectar con la nube. Revisa tu internet e inténtalo de nuevo.",
     nombreRequerido: "El nombre es obligatorio.",
+    apellidoRequerido: "El apellido es obligatorio.",
     correoRequerido: "El correo es obligatorio.",
     correoInvalido: "El correo no tiene un formato válido.",
     correoYaRegistrado: "Ya hay una cuenta con ese correo. Prueba a iniciar sesión.",

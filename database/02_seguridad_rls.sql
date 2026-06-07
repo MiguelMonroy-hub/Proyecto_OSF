@@ -1,8 +1,9 @@
 -- =============================================================================
 -- Tec-Duck — PASO 2 de 2: Seguridad RLS (Supabase SQL Editor)
 -- =============================================================================
--- Ejecutar DESPUÉS de database/01_esquema_y_funciones.sql (proyecto nuevo).
--- Instrucciones: database/LEEME_INSTALACION.md
+-- Proyecto NUEVO: ejecutar DESPUÉS de 01_esquema_y_funciones.sql (una sola vez).
+-- Base YA instalada: NO vuelvas a ejecutar este archivo entero salvo problemas
+-- de permisos. Para la lista de maestros en registro usa PARTE A de 04_crear_maestro.sql
 -- =============================================================================
 
 ALTER TABLE public.usuario ENABLE ROW LEVEL SECURITY;

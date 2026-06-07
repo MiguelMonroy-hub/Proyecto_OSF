@@ -51,13 +51,23 @@
 }
 
 .modal-login input[type="email"],
-.modal-login input[type="password"] {
+.modal-login .auth-password-wrap input[type="password"],
+.modal-login .auth-password-wrap input[type="text"] {
   width: 100%;
   padding: 10px 12px;
-  margin-bottom: 14px;
   border-radius: 8px;
   border: none;
   box-sizing: border-box;
+  background: #fff;
+  color: #1a202c;
+}
+
+.modal-login input[type="email"] {
+  margin-bottom: 14px;
+}
+
+.modal-login .auth-password-wrap {
+  margin-bottom: 14px;
 }
 
 .modal-login .btn-submit {

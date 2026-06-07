@@ -7,6 +7,7 @@
   <title>Crear cuenta</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/auth-back.css">
+  <link rel="stylesheet" href="../css/auth-password.css">
   <link rel="stylesheet" href="../css/signup.css">
 </head>
 <body class="page-signup-new">
@@ -25,20 +26,53 @@
     <label for="nombre">Nombre <span class="auth-required" aria-hidden="true">*</span></label>
     <input type="text" id="nombre" name="nombre" autocomplete="given-name" required>
 
-    <label for="apellido">Apellido</label>
-    <input type="text" id="apellido" name="apellido" autocomplete="family-name">
+    <label for="apellido">Apellido <span class="auth-required" aria-hidden="true">*</span></label>
+    <input type="text" id="apellido" name="apellido" autocomplete="family-name" required>
 
     <label for="email">Correo <span class="auth-required" aria-hidden="true">*</span></label>
     <input type="email" id="email" name="email" autocomplete="email" placeholder="tu@correo.com" required>
 
     <label for="pass">Contraseña <span class="auth-required" aria-hidden="true">*</span></label>
-    <input type="password" id="pass" name="pass" placeholder="••••••••" autocomplete="new-password" minlength="8" required aria-describedby="signup-pass-hint">
+    <div class="auth-password-wrap">
+      <input type="password" id="pass" name="pass" placeholder="••••••••" autocomplete="new-password" minlength="8" required aria-describedby="signup-pass-hint">
+    </div>
     <p id="signup-pass-hint" class="signup-pass-hint">Mínimo 8 caracteres, con mayúscula, minúscula, número y carácter especial.</p>
 
-    <label class="signup-maestro-check">
-      <input type="checkbox" id="es-maestro" name="es-maestro">
-      <span>Soy maestro <span class="signup-temp-tag">(temporal)</span></span>
-    </label>
+    <fieldset class="signup-maestros" id="signup-maestros-fieldset">
+      <legend class="signup-maestros-legend">Mi maestro <span class="auth-required" aria-hidden="true">*</span></legend>
+      <button
+        type="button"
+        id="signup-maestros-toggle"
+        class="signup-maestros-toggle"
+        aria-expanded="false"
+        aria-controls="signup-maestros-panel"
+      >
+        <span id="signup-maestros-toggle-valor" class="signup-maestros-toggle-valor">Elige un maestro</span>
+        <span class="signup-maestros-toggle-chevron" aria-hidden="true"></span>
+      </button>
+      <div id="signup-maestros-panel" class="signup-maestros-panel" hidden>
+        <p class="signup-maestros-hint">Elige al profesor de tu clase.</p>
+        <div id="signup-maestros-toolbar" class="signup-maestros-toolbar" hidden>
+          <label class="signup-maestros-buscar-label" for="signup-maestros-buscar">
+            <span class="signup-maestros-buscar-icon" aria-hidden="true">⌕</span>
+            <input
+              type="search"
+              id="signup-maestros-buscar"
+              class="signup-maestros-buscar"
+              placeholder="Buscar por nombre…"
+              autocomplete="off"
+              enterkeyhint="search"
+            />
+          </label>
+        </div>
+        <div id="signup-maestros-list" class="signup-maestros-list" role="radiogroup" aria-label="Selecciona tu maestro">
+          <div class="signup-maestros-skeleton" role="status" aria-live="polite">
+            <span class="signup-maestros-skeleton-row"></span>
+            <span class="signup-maestros-skeleton-row"></span>
+          </div>
+        </div>
+      </div>
+    </fieldset>
 
     <p id="signup-error" class="signup-error" hidden></p>
 
@@ -55,7 +89,9 @@
   <script src="../js/strings.js"></script>
   <script src="../js/auth-service.js"></script>
   <script src="../js/auth-validacion.js"></script>
+  <script src="../js/auth-password-toggle.js"></script>
   <script src="../js/grupos-clase.js"></script>
+  <script src="../js/signup-maestros.js"></script>
   <script src="../js/register.js"></script>
 </body>
 </html>

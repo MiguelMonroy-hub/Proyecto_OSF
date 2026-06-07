@@ -63,18 +63,16 @@
     if (vencido) {
       nivelHtml =
         '<span class="level-btn level-facil level-maestro-locked" role="presentation">' +
-        '<span class="lvl-badge">🔒</span>' +
-        '<span class="lvl-label">Jugar</span>' +
-        '<span class="lvl-go">No disponible</span>' +
+        htmlContenidoBotonNivel("🔒", "Jugar", "No disponible", false) +
         "</span>";
     } else {
       nivelHtml =
         '<a href="/pages/quiz.html?tn=' +
         encodeURIComponent(nivel.id) +
-        '" class="level-btn level-facil">' +
-        '<span class="lvl-badge">A</span>' +
-        '<span class="lvl-label">Jugar</span>' +
-        '<span class="lvl-go">Jugar →</span>' +
+        '" class="level-btn level-facil" data-maestro-progress="' +
+        escAttr(String(nivel.id)) +
+        '">' +
+        htmlContenidoBotonNivel("A", "Jugar", "Jugar →", true) +
         "</a>";
     }
 
@@ -194,6 +192,9 @@
       frag.appendChild(crearTarjetaTema(niveles[i], vinculo));
     }
     grid.appendChild(frag);
+    if (typeof pintarBarrasProgresoNivelesMaestro === "function") {
+      pintarBarrasProgresoNivelesMaestro();
+    }
   }
 
   // Punto de arranque: pinta la sección de niveles del maestro al cargar la página.

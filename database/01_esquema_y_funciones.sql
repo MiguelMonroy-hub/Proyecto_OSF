@@ -1172,6 +1172,92 @@ $$;
 GRANT EXECUTE ON FUNCTION public.sincronizar_alumnos_grupo(BIGINT, BIGINT[]) TO authenticated;
 
 -- -----------------------------------------------------------------------------
+-- Registro de alumnos: listar maestros y vincular al elegido
+-- -----------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.listar_maestros_registro()
+RETURNS TABLE (
+  profesor_id BIGINT,
+  nombre TEXT,
+  apellido TEXT,
+  etiqueta TEXT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    p.id,
+    u.nombre::TEXT,
+    COALESCE(u.apellido, '')::TEXT,
+    trim(
+      u.nombre || CASE
+        WHEN u.apellido IS NOT NULL AND trim(u.apellido) <> '' THEN ' ' || u.apellido
+        ELSE ''
+      END
+    )
+  FROM public.profesor p
+  JOIN public.usuario u ON u.id = p.usuario_id
+  WHERE u.rol = 'MAESTRO'
+    AND u.activo = TRUE
+  ORDER BY u.nombre, u.apellido;
+$$;
+
+CREATE OR REPLACE FUNCTION public.vincular_alumno_a_maestro(p_profesor_id BIGINT)
+RETURNS TABLE (
+  grupo_id BIGINT,
+  nombre VARCHAR(80)
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_alumno_id BIGINT;
+  v_grupo public.grupo%ROWTYPE;
+BEGIN
+  v_alumno_id := public.get_my_alumno_id();
+  IF v_alumno_id IS NULL THEN
+    RAISE EXCEPTION 'Solo alumnos autenticados pueden vincularse a un maestro';
+  END IF;
+
+  IF p_profesor_id IS NULL THEN
+    RAISE EXCEPTION 'Selecciona un maestro';
+  END IF;
+
+  SELECT * INTO v_grupo
+  FROM public.grupo g
+  WHERE g.profesor_id = p_profesor_id
+    AND g.es_sistema = TRUE
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Maestro no encontrado';
+  END IF;
+
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.profesor_id = p_profesor_id
+    AND g_old.es_sistema = FALSE;
+
+  INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
+  VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
+  ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
+    SET codigo_usado = EXCLUDED.codigo_usado,
+        vinculado_en = NOW();
+
+  RETURN QUERY
+  SELECT v_grupo.id, v_grupo.nombre;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.listar_maestros_registro() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.vincular_alumno_a_maestro(BIGINT) TO authenticated;
+
+-- -----------------------------------------------------------------------------
 -- DATOS INICIALES
 -- -----------------------------------------------------------------------------
 

@@ -1,12 +1,179 @@
 // Progreso por tema: se guarda solo en memoria después de leer Supabase.
 // Aquí vive la lógica de datos; la UI de temas usa otras funciones para pintar bloqueos.
 var _progresoTemasMem = {};
+var _progresoMaestroMem = {};
 var _progresoTemasListo = false;
 
 // Vacía el progreso en memoria y marca que aún no terminó de cargarse.
 function progresoTemasLimpiar() {
   _progresoTemasMem = {};
+  _progresoMaestroMem = {};
   _progresoTemasListo = false;
+}
+
+function progresoTemasModoSlotVacio() {
+  return { pts: 0, enCurso: false, completado: false };
+}
+
+function progresoTemasAsegurarTema(temaId) {
+  var id = String(temaId);
+  if (!id) {
+    return {
+      facil: progresoTemasModoSlotVacio(),
+      dificil: progresoTemasModoSlotVacio()
+    };
+  }
+  var actual = _progresoTemasMem[id];
+  if (!actual || typeof actual.facil === "boolean") {
+    var facilOk = actual && actual.facil === true;
+    var dificilOk = actual && actual.dificil === true;
+    _progresoTemasMem[id] = {
+      facil: {
+        pts: facilOk ? 10 : 0,
+        enCurso: false,
+        completado: !!facilOk
+      },
+      dificil: {
+        pts: dificilOk ? 10 : 0,
+        enCurso: false,
+        completado: !!dificilOk
+      }
+    };
+  }
+  return _progresoTemasMem[id];
+}
+
+function progresoMaestroSlotVacio() {
+  return { pts: 0, enCurso: false, completado: false };
+}
+
+function progresoMaestroAsegurar(nivelId) {
+  var id = String(nivelId);
+  if (!id) {
+    return progresoMaestroSlotVacio();
+  }
+  if (!_progresoMaestroMem[id]) {
+    _progresoMaestroMem[id] = progresoMaestroSlotVacio();
+  }
+  return _progresoMaestroMem[id];
+}
+
+function progresoMaestroCelda(nivelId) {
+  if (!_progresoTemasListo) {
+    return progresoMaestroSlotVacio();
+  }
+  return progresoMaestroAsegurar(nivelId);
+}
+
+function aplicarProgresoMaestroDesdeDb(nivelId, completado, puntaje) {
+  var id = String(nivelId);
+  if (!id) {
+    return;
+  }
+  var slot = progresoMaestroAsegurar(id);
+  if (completado) {
+    slot.completado = true;
+    slot.enCurso = false;
+    slot.pts = Math.max(slot.pts, 10);
+  }
+  if (puntaje != null && !isNaN(puntaje)) {
+    slot.pts = Math.max(slot.pts, Math.min(10, Math.max(0, Number(puntaje))));
+  }
+}
+
+function aplicarPartidasProgresoMaestro(partidas) {
+  if (!partidas || !partidas.length) {
+    return;
+  }
+  for (var i = 0; i < partidas.length; i++) {
+    var p = partidas[i];
+    if (!p.nivel_maestro_id) {
+      continue;
+    }
+    var estado = String(p.estado || "").toUpperCase();
+    if (
+      estado !== "EN_CURSO" &&
+      estado !== "COMPLETADA" &&
+      estado !== "GAME_OVER"
+    ) {
+      continue;
+    }
+    var slot = progresoMaestroAsegurar(p.nivel_maestro_id);
+    var enCurso = estado === "EN_CURSO";
+    var pts = progresoPtsDesdePartida(p, enCurso);
+    if (enCurso) {
+      slot.enCurso = true;
+      slot.pts = pts;
+    } else if (!slot.enCurso && pts > slot.pts) {
+      slot.pts = pts;
+    }
+    if (estado === "COMPLETADA") {
+      slot.completado = true;
+      slot.enCurso = false;
+      slot.pts = Math.max(slot.pts, 10);
+    }
+  }
+}
+
+function progresoTemasModoCelda(temaId, modoKey) {
+  if (!_progresoTemasListo) {
+    return progresoTemasModoSlotVacio();
+  }
+  var tema = progresoTemasAsegurarTema(temaId);
+  if (modoKey === "dificil") {
+    return tema.dificil || progresoTemasModoSlotVacio();
+  }
+  return tema.facil || progresoTemasModoSlotVacio();
+}
+
+function progresoPtsDesdePartida(partida, enCurso) {
+  var act =
+    typeof partidaActividadItems === "function"
+      ? partidaActividadItems(partida.actividad)
+      : [];
+  var total = partida.preguntas_total || act.length || 10;
+  if (typeof partidaMetricasDesdeActividad === "function") {
+    return partidaMetricasDesdeActividad(act, total).puntaje;
+  }
+  return 0;
+}
+
+function aplicarPartidasProgresoTemas(partidas) {
+  if (!partidas || !partidas.length) {
+    return;
+  }
+  for (var i = 0; i < partidas.length; i++) {
+    var p = partidas[i];
+    if (p.nivel_maestro_id || !p.nivel || !p.nivel.tema_id) {
+      continue;
+    }
+    var estado = String(p.estado || "").toUpperCase();
+    if (
+      estado !== "EN_CURSO" &&
+      estado !== "COMPLETADA" &&
+      estado !== "GAME_OVER"
+    ) {
+      continue;
+    }
+    var codigo = String(p.nivel.tema_id);
+    var modoKey =
+      String(p.modo || "").toUpperCase() === "DIFICIL" ? "dificil" : "facil";
+    var tema = progresoTemasAsegurarTema(codigo);
+    var slot = tema[modoKey];
+    var enCurso = estado === "EN_CURSO";
+    var pts = progresoPtsDesdePartida(p, enCurso);
+    if (enCurso) {
+      slot.enCurso = true;
+      slot.pts = pts;
+    } else if (!slot.enCurso && pts > slot.pts) {
+      slot.pts = pts;
+    }
+    if (estado === "COMPLETADA") {
+      slot.completado = true;
+      slot.enCurso = false;
+      slot.pts = Math.max(slot.pts, 10);
+    }
+  }
 }
 
 // Indica si ya terminamos de cargar el progreso desde el servidor.
@@ -25,35 +192,39 @@ function aplicarProgresoTemaDesdeDb(temaId, facilOk, dificilOk) {
   if (!id) {
     return;
   }
-  if (!_progresoTemasMem[id]) {
-    _progresoTemasMem[id] = {};
-  }
+  var tema = progresoTemasAsegurarTema(id);
   if (facilOk) {
-    _progresoTemasMem[id].facil = true;
+    tema.facil.completado = true;
+    tema.facil.enCurso = false;
+    tema.facil.pts = Math.max(tema.facil.pts, 10);
   }
   if (dificilOk) {
-    _progresoTemasMem[id].dificil = true;
-    _progresoTemasMem[id].facil = true;
+    tema.dificil.completado = true;
+    tema.dificil.enCurso = false;
+    tema.dificil.pts = Math.max(tema.dificil.pts, 10);
+    tema.facil.completado = true;
+    tema.facil.enCurso = false;
+    tema.facil.pts = Math.max(tema.facil.pts, 10);
   }
 }
 
 // Marca el nivel fácil de un tema como completado en memoria.
 function setFacilCompletado(temaId) {
-  var id = String(temaId);
-  if (!_progresoTemasMem[id]) {
-    _progresoTemasMem[id] = {};
-  }
-  _progresoTemasMem[id].facil = true;
+  var tema = progresoTemasAsegurarTema(temaId);
+  tema.facil.completado = true;
+  tema.facil.enCurso = false;
+  tema.facil.pts = 10;
 }
 
 // Marca el difícil como hecho; también deja el fácil en true porque ya lo superaste.
 function setDificilCompletado(temaId) {
-  var id = String(temaId);
-  if (!_progresoTemasMem[id]) {
-    _progresoTemasMem[id] = {};
-  }
-  _progresoTemasMem[id].dificil = true;
-  _progresoTemasMem[id].facil = true;
+  var tema = progresoTemasAsegurarTema(temaId);
+  tema.dificil.completado = true;
+  tema.dificil.enCurso = false;
+  tema.dificil.pts = 10;
+  tema.facil.completado = true;
+  tema.facil.enCurso = false;
+  tema.facil.pts = 10;
 }
 
 // Comprueba si el alumno ya completó el nivel fácil de ese tema.
@@ -61,9 +232,7 @@ function isFacilCompletado(temaId) {
   if (!_progresoTemasListo) {
     return false;
   }
-  var id = String(temaId);
-  var p = _progresoTemasMem[id];
-  return !!(p && p.facil === true);
+  return !!progresoTemasModoCelda(temaId, "facil").completado;
 }
 
 // El avanzado se desbloquea cuando el básico está completado.
@@ -86,7 +255,17 @@ function leerParamsQuiz() {
 
 // Tras guardar una partida completada, actualiza la memoria local sin volver a pedir la BD.
 function quizProgressActualizarMemoriaTrasGuardar(datos, estadoPartida) {
-  if (estadoPartida !== "COMPLETADA" || datos.nivelMaestroId || !datos.temaId) {
+  if (estadoPartida !== "COMPLETADA") {
+    return;
+  }
+  if (datos.nivelMaestroId) {
+    var slot = progresoMaestroAsegurar(datos.nivelMaestroId);
+    slot.completado = true;
+    slot.enCurso = false;
+    slot.pts = 10;
+    return;
+  }
+  if (!datos.temaId) {
     return;
   }
   var temaStr = String(datos.temaId);
@@ -337,6 +516,7 @@ function quizProgressEnvioKeepalive(params) {
 async function quizProgressCargarDesbloqueosTemas() {
   _progresoTemasListo = false;
   _progresoTemasMem = {};
+  _progresoMaestroMem = {};
 
   if (typeof initSupabase !== "function") {
     _progresoTemasListo = true;
@@ -385,6 +565,55 @@ async function quizProgressCargarDesbloqueosTemas() {
         );
       }
     }
+
+    var partRes = await sb
+      .from("partida")
+      .select(
+        "estado, modo, actividad, preguntas_total, nivel:nivel_id ( tema_id )"
+      )
+      .eq("alumno_id", alumnoRes.data.id)
+      .in("estado", ["EN_CURSO", "COMPLETADA", "GAME_OVER"])
+      .is("nivel_maestro_id", null);
+    if (!partRes.error && partRes.data) {
+      aplicarPartidasProgresoTemas(partRes.data);
+    } else if (partRes.error) {
+      console.warn("[quiz-progress] partidas temas:", partRes.error.message);
+    }
+
+    var progNm = await sb
+      .from("progreso")
+      .select("nivel_maestro_id, facil_completado, puntaje")
+      .eq("alumno_id", alumnoRes.data.id)
+      .not("nivel_maestro_id", "is", null)
+      .is("tema_id", null);
+    if (!progNm.error && progNm.data) {
+      for (var j = 0; j < progNm.data.length; j++) {
+        var rowNm = progNm.data[j];
+        if (!rowNm.nivel_maestro_id) {
+          continue;
+        }
+        aplicarProgresoMaestroDesdeDb(
+          rowNm.nivel_maestro_id,
+          !!rowNm.facil_completado,
+          rowNm.puntaje
+        );
+      }
+    } else if (progNm.error) {
+      console.warn("[quiz-progress] progreso maestro:", progNm.error.message);
+    }
+
+    var partNmRes = await sb
+      .from("partida")
+      .select("estado, actividad, preguntas_total, nivel_maestro_id")
+      .eq("alumno_id", alumnoRes.data.id)
+      .in("estado", ["EN_CURSO", "COMPLETADA", "GAME_OVER"])
+      .not("nivel_maestro_id", "is", null);
+    if (!partNmRes.error && partNmRes.data) {
+      aplicarPartidasProgresoMaestro(partNmRes.data);
+    } else if (partNmRes.error) {
+      console.warn("[quiz-progress] partidas maestro:", partNmRes.error.message);
+    }
+
     _progresoTemasListo = true;
     return { ok: true };
   } catch (e) {

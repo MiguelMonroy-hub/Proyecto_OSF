@@ -1,9 +1,8 @@
 /**
  * Lógica de signup.html: crea la cuenta en Supabase y redirige.
- * Maestros van al dashboard; alumnos, a unirse a un grupo.
+ * Solo alumnos; el maestro se elige en la lista y se vincula tras el alta.
  */
 
-// Muestra "Creando cuenta…" y deshabilita el botón mientras espera.
 function registerEstadoBoton(btn, cargando) {
   if (!btn) {
     return;
@@ -20,54 +19,63 @@ function registerEstadoBoton(btn, cargando) {
   }
 }
 
-// Textos traducibles de esta pantalla.
 function registerMsg(path, fallback) {
   return typeof str === "function" ? str(path, fallback) : fallback;
 }
 
-// Si signUp no devolvió sesión, intentamos login inmediato con las mismas credenciales.
-async function registerEntrarTrasCrear(email, password, esMaestro) {
+async function registerEntrarTrasCrear(email, password, profesorId) {
   if (typeof authIniciarSesion !== "function") {
     return false;
   }
-  var resultado = await authIniciarSesion(email, password);
-  if (esMaestro) {
-    if (typeof gruposInicializar === "function") {
-      await gruposInicializar();
+  await authIniciarSesion(email, password);
+  if (
+    profesorId &&
+    typeof alumnoVincularAMaestro === "function"
+  ) {
+    var vin = await alumnoVincularAMaestro(profesorId);
+    if (!vin.ok) {
+      throw new Error(vin.error || "No se pudo vincular con tu maestro.");
     }
-    window.location.href =
-      typeof pagina === "function"
-        ? pagina("teacher-dashboard.html")
-        : "teacher-dashboard.html";
-    return true;
   }
   if (typeof redirigirAlumnoTrasLogin === "function") {
     await redirigirAlumnoTrasLogin(email);
     return true;
   }
   window.location.href =
-    typeof pagina === "function" ? pagina("join-group.html") : "join-group.html";
+    typeof pagina === "function" ? pagina("topics.html") : "topics.html";
   return true;
 }
 
-// Precalienta Supabase al cargar la página.
+async function registerVincularMaestroTrasAlta(profesorId) {
+  if (!profesorId || typeof alumnoVincularAMaestro !== "function") {
+    return { ok: true };
+  }
+  return alumnoVincularAMaestro(profesorId);
+}
+
+async function registerRedirigirAlumno(email) {
+  if (typeof redirigirAlumnoTrasLogin === "function") {
+    await redirigirAlumnoTrasLogin(email);
+    return;
+  }
+  window.location.href =
+    typeof pagina === "function" ? pagina("topics.html") : "topics.html";
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   if (typeof initSupabase === "function") {
     initSupabase();
   }
 });
 
-// Handler del formulario de alta.
 async function crearCuenta() {
   var nombreEl = document.getElementById("nombre");
   var apellidoEl = document.getElementById("apellido");
   var correoEl = document.getElementById("email");
   var passEl = document.getElementById("pass");
-  var maestroEl = document.getElementById("es-maestro");
   var btn = document.querySelector(".btn-submit");
   var errBox = document.getElementById("signup-error");
 
-  // Pinta el error en la caja o, si no hay, usa alert.
   function mostrarError(msg) {
     if (!errBox) {
       if (msg) {
@@ -88,14 +96,25 @@ async function crearCuenta() {
   var apellido = apellidoEl ? apellidoEl.value.trim() : "";
   var email = correoEl ? correoEl.value.trim() : "";
   var password = passEl ? passEl.value : "";
-  var esMaestro = !!(maestroEl && maestroEl.checked);
 
   mostrarError("");
 
+  if (typeof signupValidarMaestroSeleccionado === "function") {
+    var valMaestro = signupValidarMaestroSeleccionado();
+    if (!valMaestro.ok) {
+      mostrarError(valMaestro.error);
+      return;
+    }
+  } else {
+    mostrarError("No se pudo cargar la lista de maestros.");
+    return;
+  }
+  var profesorId = valMaestro.profesorId;
+
   if (typeof authValidarFormularioRegistro !== "function") {
-    if (!nombre || !email || password.length < 8) {
+    if (!nombre || !apellido || !email || password.length < 8) {
       mostrarError(
-        "Completa nombre, correo y contraseña (mínimo 8 caracteres con mayúscula, minúscula, número y carácter especial)."
+        "Completa nombre, apellido, correo y contraseña (mínimo 8 caracteres con mayúscula, minúscula, número y carácter especial)."
       );
       return;
     }
@@ -125,7 +144,7 @@ async function crearCuenta() {
         apellido: apellido,
         email: email,
         password: password,
-        rol: esMaestro ? "MAESTRO" : "ALUMNO"
+        rol: "ALUMNO"
       });
 
       if (
@@ -143,41 +162,36 @@ async function crearCuenta() {
         return;
       }
 
-      if (!esMaestro && typeof alumnoSesionGuardar === "function") {
+      if (typeof alumnoSesionGuardar === "function") {
         alumnoSesionGuardar(email);
       }
 
       if (data && data.session) {
-        if (esMaestro) {
-          if (typeof gruposInicializar === "function") {
-            await gruposInicializar();
-          }
-          window.location.href =
-            typeof pagina === "function"
-              ? pagina("teacher-dashboard.html")
-              : "teacher-dashboard.html";
+        var vinSesion = await registerVincularMaestroTrasAlta(profesorId);
+        if (!vinSesion.ok) {
+          mostrarError(vinSesion.error);
+          registerEstadoBoton(btn, false);
           return;
         }
-        window.location.href =
-          typeof pagina === "function" ? pagina("join-group.html") : "join-group.html";
+        await registerRedirigirAlumno(email);
         return;
       }
 
       try {
-        await registerEntrarTrasCrear(email, password, esMaestro);
+        await registerEntrarTrasCrear(email, password, profesorId);
         return;
       } catch (loginErr) {
         console.warn("[registro] sin sesión tras signUp:", loginErr);
+        mostrarError(
+          loginErr.message ||
+            registerMsg(
+              "auth.registroSinSesion",
+              "Cuenta creada. Ve a «Iniciar sesión» con tu correo y contraseña."
+            )
+        );
+        registerEstadoBoton(btn, false);
+        return;
       }
-
-      mostrarError(
-        registerMsg(
-          "auth.registroSinSesion",
-          "Cuenta creada. Ve a «Iniciar sesión» con tu correo y contraseña."
-        )
-      );
-      registerEstadoBoton(btn, false);
-      return;
     }
   } catch (e) {
     console.error("Registro fallido:", e);
@@ -191,10 +205,5 @@ async function crearCuenta() {
   }
 
   registerEstadoBoton(btn, false);
-  if (typeof redirigirAlumnoTrasLogin === "function") {
-    await redirigirAlumnoTrasLogin(email);
-  } else {
-    window.location.href =
-      typeof pagina === "function" ? pagina("topics.html") : "topics.html";
-  }
+  await registerRedirigirAlumno(email);
 }

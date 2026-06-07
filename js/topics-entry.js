@@ -61,6 +61,9 @@
     if (typeof renderizarTarjetasTemas === "function") {
       renderizarTarjetasTemas();
     }
+    if (typeof pintarBarrasProgresoTemas === "function") {
+      pintarBarrasProgresoTemas();
+    }
 
     if (typeof quizProgressCargarDesbloqueosTemas === "function") {
       try {
@@ -75,6 +78,9 @@
 
     if (typeof aplicarBloqueosTarjetas === "function") {
       aplicarBloqueosTarjetas();
+    }
+    if (typeof pintarBarrasProgresoNivelesMaestro === "function") {
+      pintarBarrasProgresoNivelesMaestro();
     }
 
     var tieneGrupo = false;
@@ -117,6 +123,13 @@
     }
   }
 
+  function escHtmlTopics(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;");
+  }
+
   // Genera en el DOM las tarjetas de temas a partir de TEC_DUCK_TEMAS.
   function renderizarTarjetasTemas() {
     var grid = document.getElementById("topics-grid-temas");
@@ -157,10 +170,14 @@
           '<div class="levels">' +
           '<a href="' +
           urlFacil +
-          '" class="level-btn level-facil"><span class="lvl-badge">A</span><span class="lvl-label">Nivel básico</span><span class="lvl-go">Jugar →</span></a>' +
+          '" class="level-btn level-facil" data-level-progress="facil">' +
+          htmlContenidoBotonNivel("A", "Nivel básico", "Jugar →", true) +
+          "</a>" +
           '<span class="level-btn level-btn-2 level-dificil level-dificil-cargando" role="status" data-tema-cargando="' +
           codigo +
-          '"><span class="lvl-badge">…</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Cargando progreso…</span></span>' +
+          '">' +
+          htmlContenidoBotonNivel("…", "Nivel avanzado", "Cargando progreso…", false) +
+          "</span>" +
           "</div></div></article>"
       );
     }

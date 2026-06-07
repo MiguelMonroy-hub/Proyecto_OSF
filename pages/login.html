@@ -7,6 +7,7 @@
   <title>Iniciar sesión</title>
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/auth-back.css">
+  <link rel="stylesheet" href="../css/auth-password.css">
   <link rel="stylesheet" href="../css/login.css">
 </head>
 <body class="page-login-new">
@@ -26,7 +27,9 @@
     <input type="email" id="email" name="email" placeholder="tu@correo.com" autocomplete="username" required>
 
     <label for="pass">Contraseña</label>
-    <input type="password" id="pass" name="pass" placeholder="••••••••" autocomplete="current-password" required>
+    <div class="auth-password-wrap">
+      <input type="password" id="pass" name="pass" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
 
     <p id="login-error" class="login-error" role="alert" hidden></p>
 
@@ -43,6 +46,7 @@
   <script src="../js/strings.js"></script>
   <script src="../js/auth-service.js"></script>
   <script src="../js/auth-validacion.js"></script>
+  <script src="../js/auth-password-toggle.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/login.js"></script>
 </body>

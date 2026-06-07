@@ -23,6 +23,17 @@
     return { ok: true };
   }
 
+  // El apellido no puede ir vacío.
+  function authValidarApellido(apellido) {
+    if (!String(apellido || "").trim()) {
+      return {
+        ok: false,
+        error: msg("auth.apellidoRequerido", "El apellido es obligatorio.")
+      };
+    }
+    return { ok: true };
+  }
+
   // Formato básico de correo y normalización a minúsculas.
   function authValidarCorreo(correo) {
     var normalizado =
@@ -111,12 +122,16 @@
     return { ok: true };
   }
 
-  // Valida nombre, correo y contraseña del signup de una pasada.
+  // Valida nombre, apellido, correo y contraseña del signup de una pasada.
   function authValidarFormularioRegistro(datos) {
     datos = datos || {};
     var vNombre = authValidarNombre(datos.nombre);
     if (!vNombre.ok) {
       return vNombre;
+    }
+    var vApellido = authValidarApellido(datos.apellido);
+    if (!vApellido.ok) {
+      return vApellido;
     }
     var vCorreo = authValidarCorreo(datos.email);
     if (!vCorreo.ok) {
@@ -149,6 +164,7 @@
 
   // Publicamos en window (el proyecto no usa módulos ES aquí).
   window.authValidarNombre = authValidarNombre;
+  window.authValidarApellido = authValidarApellido;
   window.authValidarCorreo = authValidarCorreo;
   window.authValidarContrasenaRegistro = authValidarContrasenaRegistro;
   window.authValidarContrasenaLogin = authValidarContrasenaLogin;

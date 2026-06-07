@@ -1,5 +1,28 @@
 // UI del progreso en la pantalla de temas: botones de nivel avanzado, bloqueos y navegación al quiz.
 
+function htmlContenidoBotonNivel(badge, label, go, conBarra) {
+  var main =
+    '<div class="level-btn-main">' +
+    '<span class="lvl-badge">' +
+    badge +
+    "</span>" +
+    '<span class="lvl-label">' +
+    label +
+    "</span>" +
+    '<span class="lvl-go">' +
+    go +
+    "</span></div>";
+  if (!conBarra) {
+    return main;
+  }
+  return (
+    main +
+    '<div class="level-btn-progress">' +
+    '<div class="level-btn-progress-track"><div class="level-btn-progress-fill"></div></div>' +
+    '<span class="level-btn-progress-pts">—</span></div>'
+  );
+}
+
 // Crea el enlace clicable al nivel avanzado cuando ya está desbloqueado.
 function crearEnlaceDificil(tema) {
   var a = document.createElement("a");
@@ -10,8 +33,13 @@ function crearEnlaceDificil(tema) {
         encodeURIComponent(tema) +
         "&modo=dificil";
   a.className = "level-btn level-btn-2 level-dificil";
-  a.innerHTML =
-    '<span class="lvl-badge">B</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Jugar →</span>';
+  a.setAttribute("data-level-progress", "dificil");
+  a.innerHTML = htmlContenidoBotonNivel(
+    "B",
+    "Nivel avanzado",
+    "Jugar →",
+    true
+  );
   return a;
 }
 
@@ -22,8 +50,12 @@ function crearDificilCargando(tema) {
     "level-btn level-btn-2 level-dificil level-dificil-cargando";
   span.setAttribute("role", "status");
   span.setAttribute("data-tema-cargando", String(tema));
-  span.innerHTML =
-    '<span class="lvl-badge">…</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Cargando progreso…</span>';
+  span.innerHTML = htmlContenidoBotonNivel(
+    "…",
+    "Nivel avanzado",
+    "Cargando progreso…",
+    false
+  );
   return span;
 }
 
@@ -32,14 +64,110 @@ function crearDificilBloqueado(tema) {
   var span = document.createElement("span");
   span.className = diffLinkClassLocked();
   span.setAttribute("role", "presentation");
-  span.innerHTML =
-    '<span class="lvl-badge">🔒</span><span class="lvl-label">Nivel avanzado</span><span class="lvl-go">Completa el nivel básico para desbloquear</span>';
+  span.innerHTML = htmlContenidoBotonNivel(
+    "🔒",
+    "Nivel avanzado",
+    "Completa el nivel básico para desbloquear",
+    false
+  );
   return span;
 }
 
 // Clases CSS que usa el botón avanzado cuando sigue bloqueado.
 function diffLinkClassLocked() {
   return "level-btn level-btn-2 level-dificil level-dificil-locked";
+}
+
+function pintarBarraEnBoton(btn, tema, modoKey) {
+  if (!btn) {
+    return;
+  }
+  var progress = btn.querySelector(".level-btn-progress");
+  if (!progress) {
+    return;
+  }
+  btn.classList.toggle(
+    "level-btn--progress-loading",
+    !progresoTemasEstaListo()
+  );
+  if (!progresoTemasEstaListo()) {
+    return;
+  }
+  var slot =
+    typeof progresoTemasModoCelda === "function"
+      ? progresoTemasModoCelda(tema, modoKey)
+      : { pts: 0, enCurso: false, completado: false };
+  pintarBarraEnBotonSlot(btn, progress, slot);
+}
+
+function pintarBarraEnBotonMaestro(btn, nivelId) {
+  if (!btn) {
+    return;
+  }
+  var progress = btn.querySelector(".level-btn-progress");
+  if (!progress) {
+    return;
+  }
+  btn.classList.toggle(
+    "level-btn--progress-loading",
+    !progresoTemasEstaListo()
+  );
+  if (!progresoTemasEstaListo()) {
+    return;
+  }
+  var slot =
+    typeof progresoMaestroCelda === "function"
+      ? progresoMaestroCelda(nivelId)
+      : { pts: 0, enCurso: false, completado: false };
+  pintarBarraEnBotonSlot(btn, progress, slot);
+}
+
+function pintarBarraEnBotonSlot(btn, progress, slot) {
+  var pts = Math.min(10, Math.max(0, slot.pts || 0));
+  var fill = progress.querySelector(".level-btn-progress-fill");
+  var ptsEl = progress.querySelector(".level-btn-progress-pts");
+  if (fill) {
+    fill.style.width = pts * 10 + "%";
+  }
+  if (ptsEl) {
+    ptsEl.textContent = pts + "/10";
+  }
+  btn.classList.toggle("is-en-curso", !!slot.enCurso);
+  btn.classList.toggle("is-completado", !!slot.completado);
+}
+
+function pintarBarrasProgresoNivelesMaestro() {
+  var btns = document.querySelectorAll("[data-maestro-progress]");
+  for (var i = 0; i < btns.length; i++) {
+    var btn = btns[i];
+    var nivelId = btn.getAttribute("data-maestro-progress");
+    if (!nivelId) {
+      continue;
+    }
+    pintarBarraEnBotonMaestro(btn, nivelId);
+  }
+}
+
+function pintarBarrasProgresoTemas() {
+  var cards = document.querySelectorAll(".topic-card[data-tema]");
+  for (var i = 0; i < cards.length; i++) {
+    var card = cards[i];
+    var tema = card.getAttribute("data-tema");
+    if (!tema) {
+      continue;
+    }
+    pintarBarraEnBoton(
+      card.querySelector(".level-facil[data-level-progress]"),
+      tema,
+      "facil"
+    );
+    pintarBarraEnBoton(
+      card.querySelector("a.level-dificil[data-level-progress]"),
+      tema,
+      "dificil"
+    );
+  }
+  pintarBarrasProgresoNivelesMaestro();
 }
 
 // Navega al quiz de un tema en el modo indicado (fácil o difícil).
@@ -119,6 +247,7 @@ function progresoTemasBloquearDificilCargando() {
     }
     slot.parentNode.replaceChild(crearDificilCargando(tema), slot);
   }
+  pintarBarrasProgresoTemas();
   enlazarBotonesQuizTemas();
 }
 
@@ -150,5 +279,6 @@ function aplicarBloqueosTarjetas() {
       slot.parentNode.replaceChild(crearDificilBloqueado(tema), slot);
     }
   }
+  pintarBarrasProgresoTemas();
   enlazarBotonesQuizTemas();
 }
