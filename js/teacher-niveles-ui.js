@@ -10,29 +10,60 @@
     return;
   }
 
+  /** Overlay de carga hasta que los niveles estén listos en pantalla. */
+  function mostrarCargaNivelesMaestro() {
+    if (typeof pageLoadMostrar === "function") {
+      pageLoadMostrar({
+        main:
+          typeof str === "function"
+            ? str("maestro.cargandoNiveles", "Cargando tus niveles")
+            : "Cargando tus niveles",
+        sub:
+          typeof str === "function"
+            ? str(
+                "maestro.cargandoNivelesSub",
+                "Preparando prácticas y grupos…"
+              )
+            : "Preparando prácticas y grupos…"
+      });
+    }
+  }
+
+  function ocultarCargaNivelesMaestro() {
+    if (typeof pageLoadOcultar === "function") {
+      pageLoadOcultar();
+    }
+  }
+
   /** Inicia la página: exige sesión, carga datos y enlaza los eventos. */
   async function arrancar() {
-    if (typeof teacherExigirSesionAsync === "function") {
-      var ok = await teacherExigirSesionAsync();
-      if (!ok) {
-        return;
-      }
-    }
+    mostrarCargaNivelesMaestro();
     try {
+      if (typeof teacherExigirSesionAsync === "function") {
+        var ok = await teacherExigirSesionAsync();
+        if (!ok) {
+          return;
+        }
+      }
       if (typeof gruposCargarDesdeSupabase === "function") {
         await gruposCargarDesdeSupabase();
       }
       if (typeof nivelMaestroCargarDesdeDb === "function") {
         await nivelMaestroCargarDesdeDb(true);
       }
+      registrar();
     } catch (e) {
       if (typeof uiToastError === "function") {
         uiToastError(
-          "No se pudieron cargar tus niveles: " + (e && e.message ? e.message : e)
+          typeof maestroErrorAmigable === "function"
+            ? maestroErrorAmigable(e, "niveles")
+            : "No se pudieron cargar tus niveles: " +
+                (e && e.message ? e.message : e)
         );
       }
+    } finally {
+      ocultarCargaNivelesMaestro();
     }
-    registrar();
   }
 
   var editandoId = null;

@@ -222,6 +222,11 @@
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.2);
 }
 
+.teacher-tema-btn--en-curso:not(.is-selected) {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+}
+
 .teacher-temas-select {
   margin-bottom: 4px;
 }
@@ -259,21 +264,25 @@
 }
 
 .teacher-detail-footer {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   margin-top: 12px;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
 .teacher-avg-time {
+  grid-column: 2;
+  justify-self: center;
+  text-align: center;
   font-size: 0.85rem;
   font-weight: 700;
   color: #475569;
 }
 
 .teacher-btn-collapse {
+  grid-column: 3;
+  justify-self: end;
   padding: 8px 16px;
   border: none;
   border-radius: 8px;

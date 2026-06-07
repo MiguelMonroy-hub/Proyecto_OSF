@@ -11,7 +11,9 @@ body.is-page-loading {
 
 body.is-page-loading.page-shop::before,
 body.is-page-loading.page-customize::before,
-body.is-page-loading.page-topics::before {
+body.is-page-loading.page-topics::before,
+body.is-page-loading.page-teacher::before,
+body.is-page-loading.page-teacher-niveles::before {
   display: none;
 }
 

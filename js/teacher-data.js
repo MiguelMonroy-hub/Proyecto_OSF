@@ -1,5 +1,8 @@
 // Datos del panel del maestro: alumnos, partidas, métricas y grupos (Supabase).
 var _teacherAlumnosCache = [];
+var _teacherAlumnosNivelesCache = [];
+var _teacherColumnasNiveles = [];
+var _teacherNivelesMaestroCargados = false;
 var _teacherUltimoErrorCarga = null;
 
 // Si la última carga falló, aquí queda el mensaje.
@@ -58,20 +61,72 @@ function teacherTemasEnCursoVacios() {
   return { t1: false, t2: false, t3: false, t4: false };
 }
 
-// "today", "week" o "month" → fecha ISO para filtrar partidas.
-function teacherDesdePeriodo(periodo) {
-  var ahora = new Date();
-  var desde = new Date(ahora);
-  if (periodo === "today") {
-    desde.setHours(0, 0, 0, 0);
-  } else if (periodo === "week") {
-    desde.setDate(desde.getDate() - 7);
-  } else if (periodo === "month") {
-    desde.setDate(desde.getDate() - 30);
-  } else {
-    return null;
+function teacherTemaModoSlotVacio() {
+  return { pts: 0, enCurso: false, tiempoPromedio: 0 };
+}
+
+// Avance por tema separado en básico (facil) y avanzado (dificil).
+function teacherTemasModoVacios() {
+  var o = {};
+  for (var i = 0; i < TEACHER_TEMAS.length; i++) {
+    o[TEACHER_TEMAS[i].id] = {
+      facil: teacherTemaModoSlotVacio(),
+      dificil: teacherTemaModoSlotVacio()
+    };
   }
-  return desde.toISOString();
+  return o;
+}
+
+function teacherModoKeyDesdePartida(partida) {
+  return teacherPartidaEsDificil(partida) ? "dificil" : "facil";
+}
+
+function teacherPtsTemaDesdePartida(partida, enCurso) {
+  if (enCurso) {
+    var nc = teacherNivelCompletoDesdePartida(partida);
+    if (nc.total > 0) {
+      return Math.round((nc.ok / nc.total) * 10);
+    }
+  }
+  return teacherPuntajeDesdePartida(partida);
+}
+
+function teacherAsegurarTemasModo(alumno) {
+  if (!alumno.temasModo) {
+    alumno.temasModo = teacherTemasModoVacios();
+  }
+  return alumno.temasModo;
+}
+
+function teacherTemaModoCelda(alumno, temaId, modoKey) {
+  var tm = alumno && alumno.temasModo ? alumno.temasModo[temaId] : null;
+  if (!tm || !tm[modoKey]) {
+    return teacherTemaModoSlotVacio();
+  }
+  return {
+    pts: tm[modoKey].pts || 0,
+    enCurso: !!tm[modoKey].enCurso,
+    tiempoPromedio: tm[modoKey].tiempoPromedio || 0
+  };
+}
+
+// Sincroniza temas/temasEnCurso (detalle) con el máximo de ambos modos.
+function teacherSincronizarTemasLegacy(map) {
+  Object.keys(map).forEach(function (k) {
+    var a = map[k];
+    if (!a.temasModo) {
+      return;
+    }
+    for (var i = 0; i < TEACHER_TEMAS.length; i++) {
+      var tid = TEACHER_TEMAS[i].id;
+      var tm = a.temasModo[tid];
+      if (!tm) {
+        continue;
+      }
+      a.temas[tid] = Math.max(tm.facil.pts || 0, tm.dificil.pts || 0);
+      a.temasEnCurso[tid] = !!(tm.facil.enCurso || tm.dificil.enCurso);
+    }
+  });
 }
 
 // Normaliza el JSON de actividad (o delega al módulo compartido).
@@ -201,12 +256,191 @@ function teacherTiempoPromedioPartida(partida) {
   return n ? Math.round(sum / n) : 0;
 }
 
+// Promedio histórico del alumno: media de los promedios por nivel con datos.
+function teacherRecalcularTiempoPromedioAlumno(alumno, esPracticas) {
+  if (!alumno) {
+    return;
+  }
+  var vals = [];
+  if (esPracticas) {
+    if (alumno.nivelesMaestro) {
+      Object.keys(alumno.nivelesMaestro).forEach(function (nid) {
+        var t = alumno.nivelesMaestro[nid].tiempoPromedio;
+        if (t > 0) {
+          vals.push(t);
+        }
+      });
+    }
+  } else {
+    var temasModo = teacherAsegurarTemasModo(alumno);
+    for (var i = 0; i < TEACHER_TEMAS.length; i++) {
+      var tid = TEACHER_TEMAS[i].id;
+      var tm = temasModo[tid];
+      if (tm.facil.tiempoPromedio > 0) {
+        vals.push(tm.facil.tiempoPromedio);
+      }
+      if (tm.dificil.tiempoPromedio > 0) {
+        vals.push(tm.dificil.tiempoPromedio);
+      }
+    }
+  }
+  var sum = 0;
+  for (var j = 0; j < vals.length; j++) {
+    sum += vals[j];
+  }
+  alumno.tiempoPromedio = vals.length ? Math.round(sum / vals.length) : 0;
+}
+
+// Acumula el promedio por intento (seg/pregunta) de cada partida, por nivel.
+function teacherAplicarTiemposHistoricosDesdePartidas(map, partidas, esPracticas) {
+  if (!partidas || !partidas.length || !map) {
+    return;
+  }
+  var acc = {};
+
+  for (var i = 0; i < partidas.length; i++) {
+    var p = partidas[i];
+    var estado = String(p.estado || "").toUpperCase();
+    if (
+      estado !== "COMPLETADA" &&
+      estado !== "GAME_OVER" &&
+      estado !== "EN_CURSO"
+    ) {
+      continue;
+    }
+    var alumnoKey = String(p.alumno_id);
+    if (!map[alumnoKey]) {
+      continue;
+    }
+    var tPart = teacherTiempoPromedioPartida(p);
+    if (tPart <= 0) {
+      continue;
+    }
+    var levelKey;
+    if (esPracticas) {
+      if (!p.nivel_maestro_id) {
+        continue;
+      }
+      levelKey = String(p.nivel_maestro_id);
+    } else {
+      if (p.nivel_maestro_id) {
+        continue;
+      }
+      var tid = teacherTemaUiDesdePartida(p);
+      if (!tid) {
+        continue;
+      }
+      levelKey = tid + ":" + teacherModoKeyDesdePartida(p);
+    }
+    var accKey = alumnoKey + "|" + levelKey;
+    if (!acc[accKey]) {
+      acc[accKey] = { alumnoKey: alumnoKey, levelKey: levelKey, sum: 0, n: 0 };
+    }
+    acc[accKey].sum += tPart;
+    acc[accKey].n += 1;
+  }
+
+  Object.keys(acc).forEach(function (k) {
+    var b = acc[k];
+    var avg = Math.round(b.sum / b.n);
+    var alumno = map[b.alumnoKey];
+    if (esPracticas) {
+      if (!alumno.nivelesMaestro) {
+        alumno.nivelesMaestro = teacherNivelesMaestroVacios();
+      }
+      if (!alumno.nivelesMaestro[b.levelKey]) {
+        alumno.nivelesMaestro[b.levelKey] = {
+          ok: 0,
+          total: teacherTotalPreguntasNivelMaestro(b.levelKey),
+          tiempoPromedio: 0
+        };
+      }
+      alumno.nivelesMaestro[b.levelKey].tiempoPromedio = avg;
+    } else {
+      var parts = b.levelKey.split(":");
+      var temasModo = teacherAsegurarTemasModo(alumno);
+      temasModo[parts[0]][parts[1]].tiempoPromedio = avg;
+    }
+  });
+
+  Object.keys(map).forEach(function (k) {
+    teacherRecalcularTiempoPromedioAlumno(map[k], esPracticas);
+  });
+}
+
 // tema_id de la BD → t1, t2, t3 o t4 para la interfaz.
 function teacherTemaUiDesdePartida(partida) {
   if (partida.nivel && partida.nivel.tema_id) {
     return TEACHER_TEMA_DB_A_UI[partida.nivel.tema_id] || null;
   }
   return null;
+}
+
+// Partidas de temas fijos: puntaje por tema y modo (básico / avanzado).
+function teacherAplicarTemasModoDesdePartidas(map, partidas) {
+  if (!partidas || !partidas.length) {
+    return;
+  }
+  for (var i = 0; i < partidas.length; i++) {
+    var p = partidas[i];
+    if (p.nivel_maestro_id) {
+      continue;
+    }
+    var key = String(p.alumno_id);
+    if (!map[key]) {
+      continue;
+    }
+    var tid = teacherTemaUiDesdePartida(p);
+    if (!tid) {
+      continue;
+    }
+    var estado = String(p.estado || "").toUpperCase();
+    if (
+      estado !== "EN_CURSO" &&
+      estado !== "COMPLETADA" &&
+      estado !== "GAME_OVER"
+    ) {
+      continue;
+    }
+    var modoKey = teacherModoKeyDesdePartida(p);
+    var temasModo = teacherAsegurarTemasModo(map[key]);
+    var slot = temasModo[tid][modoKey];
+    var enCurso = estado === "EN_CURSO";
+    var pts = teacherPtsTemaDesdePartida(p, enCurso);
+    if (enCurso) {
+      slot.pts = pts;
+      slot.enCurso = true;
+    } else if (!slot.enCurso && pts > slot.pts) {
+      slot.pts = pts;
+    }
+  }
+}
+
+// Si el progreso acumulado marca un modo completado, asegura al menos 10/10.
+function teacherAplicarProgresoModoCompletado(map, filas) {
+  if (!filas || !filas.length) {
+    return;
+  }
+  for (var p = 0; p < filas.length; p++) {
+    var pr = filas[p];
+    var key = String(pr.alumno_id);
+    if (!map[key] || pr.nivel_maestro_id) {
+      continue;
+    }
+    var tid = TEACHER_TEMA_DB_A_UI[pr.tema_id];
+    if (!tid) {
+      continue;
+    }
+    var temasModo = teacherAsegurarTemasModo(map[key]);
+    var facil = temasModo[tid].facil;
+    var dificil = temasModo[tid].dificil;
+    if (pr.facil_completado && !facil.enCurso) {
+      facil.pts = Math.max(facil.pts, 10);
+    }
+    if (pr.dificil_completado && !dificil.enCurso) {
+      dificil.pts = Math.max(dificil.pts, 10);
+    }
+  }
 }
 
 // Mezcla partidas en el mapa de alumnos: puntajes por tema y tiempo medio.
@@ -258,107 +492,6 @@ function teacherAplicarMetricasDesdePartidas(map, partidas) {
     }
     map[k].tiempoPromedio = Math.round(sum / arr.length);
   });
-}
-
-// Máximos en cero por tema y modo, para armar el export.
-function teacherMaximosHistorialVacios() {
-  var out = {};
-  for (var i = 0; i < TEACHER_TEMAS.length; i++) {
-    out[TEACHER_TEMAS[i].id] = { FACIL: 0, DIFICIL: 0 };
-  }
-  return out;
-}
-
-// Rellena el mejor puntaje histórico (básico/avanzado) por alumno y tema.
-function teacherAplicarMaximosHistorialDesdePartidas(map, partidas) {
-  if (!partidas || !partidas.length) {
-    return;
-  }
-  for (var i = 0; i < partidas.length; i++) {
-    var p = partidas[i];
-    var key = String(p.alumno_id);
-    if (!map[key]) {
-      continue;
-    }
-    var tid = teacherTemaUiDesdePartida(p);
-    if (!tid) {
-      continue;
-    }
-    var modo = teacherPartidaModoDb(p);
-    var pts = teacherPuntajeDesdePartida(p);
-    if (pts > (map[key].maximos[tid][modo] || 0)) {
-      map[key].maximos[tid][modo] = pts;
-    }
-    var tPart = teacherTiempoPromedioPartida(p);
-    if (tPart > 0) {
-      if (!map[key]._tiempos) {
-        map[key]._tiempos = [];
-      }
-      map[key]._tiempos.push(tPart);
-    }
-  }
-
-  Object.keys(map).forEach(function (k) {
-    var arr = map[k]._tiempos || [];
-    if (arr.length) {
-      var sum = 0;
-      for (var j = 0; j < arr.length; j++) {
-        sum += arr[j];
-      }
-      map[k].tiempoPromedio = Math.round(sum / arr.length);
-    }
-    delete map[k]._tiempos;
-  });
-}
-
-// Pide a Supabase los datos que necesita el Excel de historial.
-async function teacherCargarExportacionHistorial(alumnoIds) {
-  var vacio = { porAlumno: {} };
-  if (!alumnoIds || !alumnoIds.length) {
-    return vacio;
-  }
-  if (typeof initSupabase !== "function") {
-    return vacio;
-  }
-
-  var sb = await initSupabase();
-  if (!sb) {
-    return vacio;
-  }
-
-  var ids = alumnoIds
-    .map(function (id) {
-      return parseInt(id, 10);
-    })
-    .filter(function (n) {
-      return !isNaN(n);
-    });
-  if (!ids.length) {
-    return vacio;
-  }
-
-  var map = {};
-  for (var i = 0; i < ids.length; i++) {
-    map[String(ids[i])] = {
-      maximos: teacherMaximosHistorialVacios(),
-      tiempoPromedio: 0
-    };
-  }
-
-  var partRes = await sb
-    .from("partida")
-    .select(
-      "alumno_id, modo, estado, indice_pregunta, preguntas_total, actividad, nivel:nivel_id ( tema_id, codigo )"
-    )
-    .in("alumno_id", ids);
-
-  if (partRes.error) {
-    console.warn("[teacher] export historial:", partRes.error.message);
-    return { porAlumno: map };
-  }
-
-  teacherAplicarMaximosHistorialDesdePartidas(map, partRes.data || []);
-  return { porAlumno: map };
 }
 
 // Texto corto del estado: Completado, Sin vidas, En curso…
@@ -416,12 +549,8 @@ function teacherNivelDesdePartida(partida) {
     return partida.nivel_maestro.titulo || "Nivel del maestro";
   }
   var esDificil = teacherPartidaEsDificil(partida);
-  if (partida.nivel) {
-    return (
-      (esDificil ? "Avanzado" : "Básico") +
-      " · " +
-      (partida.nivel.nombre || "Nivel")
-    );
+  if (partida.nivel && partida.nivel.nombre) {
+    return partida.nivel.nombre;
   }
   return esDificil ? "Nivel avanzado" : "Nivel básico";
 }
@@ -445,9 +574,55 @@ function teacherIntentoDesdePartida(partida) {
     indicePregunta: partida.indice_pregunta,
     nivel: teacherNivelDesdePartida(partida),
     modo: teacherPartidaModoDb(partida),
-    temaActivo: teacherTemaUiDesdePartida(partida) || "t1",
+    temaActivo: partida.nivel_maestro_id
+      ? null
+      : teacherTemaUiDesdePartida(partida) || "t1",
+    nivelMaestroId: partida.nivel_maestro_id
+      ? String(partida.nivel_maestro_id)
+      : null,
     tareas: teacherTareasDesdeActividad(partida.actividad, partida)
   };
+}
+
+// Filtra intentos de prácticas creadas por el maestro.
+function teacherIntentosPorNivelMaestro(intentos, nivelId) {
+  if (!Array.isArray(intentos) || nivelId == null) {
+    return [];
+  }
+  return intentos.filter(function (it) {
+    return String(it.nivelMaestroId) === String(nivelId);
+  });
+}
+
+// Primer nivel del maestro con al menos un intento en el detalle.
+function teacherPrimerNivelConIntentos(detalle, columnas) {
+  var intentos = detalle && detalle.intentos ? detalle.intentos : [];
+  var cols = columnas || teacherColumnasNivelesMaestro();
+  for (var i = 0; i < cols.length; i++) {
+    if (teacherIntentosPorNivelMaestro(intentos, cols[i].id).length) {
+      return cols[i].id;
+    }
+  }
+  return cols.length ? cols[0].id : null;
+}
+
+// Intentos de un nivel del maestro; respeta el intento seleccionado.
+function teacherIntentoSeleccionadoNivel(detalle, nivelId, intentoId) {
+  var lista = teacherIntentosPorNivelMaestro(
+    detalle && detalle.intentos ? detalle.intentos : [],
+    nivelId
+  );
+  if (!lista.length) {
+    return null;
+  }
+  if (intentoId != null) {
+    for (var i = 0; i < lista.length; i++) {
+      if (String(lista[i].id) === String(intentoId)) {
+        return lista[i];
+      }
+    }
+  }
+  return lista[0];
 }
 
 // Filtra intentos por tema y, si quieres, por modo.
@@ -457,6 +632,9 @@ function teacherIntentosPorTema(intentos, temaId, modoId) {
   }
   var modoFiltro = modoId ? String(modoId).toUpperCase() : "";
   return intentos.filter(function (it) {
+    if (it.nivelMaestroId) {
+      return false;
+    }
     if (it.temaActivo !== temaId) {
       return false;
     }
@@ -471,6 +649,9 @@ function teacherIntentosPorTema(intentos, temaId, modoId) {
 function teacherPrimerModoConIntentos(detalle, temaId) {
   var intentos = detalle && detalle.intentos ? detalle.intentos : [];
   for (var i = 0; i < intentos.length; i++) {
+    if (intentos[i].nivelMaestroId) {
+      continue;
+    }
     if (intentos[i].temaActivo === temaId) {
       return String(intentos[i].modo || "FACIL").toUpperCase();
     }
@@ -483,7 +664,7 @@ function teacherPrimerTemaConIntentos(detalle) {
   var intentos = detalle && detalle.intentos ? detalle.intentos : [];
   for (var i = 0; i < TEACHER_TEMAS.length; i++) {
     var tid = TEACHER_TEMAS[i].id;
-    if (teacherIntentosPorTema(intentos, tid).length) {
+    if (teacherIntentosPorTema(intentos, tid, null).length) {
       return tid;
     }
   }
@@ -619,7 +800,7 @@ function teacherDetalleDesdePartidas(partidas) {
   return det;
 }
 
-// Cuando no hay filtro de periodo, usa la tabla progreso acumulado.
+// Aplica puntajes desde la tabla progreso acumulado (temas fijos).
 function teacherAplicarProgresoAcumulado(map, filas) {
   if (!filas || !filas.length) {
     return;
@@ -627,38 +808,10 @@ function teacherAplicarProgresoAcumulado(map, filas) {
   for (var p = 0; p < filas.length; p++) {
     var pr = filas[p];
     var key = String(pr.alumno_id);
-    if (!map[key]) {
+    if (!map[key] || pr.nivel_maestro_id) {
       continue;
     }
-    var tid = TEACHER_TEMA_DB_A_UI[pr.tema_id];
-    if (tid) {
-      map[key].temas[tid] =
-        pr.puntaje != null
-          ? pr.puntaje
-          : pr.preguntas_total
-            ? Math.round((pr.preguntas_ok / pr.preguntas_total) * 10)
-            : 0;
-    }
   }
-
-  Object.keys(map).forEach(function (k) {
-    var tiempos = [];
-    for (var t = 0; t < filas.length; t++) {
-      if (
-        String(filas[t].alumno_id) === k &&
-        filas[t].tiempo_promedio_seg
-      ) {
-        tiempos.push(filas[t].tiempo_promedio_seg);
-      }
-    }
-    if (tiempos.length) {
-      var sum = 0;
-      for (var x = 0; x < tiempos.length; x++) {
-        sum += tiempos[x];
-      }
-      map[k].tiempoPromedio = Math.round(sum / tiempos.length);
-    }
-  });
 }
 
 // Copia del cache en memoria (no pega a Supabase otra vez).
@@ -666,9 +819,93 @@ function teacherListarAlumnos() {
   return _teacherAlumnosCache.slice();
 }
 
+function teacherColumnasNivelesMaestro() {
+  return _teacherColumnasNiveles.slice();
+}
+
+function teacherNivelesMaestroCargados() {
+  return _teacherNivelesMaestroCargados;
+}
+
+function teacherListarAlumnosNivelesMaestro() {
+  return _teacherAlumnosNivelesCache.slice();
+}
+
+function teacherTituloCortoNivel(titulo, max) {
+  max = max || 14;
+  titulo = String(titulo || "Nivel").trim();
+  if (titulo.length <= max) {
+    return titulo;
+  }
+  return titulo.slice(0, max - 1) + "…";
+}
+
+function teacherNivelesMaestroVacios() {
+  var o = {};
+  for (var i = 0; i < _teacherColumnasNiveles.length; i++) {
+    var col = _teacherColumnasNiveles[i];
+    o[col.id] = {
+      ok: 0,
+      total: col.totalPreguntas || 0,
+      tiempoPromedio: 0
+    };
+  }
+  return o;
+}
+
+function teacherTotalPreguntasNivelMaestro(nivelId) {
+  for (var i = 0; i < _teacherColumnasNiveles.length; i++) {
+    if (String(_teacherColumnasNiveles[i].id) === String(nivelId)) {
+      return _teacherColumnasNiveles[i].totalPreguntas || 0;
+    }
+  }
+  return 0;
+}
+
+// Aciertos y total de preguntas de una práctica para la tabla del panel.
+function teacherNivelMaestroCelda(alumno, col) {
+  var totalCol = col && col.totalPreguntas ? col.totalPreguntas : 0;
+  var raw =
+    alumno && alumno.nivelesMaestro && col
+      ? alumno.nivelesMaestro[col.id]
+      : null;
+  if (raw && typeof raw === "object") {
+    return {
+      ok: raw.ok || 0,
+      total: raw.total || totalCol,
+      tiempoPromedio: raw.tiempoPromedio || 0
+    };
+  }
+  return { ok: 0, total: totalCol, tiempoPromedio: 0 };
+}
+
+function teacherNombreNivelMaestro(id) {
+  for (var i = 0; i < _teacherColumnasNiveles.length; i++) {
+    if (String(_teacherColumnasNiveles[i].id) === String(id)) {
+      return _teacherColumnasNiveles[i];
+    }
+  }
+  return {
+    id: id,
+    titulo: "Nivel",
+    corto: "Nivel",
+    totalPreguntas: 0
+  };
+}
+
 // Alumnos del grupo elegido, o todos si es "grupo-todos".
 function teacherAlumnosEnGrupo(grupoId) {
   var todos = teacherListarAlumnos();
+  if (!grupoId || grupoId === "grupo-todos") {
+    return todos;
+  }
+  return todos.filter(function (a) {
+    return (a.grupos || []).indexOf(grupoId) >= 0;
+  });
+}
+
+function teacherAlumnosNivelesEnGrupo(grupoId) {
+  var todos = teacherListarAlumnosNivelesMaestro();
   if (!grupoId || grupoId === "grupo-todos") {
     return todos;
   }
@@ -729,6 +966,7 @@ function teacherMapAlumnoDesdeLinks(map, row) {
           : { base: "MAIN DUCK.png", face: "", head: "", neck: "", shoes: "" },
       grupos: [],
       temas: teacherTemasVacios(),
+      temasModo: teacherTemasModoVacios(),
       temasEnCurso: teacherTemasEnCursoVacios(),
       tiempoPromedio: 0,
       detalle: teacherDetalleVacio()
@@ -745,12 +983,34 @@ function teacherMapAlumnoDesdeLinks(map, row) {
   }
 }
 
-// Carga principal: links, avatares y partidas o progreso según el periodo.
-async function teacherCargarAlumnos(opciones) {
+function teacherAplicarProgresoNivelesMaestro(map, filas) {
+  if (!filas || !filas.length) {
+    return;
+  }
+  for (var p = 0; p < filas.length; p++) {
+    var pr = filas[p];
+    var key = String(pr.alumno_id);
+    if (!map[key] || !pr.nivel_maestro_id || pr.tema_id) {
+      continue;
+    }
+    var nid = String(pr.nivel_maestro_id);
+    var totalCol = teacherTotalPreguntasNivelMaestro(nid);
+    map[key].nivelesMaestro[nid] = {
+      ok: pr.preguntas_ok != null ? pr.preguntas_ok : 0,
+      total: pr.preguntas_total || totalCol || 0,
+      tiempoPromedio:
+        map[key].nivelesMaestro[nid] &&
+        map[key].nivelesMaestro[nid].tiempoPromedio
+          ? map[key].nivelesMaestro[nid].tiempoPromedio
+          : 0
+    };
+  }
+}
+
+// Carga principal: links, avatares y progreso acumulado por alumno.
+async function teacherCargarAlumnos() {
   _teacherAlumnosCache = [];
   _teacherUltimoErrorCarga = null;
-  opciones = opciones || {};
-  var periodo = opciones.periodo || "today";
 
   if (typeof initSupabase !== "function") {
     _teacherUltimoErrorCarga = "Supabase no disponible.";
@@ -822,33 +1082,38 @@ async function teacherCargarAlumnos(opciones) {
       console.warn("[teacher] No se pudieron cargar avatares:", avRes.error.message);
     }
 
-    var desde = teacherDesdePeriodo(periodo);
-    if (desde) {
-      var partRes = await sb
-        .from("partida")
-        .select(
-          "id, alumno_id, modo, estado, indice_pregunta, preguntas_total, vidas_restantes, actividad, iniciado_en, nivel_maestro_id, nivel:nivel_id ( tema_id, codigo, nombre ), nivel_maestro:nivel_maestro_id ( titulo )"
-        )
-        .in("alumno_id", ids)
-        .gte("iniciado_en", desde)
-        .order("iniciado_en", { ascending: false });
-      if (partRes.error) {
-        console.warn("[teacher] partidas:", partRes.error.message);
-      } else {
-        teacherAplicarMetricasDesdePartidas(map, partRes.data || []);
-      }
-    } else {
-      var progRes = await sb
-        .from("progreso")
-        .select(
-          "alumno_id, tema_id, puntaje, tiempo_promedio_seg, preguntas_ok, preguntas_total"
-        )
-        .in("alumno_id", ids)
-        .not("tema_id", "is", null);
-      if (!progRes.error && progRes.data) {
-        teacherAplicarProgresoAcumulado(map, progRes.data);
-      }
+    var progRes = await sb
+      .from("progreso")
+      .select(
+        "alumno_id, tema_id, nivel_maestro_id, facil_completado, dificil_completado, puntaje, tiempo_promedio_seg, preguntas_ok, preguntas_total"
+      )
+      .in("alumno_id", ids)
+      .not("tema_id", "is", null)
+      .is("nivel_maestro_id", null);
+    if (!progRes.error && progRes.data) {
+      teacherAplicarProgresoAcumulado(map, progRes.data);
     }
+
+    var partRes = await sb
+      .from("partida")
+      .select(
+        "alumno_id, estado, modo, actividad, preguntas_total, nivel_maestro_id, nivel:nivel_id ( tema_id, codigo, nombre )"
+      )
+      .in("alumno_id", ids)
+      .in("estado", ["EN_CURSO", "COMPLETADA", "GAME_OVER"])
+      .is("nivel_maestro_id", null)
+      .order("iniciado_en", { ascending: false });
+    if (!partRes.error && partRes.data && partRes.data.length) {
+      teacherAplicarTemasModoDesdePartidas(map, partRes.data);
+      teacherAplicarTiemposHistoricosDesdePartidas(map, partRes.data, false);
+    } else if (partRes.error) {
+      console.warn("[teacher] partidas temas fijos:", partRes.error.message);
+    }
+
+    if (!progRes.error && progRes.data) {
+      teacherAplicarProgresoModoCompletado(map, progRes.data);
+    }
+    teacherSincronizarTemasLegacy(map);
   }
 
   _teacherAlumnosCache = Object.keys(map).map(function (k) {
@@ -863,7 +1128,7 @@ async function teacherCargarAlumnos(opciones) {
 }
 
 // Partidas recientes de un alumno para la vista de detalle.
-async function teacherCargarDetalleAlumno(alumnoDbId, periodo) {
+async function teacherCargarDetalleAlumno(alumnoDbId) {
   if (!alumnoDbId) {
     return teacherDetalleVacio();
   }
@@ -878,19 +1143,220 @@ async function teacherCargarDetalleAlumno(alumnoDbId, periodo) {
       "id, alumno_id, modo, estado, indice_pregunta, preguntas_total, vidas_restantes, actividad, iniciado_en, terminado_en, nivel_maestro_id, nivel:nivel_id ( tema_id, codigo, nombre ), nivel_maestro:nivel_maestro_id ( titulo )"
     )
     .eq("alumno_id", alumnoDbId)
+    .is("nivel_maestro_id", null)
     .order("iniciado_en", { ascending: false })
     .limit(20);
-
-  var desde = teacherDesdePeriodo(periodo || "today");
-  if (desde) {
-    q = q.gte("iniciado_en", desde);
-  }
 
   var res = await q;
   if (res.error || !res.data || !res.data.length) {
     return teacherDetalleVacio();
   }
   return teacherDetalleDesdePartidas(res.data);
+}
+
+// Alumnos y progreso en prácticas creadas por el maestro.
+async function teacherCargarAlumnosNivelesMaestro() {
+  _teacherAlumnosNivelesCache = [];
+  _teacherColumnasNiveles = [];
+  _teacherNivelesMaestroCargados = false;
+
+  if (typeof initSupabase !== "function") {
+    return [];
+  }
+
+  try {
+    var sb = await initSupabase();
+    if (!sb || typeof authCargarPerfil !== "function") {
+      return [];
+    }
+
+    var perfil = null;
+    try {
+      perfil = await authCargarPerfil();
+    } catch (e) {
+      return [];
+    }
+
+    if (!perfil || perfil.rol !== "MAESTRO") {
+      return [];
+    }
+
+    var nmRes = await sb
+      .from("nivel_maestro")
+      .select("id, titulo, pregunta_maestro ( id, activa )")
+      .eq("activo", true)
+      .order("creado_en", { ascending: true });
+    if (nmRes.error) {
+      console.warn("[teacher] niveles maestro:", nmRes.error.message);
+    }
+
+    var nivelIds = [];
+    var niveles = nmRes.data || [];
+    for (var n = 0; n < niveles.length; n++) {
+      var nv = niveles[n];
+      var nid = String(nv.id);
+      var pms = nv.pregunta_maestro || [];
+      var totalPreg = 0;
+      for (var q = 0; q < pms.length; q++) {
+        if (pms[q].activa !== false) {
+          totalPreg++;
+        }
+      }
+      nivelIds.push(nv.id);
+      _teacherColumnasNiveles.push({
+        id: nid,
+        titulo: nv.titulo || "Sin título",
+        corto: teacherTituloCortoNivel(nv.titulo),
+        totalPreguntas: totalPreg
+      });
+    }
+
+    var linksRes = await sb.from("alumno_grupo").select(
+      "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ), avatar ( item_base_id, item_face_id, item_head_id, item_neck_id, item_shoes_id, actualizado_en ) ), grupo:grupo_id ( id, es_sistema )"
+    );
+    if (linksRes.error) {
+      linksRes = await sb.from("alumno_grupo").select(
+        "grupo_id, alumno:alumno_id ( id, usuario:usuario_id ( nombre, apellido, email ) ), grupo:grupo_id ( id, es_sistema )"
+      );
+      if (linksRes.error) {
+        return [];
+      }
+    }
+
+    var map = {};
+    var rows = linksRes.data || [];
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      if (!row || !row.alumno || !row.alumno.usuario) {
+        continue;
+      }
+      teacherMapAlumnoDesdeLinks(map, row);
+      var aid = String(row.alumno.id);
+      if (map[aid]) {
+        map[aid].nivelesMaestro = teacherNivelesMaestroVacios();
+        map[aid].tiempoPromedio = 0;
+      }
+    }
+
+    var ids = Object.keys(map)
+      .map(function (k) {
+        return parseInt(k, 10);
+      })
+      .filter(function (num) {
+        return !isNaN(num);
+      });
+
+    if (ids.length && nivelIds.length) {
+      var avRes = await sb
+        .from("avatar")
+        .select(
+          "alumno_id, item_base_id, item_face_id, item_head_id, item_neck_id, item_shoes_id, actualizado_en"
+        )
+        .in("alumno_id", ids);
+      if (!avRes.error && avRes.data) {
+        for (var a = 0; a < avRes.data.length; a++) {
+          var av = avRes.data[a];
+          var avKey = String(av.alumno_id);
+          if (map[avKey]) {
+            teacherAplicarOutfitAlumno(map[avKey], av);
+          }
+        }
+      }
+
+      var progRes = await sb
+        .from("progreso")
+        .select(
+          "alumno_id, tema_id, nivel_maestro_id, puntaje, tiempo_promedio_seg, preguntas_ok, preguntas_total"
+        )
+        .in("alumno_id", ids)
+        .in("nivel_maestro_id", nivelIds)
+        .is("tema_id", null)
+        .not("nivel_maestro_id", "is", null);
+      if (!progRes.error && progRes.data) {
+        teacherAplicarProgresoNivelesMaestro(map, progRes.data);
+      }
+
+      var partPractRes = await sb
+        .from("partida")
+        .select("alumno_id, estado, actividad, nivel_maestro_id")
+        .in("alumno_id", ids)
+        .in("nivel_maestro_id", nivelIds)
+        .in("estado", ["EN_CURSO", "COMPLETADA", "GAME_OVER"]);
+      if (!partPractRes.error && partPractRes.data && partPractRes.data.length) {
+        teacherAplicarTiemposHistoricosDesdePartidas(
+          map,
+          partPractRes.data,
+          true
+        );
+      } else if (partPractRes.error) {
+        console.warn(
+          "[teacher] partidas prácticas:",
+          partPractRes.error.message
+        );
+      }
+    }
+
+    _teacherAlumnosNivelesCache = Object.keys(map).map(function (k) {
+      return map[k];
+    });
+    _teacherNivelesMaestroCargados = true;
+    return _teacherAlumnosNivelesCache;
+  } catch (e) {
+    console.warn("[teacher] cargar niveles maestro:", e);
+    return [];
+  }
+}
+
+// Partidas recientes de un alumno en prácticas del maestro.
+async function teacherCargarDetalleAlumnoNivelesMaestro(alumnoDbId) {
+  if (!alumnoDbId) {
+    return teacherDetalleVacio();
+  }
+  var sb = await initSupabase();
+  if (!sb) {
+    return teacherDetalleVacio();
+  }
+
+  var res = await sb
+    .from("partida")
+    .select(
+      "id, alumno_id, modo, estado, indice_pregunta, preguntas_total, vidas_restantes, actividad, iniciado_en, terminado_en, nivel_maestro_id, nivel:nivel_id ( tema_id, codigo, nombre ), nivel_maestro:nivel_maestro_id ( titulo )"
+    )
+    .eq("alumno_id", alumnoDbId)
+    .not("nivel_maestro_id", "is", null)
+    .order("iniciado_en", { ascending: false })
+    .limit(20);
+
+  if (res.error || !res.data || !res.data.length) {
+    return teacherDetalleVacio();
+  }
+  return teacherDetalleDesdePartidas(res.data);
+}
+
+// Valida que nadie quede sin grupo al desmarcarlo en este grupo.
+function teacherValidarAsignacionGrupo(grupoId, alumnosMarcados) {
+  var marcados = {};
+  for (var m = 0; m < alumnosMarcados.length; m++) {
+    marcados[String(alumnosMarcados[m])] = true;
+  }
+  var alumnos = teacherListarAlumnos();
+  for (var j = 0; j < alumnos.length; j++) {
+    var a = alumnos[j];
+    var enEsteGrupo = (a.grupos || []).indexOf(grupoId) >= 0;
+    if (!enEsteGrupo || marcados[String(a.id)]) {
+      continue;
+    }
+    var otros = (a.grupos || []).filter(function (g) {
+      return g !== grupoId && g !== "grupo-todos";
+    });
+    if (!otros.length) {
+      throw new Error(
+        "No puedes dejar a «" +
+          (a.nombre || "el alumno") +
+          "» sin grupo. Asígnalo primero a otro grupo."
+      );
+    }
+  }
 }
 
 // Guarda qué alumnos van en el grupo vía RPC y recarga la lista.
@@ -921,6 +1387,8 @@ async function teacherGuardarAsignacionGrupo(grupoId, alumnosMarcados) {
     return;
   }
 
+  teacherValidarAsignacionGrupo(grupoId, alumnosMarcados);
+
   var marcados = {};
   for (var m = 0; m < alumnosMarcados.length; m++) {
     marcados[String(alumnosMarcados[m])] = true;
@@ -948,6 +1416,9 @@ async function teacherGuardarAsignacionGrupo(grupoId, alumnosMarcados) {
   }
 
   await teacherCargarAlumnos();
+  if (_teacherNivelesMaestroCargados) {
+    await teacherCargarAlumnosNivelesMaestro();
+  }
 }
 
 // Verde, naranja o rojo según qué tan cerca está del máximo (10).

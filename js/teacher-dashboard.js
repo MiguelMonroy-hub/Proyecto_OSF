@@ -1,4 +1,4 @@
-// Panel del maestro: tabla de alumnos, detalle por tema, grupos y exportar a Excel.
+// Panel del maestro: tabla de alumnos, detalle por tema y grupos.
 // Todo metido en un IIFE para no ensuciar el global.
 
 (function () {
@@ -11,12 +11,13 @@
     typeof teacherDashEstado !== "undefined"
       ? teacherDashEstado
       : {
+          vistaDashboard: "temas",
           grupoId: "grupo-todos",
           busqueda: "",
-          periodo: "today",
           expandidoId: null,
           detalleTemaId: null,
           detalleModoId: null,
+          detalleNivelId: null,
           detalleIntentoId: null,
           grupoAsignarId: null,
           paginaActual: 1
@@ -34,6 +35,9 @@
   var elGrupoFilter = document.getElementById("teacher-grupo-filter");
   var elPaginacion = document.getElementById("teacher-pagination");
   var modalGrupos = document.getElementById("teacher-modal-grupos");
+  var elTableWrap = document.querySelector(".teacher-table-wrap");
+  var UMBRAL_SCROLL_PRACTICAS = 4;
+  var _tableWrapScrollBound = false;
 
   // --- Helpers de HTML y barras de progreso ---
 
@@ -49,7 +53,7 @@
   // Arma el HTML de una barrita de progreso (puntos, %, color, etc.)
   function barraHtml(puntos, max, etiqueta, colorClass) {
     max = max || 10;
-    var pct = Math.round((puntos / max) * 100);
+    var pct = Math.max(0, Math.min(100, Math.round((puntos / max) * 100)));
     var cls = colorClass || teacherColorBarra(puntos, max);
     var label =
       etiqueta != null
@@ -70,6 +74,46 @@
     );
   }
 
+  // Dos barras apiladas (básico + avanzado) para la tabla minimizada.
+  function htmlCeldaTemaFijo(alumno, temaId, temaLabel) {
+    var facil =
+      typeof teacherTemaModoCelda === "function"
+        ? teacherTemaModoCelda(alumno, temaId, "facil")
+        : { pts: 0, enCurso: false };
+    var dificil =
+      typeof teacherTemaModoCelda === "function"
+        ? teacherTemaModoCelda(alumno, temaId, "dificil")
+        : { pts: 0, enCurso: false };
+    var titulo = temaLabel || temaId;
+    return (
+      '<div class="teacher-tema-dual" title="' +
+      escHtml(titulo + " · B = Básico, A = Avanzado") +
+      '">' +
+      '<div class="teacher-tema-dual-row" title="' +
+      escHtml(titulo + " · Básico") +
+      '">' +
+      '<span class="teacher-tema-dual-label">B</span>' +
+      barraHtml(
+        facil.pts,
+        10,
+        null,
+        facil.enCurso ? "bar-blue" : null
+      ) +
+      "</div>" +
+      '<div class="teacher-tema-dual-row" title="' +
+      escHtml(titulo + " · Avanzado") +
+      '">' +
+      '<span class="teacher-tema-dual-label">A</span>' +
+      barraHtml(
+        dificil.pts,
+        10,
+        null,
+        dificil.enCurso ? "bar-blue" : null
+      ) +
+      "</div></div>"
+    );
+  }
+
   // Barra pensada para porcentaje de aciertos (0-100)
   function barraPorcentajeAciertosHtml(pct) {
     return barraHtml(pct, 100, pct + "%");
@@ -81,6 +125,16 @@
       intento &&
       String(intento.estado || "").toUpperCase() === "EN_CURSO"
     );
+  }
+
+  // Barra de práctica del maestro: aciertos sobre el total de preguntas del nivel.
+  function barraPracticaMaestroHtml(ok, total) {
+    ok = ok || 0;
+    total = total || 0;
+    if (!total) {
+      return barraHtml(0, 1, "0/0");
+    }
+    return barraHtml(ok, total);
   }
 
   // Barra de nivel completado (ok/total), azul si va en curso
@@ -171,6 +225,74 @@
 
   // --- Filtrado y listas de alumnos ---
 
+  function esVistaNiveles() {
+    return estado.vistaDashboard === "niveles";
+  }
+
+  function columnasTabla() {
+    if (esVistaNiveles()) {
+      return typeof teacherColumnasNivelesMaestro === "function"
+        ? teacherColumnasNivelesMaestro()
+        : [];
+    }
+    return TEACHER_TEMAS;
+  }
+
+  function numColumnasTabla() {
+    return columnasTabla().length;
+  }
+
+  // Sombra de columna alumno solo tras desplazar la tabla horizontalmente.
+  function actualizarSombraColumnaAlumno() {
+    if (!elTableWrap) {
+      return;
+    }
+    elTableWrap.classList.toggle(
+      "teacher-table-wrap--scrolled",
+      elTableWrap.scrollLeft > 1
+    );
+  }
+
+  function enlazarScrollTablaPracticas() {
+    if (!elTableWrap || _tableWrapScrollBound) {
+      return;
+    }
+    elTableWrap.addEventListener("scroll", actualizarSombraColumnaAlumno, {
+      passive: true
+    });
+    _tableWrapScrollBound = true;
+  }
+
+  // Scroll horizontal en Mis prácticas cuando hay más de 4 niveles.
+  function actualizarModoScrollTabla() {
+    if (!elTableWrap) {
+      elTableWrap = document.querySelector(".teacher-table-wrap");
+    }
+    if (!elTableWrap) {
+      return;
+    }
+    var activo =
+      esVistaNiveles() && numColumnasTabla() > UMBRAL_SCROLL_PRACTICAS;
+    var expandido = !!estado.expandidoId;
+    var scrollHabilitado = activo && !expandido;
+    elTableWrap.classList.toggle("teacher-table-wrap--practicas-many", activo);
+    elTableWrap.classList.toggle(
+      "teacher-table-wrap--practicas-scroll",
+      scrollHabilitado
+    );
+    elTableWrap.classList.toggle(
+      "teacher-table-wrap--alumno-expandido",
+      activo && expandido
+    );
+    if (scrollHabilitado) {
+      enlazarScrollTablaPracticas();
+      actualizarSombraColumnaAlumno();
+    } else {
+      elTableWrap.scrollLeft = 0;
+      elTableWrap.classList.remove("teacher-table-wrap--scrolled");
+    }
+  }
+
   // Filtra por lo que escribió el maestro en el buscador (nombre o email)
   function filtrarAlumnos(lista) {
     var q = estado.busqueda.trim().toLowerCase();
@@ -187,7 +309,29 @@
 
   // Alumnos del grupo actual ya filtrados por búsqueda
   function listaAlumnosFiltrada() {
-    return filtrarAlumnos(teacherAlumnosEnGrupo(estado.grupoId));
+    var base = esVistaNiveles()
+      ? typeof teacherAlumnosNivelesEnGrupo === "function"
+        ? teacherAlumnosNivelesEnGrupo(estado.grupoId)
+        : []
+      : teacherAlumnosEnGrupo(estado.grupoId);
+    return filtrarAlumnos(base);
+  }
+
+  function limpiarSeleccionDetalle() {
+    estado.detalleTemaId = null;
+    estado.detalleModoId = null;
+    estado.detalleNivelId = null;
+    estado.detalleIntentoId = null;
+  }
+
+  function pintarTabsVista() {
+    var tabs = document.querySelectorAll(".teacher-view-tab");
+    for (var i = 0; i < tabs.length; i++) {
+      var tab = tabs[i];
+      var activo = tab.getAttribute("data-vista") === estado.vistaDashboard;
+      tab.classList.toggle("is-active", activo);
+      tab.setAttribute("aria-selected", activo ? "true" : "false");
+    }
   }
 
   // --- Pintar tabla (skeleton, paginación, cabecera, filas) ---
@@ -203,7 +347,7 @@
     if (elEmpty) {
       elEmpty.hidden = true;
     }
-    var cols = TEACHER_TEMAS.length + 2;
+    var cols = numColumnasTabla() + 2;
     for (var r = 0; r < filas; r++) {
       var tr = document.createElement("tr");
       tr.className = "teacher-skeleton-row";
@@ -256,46 +400,6 @@
       ">Siguiente</button>";
   }
 
-  // Exporta a Excel: primero historial, luego delega al módulo de export
-  function exportarExcelAlumnos() {
-    var lista = listaAlumnosFiltrada();
-    if (!lista.length) {
-      if (typeof uiToastError === "function") {
-        uiToastError("No hay alumnos para exportar.");
-      }
-      return;
-    }
-
-    var ids = lista
-      .map(function (a) {
-        return a.dbId || parseInt(a.id, 10);
-      })
-      .filter(function (id) {
-        return id != null && !isNaN(Number(id));
-      });
-
-    var cargarHistorial =
-      typeof teacherCargarExportacionHistorial === "function"
-        ? teacherCargarExportacionHistorial(ids)
-        : Promise.resolve({ porAlumno: {} });
-
-    cargarHistorial
-      .then(function (exportInfo) {
-        if (typeof teacherExportarExcelAlumnosConDatos === "function") {
-          teacherExportarExcelAlumnosConDatos(lista, exportInfo, {
-            estado: estado,
-            escHtml: escHtml
-          });
-        }
-      })
-      .catch(function (err) {
-        console.warn("[teacher] export:", err);
-        if (typeof uiToastError === "function") {
-          uiToastError("No se pudo cargar el historial para exportar.");
-        }
-      });
-  }
-
   // Rellena el <select> de filtro por grupo
   function pintarSelectGrupos() {
     if (!elGrupoFilter) {
@@ -319,21 +423,57 @@
     }
   }
 
-  // Columnas: Alumno + cada tema + tiempo promedio
+  // Columnas: Alumno + temas o prácticas + tiempo promedio
   function pintarCabeceraTabla() {
-    var html =
-      '<th>Alumno</th>';
-    for (var i = 0; i < TEACHER_TEMAS.length; i++) {
-      html += "<th>" + escHtml(TEACHER_TEMAS[i].corto) + "</th>";
+    var cols = columnasTabla();
+    var html = "<th>Alumno</th>";
+    for (var i = 0; i < cols.length; i++) {
+      var etiqueta = esVistaNiveles() ? cols[i].corto : cols[i].corto;
+      var titulo = esVistaNiveles() ? cols[i].titulo : cols[i].nombre;
+      if (!esVistaNiveles()) {
+        titulo =
+          (titulo || etiqueta) + " · En cada celda: B = Básico, A = Avanzado";
+      }
+      html +=
+        '<th title="' +
+        escHtml(titulo || etiqueta) +
+        '">' +
+        escHtml(etiqueta) +
+        "</th>";
     }
-    html += "<th>Tiempo prom.</th>";
+    html += '<th title="Promedio histórico por nivel (seg/pregunta)">Tiempo prom.</th>';
     elHead.innerHTML = html;
   }
 
   // --- Detalle expandido de un alumno ---
 
-  // Al abrir detalle, elige tema/modo/intento por defecto según lo que haya
+  // Al abrir detalle, elige tema/modo o práctica/intento por defecto
   function resetSeleccionDetalle(detalle) {
+    if (esVistaNiveles()) {
+      var columnas =
+        typeof teacherColumnasNivelesMaestro === "function"
+          ? teacherColumnasNivelesMaestro()
+          : [];
+      if (typeof teacherPrimerNivelConIntentos === "function" && detalle) {
+        estado.detalleNivelId = teacherPrimerNivelConIntentos(detalle, columnas);
+      } else {
+        estado.detalleNivelId = columnas.length ? columnas[0].id : null;
+      }
+      estado.detalleTemaId = null;
+      estado.detalleModoId = null;
+      var itNivel =
+        typeof teacherIntentoSeleccionadoNivel === "function"
+          ? teacherIntentoSeleccionadoNivel(
+              detalle,
+              estado.detalleNivelId,
+              null
+            )
+          : null;
+      estado.detalleIntentoId = itNivel ? itNivel.id : null;
+      return;
+    }
+
+    estado.detalleNivelId = null;
     if (typeof teacherPrimerTemaConIntentos === "function" && detalle) {
       estado.detalleTemaId = teacherPrimerTemaConIntentos(detalle);
     } else {
@@ -362,6 +502,30 @@
   // FACIL → "Básico", DIFICIL → "Avanzado" (para la UI)
   function modoLabelUi(modoId) {
     return String(modoId || "").toUpperCase() === "DIFICIL" ? "Avanzado" : "Básico";
+  }
+
+  function modoKeyUi(modoId) {
+    return String(modoId || "").toUpperCase() === "DIFICIL" ? "dificil" : "facil";
+  }
+
+  function tiempoPromedioNivelTemas(alumno, temaId, modoId) {
+    var slot =
+      typeof teacherTemaModoCelda === "function"
+        ? teacherTemaModoCelda(alumno, temaId, modoKeyUi(modoId))
+        : { tiempoPromedio: 0 };
+    return slot.tiempoPromedio || 0;
+  }
+
+  function tiempoPromedioNivelPractica(alumno, nivelId) {
+    var col =
+      typeof teacherNombreNivelMaestro === "function"
+        ? teacherNombreNivelMaestro(nivelId)
+        : { id: nivelId, totalPreguntas: 0 };
+    var celda =
+      typeof teacherNivelMaestroCelda === "function"
+        ? teacherNivelMaestroCelda(alumno, col)
+        : { tiempoPromedio: 0 };
+    return celda.tiempoPromedio || 0;
   }
 
   // Junta tema, modo, lista de intentos y el intento activo según el estado
@@ -433,8 +597,205 @@
     );
   }
 
+  function vistaDetalleNiveles(alumno) {
+    var d = alumno.detalle || teacherDetalleVacio();
+    var columnas =
+      typeof teacherColumnasNivelesMaestro === "function"
+        ? teacherColumnasNivelesMaestro()
+        : [];
+    var nivelId = estado.detalleNivelId;
+    if (!nivelId && columnas.length) {
+      nivelId = columnas[0].id;
+      estado.detalleNivelId = nivelId;
+    }
+    var intentosNivel =
+      typeof teacherIntentosPorNivelMaestro === "function"
+        ? teacherIntentosPorNivelMaestro(d.intentos, nivelId)
+        : [];
+    var intento =
+      typeof teacherIntentoSeleccionadoNivel === "function"
+        ? teacherIntentoSeleccionadoNivel(
+            d,
+            nivelId,
+            estado.detalleIntentoId
+          )
+        : null;
+    if (intento && String(intento.id) !== String(estado.detalleIntentoId)) {
+      estado.detalleIntentoId = intento.id;
+    }
+    if (!intentosNivel.length) {
+      estado.detalleIntentoId = null;
+    }
+    return {
+      detalle: d,
+      nivelId: nivelId,
+      nivel:
+        typeof teacherNombreNivelMaestro === "function"
+          ? teacherNombreNivelMaestro(nivelId)
+          : { titulo: "Nivel", corto: "Nivel" },
+      columnas: columnas,
+      intentosNivel: intentosNivel,
+      intento: intento
+    };
+  }
+
+  // Panel desplegable para prácticas creadas por el maestro
+  function htmlDetalleNiveles(alumno) {
+    var vista = vistaDetalleNiveles(alumno);
+    var intento = vista.intento;
+    var intentosNivel = vista.intentosNivel;
+    var nivel = vista.nivel;
+    var tareas = intento ? intento.tareas || [] : [];
+    var estadoIntento = intento ? intento.estado : "";
+    var tareasHtml = "";
+
+    if (!tareas.length) {
+      tareasHtml =
+        '<tr><td colspan="4">' +
+        escHtml(
+          !intentosNivel.length
+            ? "El alumno aún no ha intentado la práctica «" +
+                (nivel.titulo || nivel.corto) +
+                "»."
+            : "Selecciona un intento para ver el detalle."
+        ) +
+        "</td></tr>";
+    }
+    for (var i = 0; i < tareas.length; i++) {
+      var t = tareas[i];
+      var noContestada = esPartidaSinVidas(estadoIntento) && t.omitida;
+      var resultado = htmlResultadoTarea(t, estadoIntento);
+      tareasHtml +=
+        "<tr><td>" +
+        escHtml(t.texto || "Pregunta " + (i + 1)) +
+        "</td><td>" +
+        resultado +
+        "</td><td>" +
+        (noContestada ? "—" : t.errores) +
+        "</td><td>" +
+        (noContestada || t.contestada === false ? "—" : t.tiempo + "s") +
+        "</td></tr>";
+    }
+
+    var intentosHtml = "";
+    if (!intentosNivel.length) {
+      intentosHtml =
+        '<li class="teacher-intento-empty">' +
+        escHtml("Aún no hay intentos en esta práctica.") +
+        "</li>";
+    }
+    for (var k = 0; k < intentosNivel.length; k++) {
+      var it = intentosNivel[k];
+      var selIntento =
+        intento && String(it.id) === String(intento.id) ? " is-selected" : "";
+      intentosHtml +=
+        '<li class="teacher-intento ' +
+        claseEstadoIntento(it.estado) +
+        selIntento +
+        '" role="button" tabindex="0" data-detalle-intento="' +
+        escHtml(String(it.id)) +
+        '">' +
+        '<div class="teacher-intento-head">' +
+        "<strong>" +
+        escHtml(formatearFechaPartida(it.fecha)) +
+        "</strong>" +
+        '<span class="teacher-intento-estado">' +
+        escHtml(it.estadoLabel || it.estado || "—") +
+        "</span>" +
+        "</div>" +
+        '<div class="teacher-intento-meta">' +
+        (it.aciertos != null ? it.aciertos : 0) +
+        "/" +
+        (it.total || 0) +
+        " · Vidas: " +
+        (it.vidasRestantes != null ? it.vidasRestantes : "—") +
+        "</div>" +
+        htmlBarrasIntento(it) +
+        "</li>";
+    }
+
+    var nivelesHtml = "";
+    for (var j = 0; j < vista.columnas.length; j++) {
+      var col = vista.columnas[j];
+      var celdaPractica =
+        typeof teacherNivelMaestroCelda === "function"
+          ? teacherNivelMaestroCelda(alumno, col)
+          : { ok: 0, total: col.totalPreguntas || 0, tiempoPromedio: 0 };
+      var selNivel = String(col.id) === String(vista.nivelId) ? " is-selected" : "";
+      nivelesHtml +=
+        '<li><button type="button" class="teacher-tema-btn' +
+        selNivel +
+        '" data-detalle-nivel="' +
+        escHtml(String(col.id)) +
+        '" title="' +
+        escHtml(col.titulo || col.corto) +
+        '">' +
+        escHtml(col.corto) +
+        ": " +
+        celdaPractica.ok +
+        "/" +
+        celdaPractica.total +
+        "</button></li>";
+    }
+
+    var tiempoNivelActual = tiempoPromedioNivelPractica(alumno, vista.nivelId);
+
+    var porcentajeAciertos = intento ? intento.porcentajeAciertos || 0 : 0;
+    var tituloIntento = intento
+      ? formatearFechaPartida(intento.fecha) +
+        " · " +
+        (intento.estadoLabel || intento.estado || "—")
+      : !intentosNivel.length
+        ? "Sin intentos"
+        : "Elige un intento";
+
+    return (
+      '<div class="teacher-detail">' +
+      '<div class="teacher-detail-header">' +
+      "<h3 class=\"teacher-detail-title\">" +
+      escHtml(alumno.nombre) +
+      " — " +
+      escHtml(nivel.titulo || nivel.corto) +
+      "</h3>" +
+      '<div class="teacher-detail-progress">' +
+      "<label>Porcentaje de aciertos</label>" +
+      barraPorcentajeAciertosHtml(porcentajeAciertos) +
+      "</div></div>" +
+      '<div class="teacher-detail-body">' +
+      '<div class="teacher-detail-side">' +
+      '<p class="teacher-detail-side-title">Elegir práctica</p>' +
+      '<ul class="teacher-levels-mini teacher-temas-select">' +
+      nivelesHtml +
+      "</ul>" +
+      '<p class="teacher-detail-side-title">Intentos · ' +
+      escHtml(nivel.corto || nivel.titulo) +
+      " (" +
+      intentosNivel.length +
+      ")</p>" +
+      '<ul class="teacher-intentos">' +
+      intentosHtml +
+      "</ul></div>" +
+      '<div class="teacher-detail-main">' +
+      '<p class="teacher-detail-side-title">Detalle · ' +
+      escHtml(tituloIntento) +
+      "</p>" +
+      '<table class="teacher-tasks"><thead><tr><th>Actividad</th><th>Resultado</th><th>Errores</th><th>Tiempo</th></tr></thead><tbody>' +
+      tareasHtml +
+      "</tbody></table></div></div>" +
+      '<div class="teacher-detail-footer">' +
+      '<span class="teacher-avg-time">⏱ Promedio en este nivel: ' +
+      tiempoNivelActual +
+      "s</span>" +
+      '<button type="button" class="teacher-btn-collapse" data-collapse>Contraer</button>' +
+      "</div></div>"
+    );
+  }
+
   // Todo el panel desplegable: temas, modos, intentos y tabla de tareas
   function htmlDetalle(alumno) {
+    if (esVistaNiveles()) {
+      return htmlDetalleNiveles(alumno);
+    }
     var vista = vistaDetalleAlumno(alumno);
     var d = vista.detalle;
     var tema = vista.tema;
@@ -454,7 +815,7 @@
                 modoLabel.toLowerCase() +
                 " de " +
                 tema.corto +
-                " en este periodo."
+                "."
             : "Selecciona un intento para ver el detalle."
         ) +
         "</td></tr>";
@@ -480,9 +841,7 @@
       intentosHtml =
         '<li class="teacher-intento-empty">' +
         escHtml(
-          "Aún no hay intentos de nivel " +
-            modoLabel.toLowerCase() +
-            " en este periodo."
+          "Aún no hay intentos de nivel " + modoLabel.toLowerCase() + "."
         ) +
         "</li>";
     }
@@ -519,21 +878,45 @@
     }
 
     var nivelesHtml = "";
+    var modoKey = modoKeyUi(vista.modoId);
     for (var j = 0; j < TEACHER_TEMAS.length; j++) {
       var tid = TEACHER_TEMAS[j].id;
-      var pts = alumno.temas[tid] || 0;
+      var slotTema =
+        typeof teacherTemaModoCelda === "function"
+          ? teacherTemaModoCelda(alumno, tid, modoKey)
+          : { pts: 0, enCurso: false, tiempoPromedio: 0 };
+      var pts = slotTema.pts || 0;
       var selTema = tid === vista.temaId ? " is-selected" : "";
+      var tituloTema =
+        (TEACHER_TEMAS[j].nombre || TEACHER_TEMAS[j].corto) +
+        " · " +
+        modoLabelUi(vista.modoId) +
+        ": " +
+        pts +
+        "/10" +
+        (slotTema.enCurso ? " (en curso)" : "");
       nivelesHtml +=
         '<li><button type="button" class="teacher-tema-btn' +
         selTema +
+        (slotTema.enCurso ? " teacher-tema-btn--en-curso" : "") +
         '" data-detalle-tema="' +
         escHtml(tid) +
+        '" title="' +
+        escHtml(tituloTema) +
         '">' +
         escHtml(TEACHER_TEMAS[j].corto) +
         ": " +
         pts +
-        "/10</button></li>";
+        "/10" +
+        (slotTema.enCurso ? " · en curso" : "") +
+        "</button></li>";
     }
+
+    var tiempoNivelActual = tiempoPromedioNivelTemas(
+      alumno,
+      vista.temaId,
+      vista.modoId
+    );
 
     var modosHtml = "";
     var modos = [
@@ -553,9 +936,6 @@
         "</button></li>";
     }
 
-    var tituloNivel = intento
-      ? intento.nivel
-      : tema.nombre + " · Nivel " + modoLabel.toLowerCase();
     var porcentajeAciertos = intento ? intento.porcentajeAciertos || 0 : 0;
     var tituloIntento = intento
       ? formatearFechaPartida(intento.fecha) +
@@ -573,7 +953,7 @@
       " — " +
       escHtml(tema.nombre) +
       " · " +
-      escHtml(tituloNivel) +
+      escHtml(modoLabel) +
       "</h3>" +
       '<div class="teacher-detail-progress">' +
       "<label>Porcentaje de aciertos</label>" +
@@ -607,8 +987,8 @@
       tareasHtml +
       "</tbody></table></div></div>" +
       '<div class="teacher-detail-footer">' +
-      '<span class="teacher-avg-time">⏱ Tiempo promedio: ' +
-      alumno.tiempoPromedio +
+      '<span class="teacher-avg-time">⏱ Promedio en este nivel: ' +
+      tiempoNivelActual +
       "s</span>" +
       '<button type="button" class="teacher-btn-collapse" data-collapse>Contraer</button>' +
       "</div></div>"
@@ -617,6 +997,7 @@
 
   // Pinta filas de alumnos, barras por tema y la fila expandida si toca
   function pintarTabla() {
+    try {
     var listaCompleta = listaAlumnosFiltrada();
     var total = listaCompleta.length;
     pintarPaginacion(total);
@@ -634,6 +1015,13 @@
       if (errCarga) {
         elEmpty.textContent =
           "No se pudieron cargar los alumnos: " + errCarga;
+      } else if (
+        esVistaNiveles() &&
+        !numColumnasTabla() &&
+        (!estado.grupoId || estado.grupoId === "grupo-todos")
+      ) {
+        elEmpty.textContent =
+          "Aún no has creado prácticas. Usa «Mis niveles» para armar la primera.";
       } else {
         elEmpty.textContent =
           !estado.grupoId || estado.grupoId === "grupo-todos"
@@ -642,6 +1030,16 @@
       }
       return;
     }
+    if (esVistaNiveles() && !numColumnasTabla()) {
+      elEmpty.hidden = false;
+      elEmpty.textContent =
+        "Aún no has creado prácticas. Usa «Mis niveles» para armar la primera.";
+      if (elPaginacion) {
+        elPaginacion.hidden = true;
+      }
+      return;
+    }
+
     elEmpty.hidden = true;
 
     for (var i = 0; i < lista.length; i++) {
@@ -663,13 +1061,30 @@
         escHtml(a.email) +
         "</p></div></div></td>";
 
-      for (var j = 0; j < TEACHER_TEMAS.length; j++) {
-        var tid = TEACHER_TEMAS[j].id;
-        var pts = a.temas[tid] || 0;
-        var enCursoTema = a.temasEnCurso && a.temasEnCurso[tid];
+      var cols = columnasTabla();
+      for (var j = 0; j < cols.length; j++) {
+        var col = cols[j];
+        var barra;
+        var celdaCls = "teacher-cell-bar";
+        if (esVistaNiveles()) {
+          var celdaPractica =
+            typeof teacherNivelMaestroCelda === "function"
+              ? teacherNivelMaestroCelda(a, col)
+              : { ok: 0, total: col.totalPreguntas || 0 };
+          barra = barraPracticaMaestroHtml(celdaPractica.ok, celdaPractica.total);
+        } else {
+          celdaCls += " teacher-cell-bar--dual";
+          barra = htmlCeldaTemaFijo(a, col.id, col.nombre || col.corto);
+        }
         celdas +=
-          '<td class="teacher-cell-bar">' +
-          barraHtml(pts, 10, null, enCursoTema ? "bar-blue" : null) +
+          '<td class="' +
+          celdaCls +
+          '"' +
+          (esVistaNiveles()
+            ? ' title="' + escHtml(col.titulo || col.corto) + '"'
+            : "") +
+          ">" +
+          barra +
           "</td>";
       }
 
@@ -683,54 +1098,81 @@
         var trExp = document.createElement("tr");
         trExp.className = "teacher-expand-row";
         var td = document.createElement("td");
-        td.colSpan = TEACHER_TEMAS.length + 2;
+        td.colSpan = numColumnasTabla() + 2;
         td.innerHTML = htmlDetalle(a);
         trExp.appendChild(td);
         elBody.appendChild(trExp);
       }
     }
+    } finally {
+      actualizarModoScrollTabla();
+    }
   }
 
-  // Vuelve a pedir alumnos al servidor y repinta (cambio de periodo, etc.)
+  // Vuelve a pedir temas fijos y prácticas al servidor y repinta la tabla
   function recargarDatosMaestro() {
-    if (typeof teacherCargarAlumnos !== "function") {
+    var promesas = [];
+    if (typeof teacherCargarAlumnos === "function") {
+      promesas.push(teacherCargarAlumnos());
+    }
+    if (typeof teacherCargarAlumnosNivelesMaestro === "function") {
+      promesas.push(teacherCargarAlumnosNivelesMaestro());
+    }
+    if (!promesas.length) {
       pintarTabla();
       return Promise.resolve();
     }
-    return teacherCargarAlumnos({ periodo: estado.periodo }).then(function () {
+    return Promise.all(promesas).then(function () {
+      pintarCabeceraTabla();
       pintarTabla();
     });
+  }
+
+  function cambiarVistaDashboard(vista) {
+    if (!vista || vista === estado.vistaDashboard) {
+      return;
+    }
+    estado.vistaDashboard = vista;
+    estado.paginaActual = 1;
+    estado.expandidoId = null;
+    limpiarSeleccionDetalle();
+    pintarTabsVista();
+    pintarCabeceraTabla();
+    pintarTabla();
   }
 
   // Abre o cierra el detalle de un alumno; si abre, trae intentos del servidor
   function toggleExpand(id) {
     if (estado.expandidoId === id) {
       estado.expandidoId = null;
-      estado.detalleTemaId = null;
-      estado.detalleModoId = null;
-      estado.detalleIntentoId = null;
+      limpiarSeleccionDetalle();
       pintarTabla();
       return;
     }
     estado.expandidoId = id;
-    estado.detalleTemaId = null;
-    estado.detalleModoId = null;
-    estado.detalleIntentoId = null;
+    limpiarSeleccionDetalle();
     pintarTabla();
 
     var alumno = null;
-    var lista = teacherAlumnosEnGrupo(estado.grupoId);
+    var lista = esVistaNiveles()
+      ? typeof teacherAlumnosNivelesEnGrupo === "function"
+        ? teacherAlumnosNivelesEnGrupo(estado.grupoId)
+        : []
+      : teacherAlumnosEnGrupo(estado.grupoId);
     for (var i = 0; i < lista.length; i++) {
       if (lista[i].id === id) {
         alumno = lista[i];
         break;
       }
     }
-    if (!alumno || typeof teacherCargarDetalleAlumno !== "function") {
+    var cargarDetalle = esVistaNiveles()
+      ? teacherCargarDetalleAlumnoNivelesMaestro
+      : teacherCargarDetalleAlumno;
+    if (!alumno || typeof cargarDetalle !== "function") {
       return;
     }
 
-    teacherCargarDetalleAlumno(alumno.dbId || alumno.id, estado.periodo)
+    cargarDetalle(alumno.dbId || alumno.id)
       .then(function (det) {
         alumno.detalle = det;
         resetSeleccionDetalle(det);
@@ -790,6 +1232,55 @@
     }
   }
 
+  // Nombre legible de un grupo por su id de UI
+  function nombreGrupoPorId(grupoId) {
+    var grupos = teacherLeerGrupos();
+    for (var i = 0; i < grupos.length; i++) {
+      if (grupos[i].id === grupoId) {
+        return grupos[i].nombre || grupoId;
+      }
+    }
+    return grupoId;
+  }
+
+  // Impide desmarcar si el alumno quedaría sin ningún grupo
+  function validarDesmarcarAlumnoGrupo(input, grupoId) {
+    if (!input || input.checked) {
+      return true;
+    }
+    var alumnoId = input.getAttribute("data-alumno");
+    var alumnos = teacherListarAlumnos();
+    var alumno = null;
+    for (var i = 0; i < alumnos.length; i++) {
+      if (String(alumnos[i].id) === String(alumnoId)) {
+        alumno = alumnos[i];
+        break;
+      }
+    }
+    if (!alumno) {
+      return true;
+    }
+    var enEsteGrupo = (alumno.grupos || []).indexOf(grupoId) >= 0;
+    if (!enEsteGrupo) {
+      return true;
+    }
+    var otros = (alumno.grupos || []).filter(function (g) {
+      return g !== grupoId && g !== "grupo-todos";
+    });
+    if (otros.length) {
+      return true;
+    }
+    input.checked = true;
+    if (typeof uiToastError === "function") {
+      uiToastError(
+        "«" +
+          (alumno.nombre || "El alumno") +
+          "» no puede quedar sin grupo. Asígnalo primero a otro grupo."
+      );
+    }
+    return false;
+  }
+
   // Muestra checkboxes para meter/quitar alumnos de un grupo
   function abrirAsignacion(grupoId) {
     var grupos = teacherLeerGrupos();
@@ -817,6 +1308,13 @@
     for (var j = 0; j < alumnos.length; j++) {
       var a = alumnos[j];
       var checked = (a.grupos || []).indexOf(grupoId) >= 0;
+      var otrosGrupos = (a.grupos || []).filter(function (g) {
+        return g !== grupoId && g !== "grupo-todos";
+      });
+      var etiquetaGrupo =
+        otrosGrupos.length && !checked
+          ? " · " + nombreGrupoPorId(otrosGrupos[0])
+          : "";
       var li = document.createElement("li");
       li.innerHTML =
         '<label><input type="checkbox" data-alumno="' +
@@ -825,6 +1323,7 @@
         (checked ? " checked" : "") +
         "> " +
         escHtml(a.nombre) +
+        escHtml(etiquetaGrupo) +
         "</label>";
       ul.appendChild(li);
     }
@@ -836,6 +1335,10 @@
       return;
     }
     var gid = estado.grupoAsignarId;
+    var btn = document.getElementById("btn-guardar-asignacion");
+    if (btn && btn.disabled) {
+      return;
+    }
     var checks = document.querySelectorAll(
       "#lista-asignar-alumnos input[type=checkbox]"
     );
@@ -844,6 +1347,23 @@
       if (checks[c].checked) {
         marcados.push(checks[c].getAttribute("data-alumno"));
       }
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.setAttribute("aria-busy", "true");
+      if (!btn.dataset.labelOriginal) {
+        btn.dataset.labelOriginal = btn.textContent;
+      }
+      btn.textContent = "Guardando…";
+    }
+    if (typeof uiMostrarCarga === "function") {
+      uiMostrarCarga(
+        "teacher-asignacion-loading",
+        typeof str === "function"
+          ? str("maestro.guardandoAsignacion", "Guardando asignación…")
+          : "Guardando asignación…"
+      );
     }
 
     var prom =
@@ -855,12 +1375,36 @@
       .then(function () {
         document.getElementById("seccion-asignar").hidden = true;
         estado.grupoAsignarId = null;
+        estado.grupoId = "grupo-todos";
+        if (elGrupoFilter) {
+          elGrupoFilter.value = "grupo-todos";
+        }
         pintarSelectGrupos();
+        if (esVistaNiveles()) {
+          pintarCabeceraTabla();
+        }
         pintarTabla();
+        if (typeof uiToastSuccess === "function") {
+          uiToastSuccess("Asignación guardada.");
+        }
       })
       .catch(function (e) {
         if (typeof uiToastError === "function") {
-          uiToastError(e.message || "No se pudo guardar la asignación.");
+          uiToastError(
+            typeof maestroErrorAmigable === "function"
+              ? maestroErrorAmigable(e, "grupo")
+              : e.message || "No se pudo guardar la asignación."
+          );
+        }
+      })
+      .finally(function () {
+        if (typeof uiOcultarCarga === "function") {
+          uiOcultarCarga("teacher-asignacion-loading");
+        }
+        if (btn) {
+          btn.disabled = false;
+          btn.removeAttribute("aria-busy");
+          btn.textContent = btn.dataset.labelOriginal || "Guardar asignación";
         }
       });
   }
@@ -900,7 +1444,11 @@
       })
       .catch(function (e) {
         if (typeof uiToastError === "function") {
-          uiToastError(e.message || "No se pudo eliminar el grupo.");
+          uiToastError(
+            typeof maestroErrorAmigable === "function"
+              ? maestroErrorAmigable(e, "grupo")
+              : "No se pudo eliminar el grupo."
+          );
         }
       });
   }
@@ -981,9 +1529,9 @@
     actualizarScrollTopDashboard();
   }
 
-  // --- Eventos: búsqueda, filtros, tabla, grupos, paginación, export ---
+  // --- Eventos: búsqueda, filtros, tabla, grupos y paginación ---
 
-  // Todos los listeners del panel (tabla, periodo, modal, formularios...)
+  // Todos los listeners del panel (tabla, modal, formularios...)
   function registrarEventos() {
     if (!elSearch || !elGrupoFilter || !elBody) {
       return;
@@ -999,33 +1547,29 @@
       estado.grupoId = elGrupoFilter.value;
       estado.paginaActual = 1;
       estado.expandidoId = null;
-      estado.detalleTemaId = null;
-      estado.detalleModoId = null;
-      estado.detalleIntentoId = null;
+      limpiarSeleccionDetalle();
       pintarTabla();
     });
 
-    var periodBtns = document.querySelectorAll(".teacher-period-btn");
-    for (var i = 0; i < periodBtns.length; i++) {
-      periodBtns[i].addEventListener("click", function () {
-        for (var j = 0; j < periodBtns.length; j++) {
-          periodBtns[j].classList.remove("is-active");
-        }
-        this.classList.add("is-active");
-        estado.periodo = this.getAttribute("data-period");
-        estado.expandidoId = null;
-        estado.detalleTemaId = null;
-        estado.detalleModoId = null;
-        estado.detalleIntentoId = null;
-        recargarDatosMaestro();
+    var vistaTabs = document.querySelectorAll(".teacher-view-tab");
+    for (var vt = 0; vt < vistaTabs.length; vt++) {
+      vistaTabs[vt].addEventListener("click", function () {
+        cambiarVistaDashboard(this.getAttribute("data-vista"));
       });
     }
 
     elBody.addEventListener("click", function (ev) {
       if (ev.target.closest("[data-collapse]")) {
         estado.expandidoId = null;
-        estado.detalleTemaId = null;
-        estado.detalleModoId = null;
+        limpiarSeleccionDetalle();
+        pintarTabla();
+        return;
+      }
+      var nivelBtn = ev.target.closest("[data-detalle-nivel]");
+      if (nivelBtn) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        estado.detalleNivelId = nivelBtn.getAttribute("data-detalle-nivel");
         estado.detalleIntentoId = null;
         pintarTabla();
         return;
@@ -1035,7 +1579,6 @@
         ev.preventDefault();
         ev.stopPropagation();
         estado.detalleTemaId = temaBtn.getAttribute("data-detalle-tema");
-        estado.detalleModoId = null;
         estado.detalleIntentoId = null;
         pintarTabla();
         return;
@@ -1113,11 +1656,6 @@
       });
     }
 
-    var btnCsv = document.getElementById("btn-teacher-export-csv");
-    if (btnCsv) {
-      btnCsv.addEventListener("click", exportarExcelAlumnos);
-    }
-
     var formNuevoGrupo = document.getElementById("form-nuevo-grupo");
     if (!formNuevoGrupo) {
       return;
@@ -1138,7 +1676,11 @@
         }
       }).catch(function (e) {
         if (typeof uiToastError === "function") {
-          uiToastError(e.message || "No se pudo crear el grupo.");
+          uiToastError(
+            typeof maestroErrorAmigable === "function"
+              ? maestroErrorAmigable(e, "grupo")
+              : "No se pudo crear el grupo."
+          );
         }
       });
     });
@@ -1158,10 +1700,22 @@
     });
 
     document.getElementById("btn-guardar-asignacion").addEventListener("click", guardarAsignacion);
+
+    var listaAsignar = document.getElementById("lista-asignar-alumnos");
+    if (listaAsignar) {
+      listaAsignar.addEventListener("change", function (ev) {
+        var input = ev.target.closest('input[type="checkbox"][data-alumno]');
+        if (!input || !estado.grupoAsignarId) {
+          return;
+        }
+        validarDesmarcarAlumnoGrupo(input, estado.grupoAsignarId);
+      });
+    }
   }
 
   // Refresco completo de cabecera, select de grupos y tabla
   function pintarDashboard() {
+    pintarTabsVista();
     pintarCabeceraTabla();
     pintarSelectGrupos();
     pintarTabla();
@@ -1184,8 +1738,8 @@
       uiMostrarCarga(
         "teacher-loading",
         typeof str === "function"
-          ? str("maestro.cargandoPanel", "Cargando alumnos…")
-          : "Cargando alumnos…"
+          ? str("maestro.cargandoPanel", "Cargando panel del maestro…")
+          : "Cargando panel del maestro…"
       );
     }
 
@@ -1217,18 +1771,28 @@
             : Promise.resolve([]);
         var cargarAlumnos =
           typeof teacherCargarAlumnos === "function"
-            ? teacherCargarAlumnos({ periodo: estado.periodo })
+            ? teacherCargarAlumnos()
             : Promise.resolve([]);
-        return Promise.all([cargarGrupos, cargarAlumnos]).then(function () {
-          var err =
-            typeof teacherUltimoErrorCarga === "function"
-              ? teacherUltimoErrorCarga()
-              : null;
-          if (err && typeof uiToastError === "function") {
-            uiToastError("Error al cargar el panel: " + err);
+        var cargarPracticas =
+          typeof teacherCargarAlumnosNivelesMaestro === "function"
+            ? teacherCargarAlumnosNivelesMaestro()
+            : Promise.resolve([]);
+        return Promise.all([cargarGrupos, cargarAlumnos, cargarPracticas]).then(
+          function () {
+            var err =
+              typeof teacherUltimoErrorCarga === "function"
+                ? teacherUltimoErrorCarga()
+                : null;
+            if (err && typeof uiToastError === "function") {
+              uiToastError(
+                typeof maestroErrorAmigable === "function"
+                  ? maestroErrorAmigable(err, "panel")
+                  : "No se pudo cargar el panel."
+              );
+            }
+            pintarDashboard();
           }
-          pintarDashboard();
-        });
+        );
       })
       .catch(function (err) {
         console.error("Error cargando panel del maestro:", err);
@@ -1252,15 +1816,11 @@
 
   // Al volver con bfcache (atrás del navegador), refresca avatares/datos
   window.addEventListener("pageshow", function () {
-    if (!sesionLista || typeof teacherCargarAlumnos !== "function") {
+    if (!sesionLista) {
       return;
     }
-    teacherCargarAlumnos({ periodo: estado.periodo })
-      .then(function () {
-        pintarTabla();
-      })
-      .catch(function (err) {
-        console.warn("No se pudieron refrescar avatares:", err);
-      });
+    recargarDatosMaestro().catch(function (err) {
+      console.warn("No se pudieron refrescar datos del panel:", err);
+    });
   });
 })();

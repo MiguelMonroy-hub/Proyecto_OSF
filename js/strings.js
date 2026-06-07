@@ -57,10 +57,28 @@ var STRINGS = {
   },
   maestro: {
     cargandoPanel: "Cargando alumnos…",
-    exportCsv: "Exportar CSV",
     guardarNivelOk: "Nivel guardado. Tus alumnos lo verán en Temas.",
     previewNivel: "Vista previa",
-    borradorSinGuardar: "Tienes cambios sin guardar en este nivel."
+    borradorSinGuardar: "Tienes cambios sin guardar en este nivel.",
+    errorGuardarNivel:
+      "No se pudo guardar la práctica. Revisa tu conexión e inténtalo de nuevo.",
+    errorGuardarGrupos:
+      "No se pudo guardar la asignación a grupos. Recarga la página e inténtalo otra vez.",
+    errorGuardarPreguntas:
+      "No se pudo guardar las preguntas. Vuelve a pulsar Guardar; si sigue fallando, recarga la página.",
+    errorGuardarPermisos:
+      "No tienes permiso para guardar este cambio. Cierra sesión, vuelve a entrar como maestro e inténtalo.",
+    errorEliminarNivel:
+      "No se pudo eliminar la práctica. Revisa tu conexión e inténtalo de nuevo.",
+    errorCargarNiveles:
+      "No se pudieron cargar tus prácticas. Revisa tu conexión y recarga la página.",
+    errorCargarPanel:
+      "No se pudo cargar el panel. Revisa tu conexión y recarga la página.",
+    errorGrupo:
+      "No se pudo completar la acción con el grupo. Inténtalo de nuevo.",
+    errorSesion: "Tu sesión expiró. Vuelve a iniciar sesión e inténtalo.",
+    errorConexion:
+      "No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo."
   },
   grupo: {
     codigoInvalido: "Código no válido. Revisa con tu maestro."
@@ -78,4 +96,146 @@ function str(path, fallback) {
     cur = cur[parts[i]];
   }
   return cur != null ? cur : fallback != null ? fallback : path;
+}
+
+// Convierte errores técnicos de Supabase/Postgres en mensajes claros para el maestro.
+function maestroErrorAmigable(err, contexto) {
+  var raw = "";
+  if (typeof err === "string") {
+    raw = err;
+  } else if (err && err.message) {
+    raw = err.message;
+  } else if (err) {
+    raw = String(err);
+  }
+  raw = raw.trim();
+  var lower = raw.toLowerCase();
+
+  function msg(path, fallback) {
+    return typeof str === "function" ? str(path, fallback) : fallback;
+  }
+
+  function porContexto(defPath, defFallback) {
+    if (contexto === "eliminar") {
+      return msg("maestro.errorEliminarNivel", defFallback);
+    }
+    if (contexto === "cargar") {
+      return msg("maestro.errorCargarNiveles", defFallback);
+    }
+    if (contexto === "panel") {
+      return msg("maestro.errorCargarPanel", defFallback);
+    }
+    if (contexto === "grupo") {
+      return msg("maestro.errorGrupo", defFallback);
+    }
+    return msg(defPath, defFallback);
+  }
+
+  if (!raw) {
+    return porContexto(
+      "maestro.errorGuardarNivel",
+      "No se pudo completar la acción. Inténtalo de nuevo."
+    );
+  }
+
+  if (
+    lower.indexOf("failed to fetch") >= 0 ||
+    lower.indexOf("networkerror") >= 0 ||
+    lower.indexOf("load failed") >= 0
+  ) {
+    return msg(
+      "maestro.errorConexion",
+      "No hay conexión con el servidor. Revisa tu internet e inténtalo de nuevo."
+    );
+  }
+
+  if (
+    lower.indexOf("jwt") >= 0 ||
+    lower.indexOf("not authenticated") >= 0 ||
+    lower.indexOf("sesión") >= 0 ||
+    lower.indexOf("inicia sesión") >= 0
+  ) {
+    return msg(
+      "maestro.errorSesion",
+      "Tu sesión expiró. Vuelve a iniciar sesión e inténtalo."
+    );
+  }
+
+  if (
+    lower.indexOf("row-level security") >= 0 ||
+    lower.indexOf("permission denied") >= 0 ||
+    lower.indexOf("42501") >= 0
+  ) {
+    if (lower.indexOf("respuesta_maestro") >= 0 || lower.indexOf("pregunta_maestro") >= 0) {
+      return msg(
+        "maestro.errorGuardarPreguntas",
+        "No se pudo guardar las preguntas. Vuelve a pulsar Guardar; si sigue fallando, recarga la página."
+      );
+    }
+    return msg(
+      "maestro.errorGuardarPermisos",
+      "No tienes permiso para guardar este cambio. Cierra sesión, vuelve a entrar como maestro e inténtalo."
+    );
+  }
+
+  if (
+    lower.indexOf("duplicate key") >= 0 ||
+    lower.indexOf("unique constraint") >= 0
+  ) {
+    if (lower.indexOf("nivel_maestro_grupo") >= 0) {
+      return msg(
+        "maestro.errorGuardarGrupos",
+        "No se pudo guardar la asignación a grupos. Recarga la página e inténtalo otra vez."
+      );
+    }
+    return porContexto(
+      "maestro.errorGuardarNivel",
+      "No se pudo guardar la práctica. Recarga la página e inténtalo otra vez."
+    );
+  }
+
+  if (lower.indexOf("foreign key") >= 0) {
+    if (lower.indexOf("respuesta") >= 0 || lower.indexOf("pregunta") >= 0) {
+      return msg(
+        "maestro.errorGuardarPreguntas",
+        "No se pudo guardar las preguntas. Vuelve a pulsar Guardar; si sigue fallando, recarga la página."
+      );
+    }
+    return porContexto(
+      "maestro.errorGuardarNivel",
+      "No se pudo guardar la práctica. Recarga la página e inténtalo otra vez."
+    );
+  }
+
+  var esTecnico =
+    lower.indexOf("constraint") >= 0 ||
+    lower.indexOf("violates") >= 0 ||
+    lower.indexOf("pgrst") >= 0 ||
+    lower.indexOf("postgres") >= 0 ||
+    lower.indexOf("sql") >= 0 ||
+    lower.indexOf("_fkey") >= 0 ||
+    lower.indexOf("_key") >= 0;
+
+  if (esTecnico) {
+    return porContexto(
+      "maestro.errorGuardarNivel",
+      "No se pudo guardar la práctica. Revisa tu conexión e inténtalo de nuevo."
+    );
+  }
+
+  if (raw.indexOf("No se pudo") === 0 || raw.indexOf("No tienes") === 0) {
+    return raw;
+  }
+
+  if (
+    lower.indexOf("sin grupo") >= 0 ||
+    raw.indexOf("No puedes dejar") === 0
+  ) {
+    return raw;
+  }
+
+  return porContexto(
+    "maestro.errorGuardarNivel",
+    "No se pudo guardar la práctica. Revisa tu conexión e inténtalo de nuevo."
+  );
 }

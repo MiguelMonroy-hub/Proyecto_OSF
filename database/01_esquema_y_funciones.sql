@@ -519,6 +519,14 @@ BEGIN
     RAISE EXCEPTION 'Código no válido. Revisa con tu maestro.';
   END IF;
 
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.es_sistema = FALSE
+    AND g_old.id <> v_grupo.id
+    AND g_old.profesor_id = v_grupo.profesor_id;
+
   INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
   VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
   ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
@@ -1094,6 +1102,7 @@ SET search_path = public
 AS $$
 DECLARE
   v_codigo VARCHAR;
+  v_profesor_id BIGINT;
 BEGIN
   IF NOT public.is_maestro() THEN
     RAISE EXCEPTION 'Solo maestros pueden asignar grupos';
@@ -1110,7 +1119,32 @@ BEGIN
     RAISE EXCEPTION 'No se puede editar el grupo del sistema';
   END IF;
 
-  SELECT g.codigo INTO v_codigo FROM public.grupo g WHERE g.id = p_grupo_id;
+  SELECT g.codigo, g.profesor_id
+  INTO v_codigo, v_profesor_id
+  FROM public.grupo g
+  WHERE g.id = p_grupo_id;
+
+  IF EXISTS (
+    SELECT 1
+    FROM public.alumno_grupo ag
+    WHERE ag.grupo_id = p_grupo_id
+      AND (
+        p_alumno_ids IS NULL
+        OR NOT (ag.alumno_id = ANY (p_alumno_ids))
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM public.alumno_grupo ag2
+        JOIN public.grupo g2 ON g2.id = ag2.grupo_id
+        WHERE ag2.alumno_id = ag.alumno_id
+          AND g2.es_sistema = FALSE
+          AND g2.id <> p_grupo_id
+          AND g2.profesor_id = v_profesor_id
+      )
+  ) THEN
+    RAISE EXCEPTION
+      'Un alumno no puede quedar sin grupo. Asígnalo a otro grupo antes de quitarlo de este.';
+  END IF;
 
   DELETE FROM public.alumno_grupo ag WHERE ag.grupo_id = p_grupo_id;
 
@@ -1119,7 +1153,18 @@ BEGIN
     SELECT DISTINCT unnest(p_alumno_ids), p_grupo_id, v_codigo
     FROM public.alumno a
     WHERE a.id = ANY(p_alumno_ids)
-      AND public.maestro_puede_ver_alumno_id(a.id);
+      AND public.maestro_puede_ver_alumno_id(a.id)
+    ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
+      SET codigo_usado = EXCLUDED.codigo_usado,
+          vinculado_en = NOW();
+
+    DELETE FROM public.alumno_grupo ag
+    USING public.grupo g_other
+    WHERE ag.alumno_id = ANY (p_alumno_ids)
+      AND g_other.id = ag.grupo_id
+      AND g_other.id <> p_grupo_id
+      AND g_other.es_sistema = FALSE
+      AND g_other.profesor_id = v_profesor_id;
   END IF;
 END;
 $$;

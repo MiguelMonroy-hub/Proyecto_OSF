@@ -35,6 +35,14 @@
     };
   }
 
+  // Textos por defecto al abrir Mis niveles del maestro.
+  function textosNivelesMaestro() {
+    return {
+      main: "Cargando tus niveles",
+      sub: "Preparando prácticas y grupos…"
+    };
+  }
+
   // Pone el título y subtítulo del overlay.
   function aplicarTextoOverlay(el, opts) {
     if (!el || !opts) {
@@ -87,6 +95,7 @@
     }
     try {
       sessionStorage.removeItem("tec_duck_nav_topics");
+      sessionStorage.removeItem("tec_duck_nav_teacher_niveles");
     } catch (e) {
       /* noop */
     }
@@ -112,6 +121,13 @@
     return typeof pagina === "function" ? pagina("topics.html") : "topics.html";
   }
 
+  // URL de teacher-niveles.html usando rutas.js si está cargado.
+  function pageLoadUrlNivelesMaestro() {
+    return typeof pagina === "function"
+      ? pagina("teacher-niveles.html")
+      : "teacher-niveles.html";
+  }
+
   // Marca en sessionStorage que vamos a temas, muestra overlay y navega.
   function pageLoadIrATemas(opts) {
     opts = opts || textosTemas();
@@ -124,10 +140,42 @@
     window.location.assign(pageLoadUrlTemas());
   }
 
+  // Marca en sessionStorage que vamos a Mis niveles, muestra overlay y navega.
+  function pageLoadIrANivelesMaestro(opts) {
+    opts = opts || textosNivelesMaestro();
+    try {
+      sessionStorage.setItem("tec_duck_nav_teacher_niveles", "1");
+    } catch (e) {
+      /* noop */
+    }
+    pageLoadMostrar(opts);
+    window.location.assign(pageLoadUrlNivelesMaestro());
+  }
+
   // ¿La URL de destino apunta a la página de temas?
   function pageLoadDestinoEsTemas(destino) {
     var d = String(destino || "");
     return /topics(\.html)?(\?|#|$)/i.test(d) || d.indexOf("/topics") >= 0;
+  }
+
+  // Detecta enlaces a Mis niveles del maestro.
+  function pageLoadEsEnlaceNivelesMaestro(a) {
+    if (!a || a.tagName !== "A") {
+      return false;
+    }
+    if (a.classList.contains("teacher-action-btn--levels")) {
+      return true;
+    }
+    var href = (a.getAttribute("href") || "").trim();
+    if (!href || href === "#") {
+      return false;
+    }
+    return (
+      href === "teacher-niveles.html" ||
+      href === "/pages/teacher-niveles.html" ||
+      /\/pages\/teacher-niveles\.html/i.test(href) ||
+      /(^|\/)teacher-niveles\.html/i.test(href)
+    );
   }
 
   // Detecta enlaces de "volver a temas" por id, clase, data-attribute o href.
@@ -160,8 +208,8 @@
     );
   }
 
-  // Intercepta clics en enlaces a temas para mostrar el overlay antes de navegar.
-  function pageLoadEnlazarVolverATemas() {
+  // Intercepta clics en enlaces con overlay antes de navegar.
+  function pageLoadEnlazarNavegacion() {
     document.addEventListener(
       "click",
       function (ev) {
@@ -172,17 +220,21 @@
           return;
         }
         var a = ev.target.closest("a");
-        if (!pageLoadEsEnlaceVolverTemas(a)) {
+        if (!a || a.getAttribute("data-auth-logout")) {
           return;
         }
-        if (a.getAttribute("data-auth-logout")) {
+        if (pageLoadEsEnlaceVolverTemas(a)) {
+          if (a.getAttribute("data-volver-temas-skip") === "1") {
+            return;
+          }
+          ev.preventDefault();
+          pageLoadIrATemas();
           return;
         }
-        if (a.getAttribute("data-volver-temas-skip") === "1") {
-          return;
+        if (pageLoadEsEnlaceNivelesMaestro(a)) {
+          ev.preventDefault();
+          pageLoadIrANivelesMaestro();
         }
-        ev.preventDefault();
-        pageLoadIrATemas();
       },
       true
     );
@@ -192,13 +244,16 @@
   window.pageLoadOcultar = pageLoadOcultar;
   window.pageLoadDuckFallback = pageLoadDuckFallback;
   window.pageLoadIrATemas = pageLoadIrATemas;
+  window.pageLoadIrANivelesMaestro = pageLoadIrANivelesMaestro;
   window.pageLoadUrlTemas = pageLoadUrlTemas;
+  window.pageLoadUrlNivelesMaestro = pageLoadUrlNivelesMaestro;
   window.pageLoadDestinoEsTemas = pageLoadDestinoEsTemas;
   window.pageLoadEsEnlaceVolverTemas = pageLoadEsEnlaceVolverTemas;
+  window.pageLoadEsEnlaceNivelesMaestro = pageLoadEsEnlaceNivelesMaestro;
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", pageLoadEnlazarVolverATemas);
+    document.addEventListener("DOMContentLoaded", pageLoadEnlazarNavegacion);
   } else {
-    pageLoadEnlazarVolverATemas();
+    pageLoadEnlazarNavegacion();
   }
 })();

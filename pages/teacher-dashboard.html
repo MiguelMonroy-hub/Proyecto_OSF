@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="../css/teacher-dashboard.css">
   <link rel="stylesheet" href="../css/ui-toast.css">
   <link rel="stylesheet" href="../css/ui-loading.css">
+  <link rel="stylesheet" href="../css/page-load-overlay.css">
 </head>
 <body class="page-teacher">
   <div class="teacher-frame">
@@ -56,20 +57,20 @@
       </div>
     </header>
 
-    <!-- Filtros: grupo, periodo y exportar -->
+    <!-- Filtro por grupo y vista del panel -->
     <div class="teacher-toolbar">
       <label class="teacher-select-wrap">
         <span class="teacher-select-label">Grupo</span>
         <select id="teacher-grupo-filter" class="teacher-select"></select>
       </label>
-      <div class="teacher-period" role="group" aria-label="Periodo">
-        <button type="button" class="teacher-period-btn is-active" data-period="today">Hoy</button>
-        <button type="button" class="teacher-period-btn" data-period="week">Semana</button>
-        <button type="button" class="teacher-period-btn" data-period="month">Mes</button>
+      <div class="teacher-view-tabs" role="tablist" aria-label="Tipo de progreso">
+        <button type="button" class="teacher-view-tab is-active" data-vista="temas" role="tab" aria-selected="true">
+          Temas fijos
+        </button>
+        <button type="button" class="teacher-view-tab" data-vista="niveles" role="tab" aria-selected="false">
+          Mis prácticas
+        </button>
       </div>
-      <button type="button" class="teacher-action-btn teacher-action-btn--csv" id="btn-teacher-export-csv">
-        Exportar Excel
-      </button>
     </div>
 
     <!-- Tabla de alumnos con paginación -->
@@ -121,13 +122,14 @@
 
       <section class="teacher-asignar" id="seccion-asignar" hidden>
         <h3>Asignar alumnos a: <span id="asignar-grupo-nombre"></span></h3>
+        <p class="teacher-asignar-hint">Al marcar un alumno se moverá desde su grupo anterior. Un alumno con grupo no puede quedar sin asignar.</p>
         <ul id="lista-asignar-alumnos" class="teacher-asignar-list"></ul>
         <button type="button" class="btn btn-blue" id="btn-guardar-asignacion">Guardar asignación</button>
       </section>
     </div>
   </div>
 
-  <!-- Scripts: datos del panel, grupos y exportación -->
+  <!-- Scripts: datos del panel y grupos -->
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-client.js"></script>
@@ -136,6 +138,7 @@
   <script src="../js/ui-toast.js"></script>
   <script src="../js/ui-loading.js"></script>
   <script src="../js/rutas.js"></script>
+  <script src="../js/page-load-overlay.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-auth.js"></script>
   <script src="../js/duck-catalog.js"></script>
@@ -143,7 +146,6 @@
   <script src="../js/partida-actividad.js"></script>
   <script src="../js/teacher-data.js"></script>
   <script src="../js/teacher-dashboard-state.js"></script>
-  <script src="../js/teacher-export-excel.js"></script>
   <script src="../js/teacher-dashboard.js"></script>
 </body>
 </html>
