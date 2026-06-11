@@ -1,5 +1,6 @@
-/* Modal grupos — selector explícito por si game-bg afecta hijos del body */
-body.page-teacher > #teacher-modal-grupos.teacher-modal {
+/* Modales del panel — selector explícito por si game-bg afecta hijos del body */
+body.page-teacher > #teacher-modal-grupos.teacher-modal,
+body.page-teacher > #teacher-modal-eliminar-alumno.teacher-modal {
   position: fixed;
   inset: 0;
   z-index: 9999;
@@ -10,7 +11,8 @@ body.page-teacher > #teacher-modal-grupos.teacher-modal {
   margin: 0;
 }
 
-body.page-teacher > #teacher-modal-grupos.teacher-modal[hidden] {
+body.page-teacher > #teacher-modal-grupos.teacher-modal[hidden],
+body.page-teacher > #teacher-modal-eliminar-alumno.teacher-modal[hidden] {
   display: none;
 }
 
@@ -172,6 +174,78 @@ body.page-teacher.teacher-modal-open {
 .teacher-btn-borrar {
   background: #fee2e2;
   color: #b91c1c;
+}
+
+.teacher-modal-card--danger {
+  border: 2px solid #fecaca;
+}
+
+.teacher-modal-lead--danger {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.teacher-eliminar-alumno-resumen {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.teacher-eliminar-alumno-email {
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.teacher-eliminar-alumno-label {
+  display: block;
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #334155;
+  line-height: 1.45;
+}
+
+.teacher-eliminar-alumno-esperado {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.teacher-eliminar-alumno-input {
+  width: 100%;
+  margin-bottom: 14px;
+  box-sizing: border-box;
+}
+
+.teacher-eliminar-alumno-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.teacher-btn-cancelar-eliminar {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.teacher-btn-confirmar-eliminar {
+  background: #dc2626;
+  color: #fff;
+}
+
+.teacher-btn-confirmar-eliminar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .teacher-asignar h3 {

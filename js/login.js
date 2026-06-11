@@ -3,7 +3,7 @@
  * y redirige al dashboard del maestro o a la ruta del alumno.
  */
 
-// Textos traducibles de esta pantalla.
+
 function loginMsg(path, fallback) {
   return typeof str === "function" ? str(path, fallback) : fallback;
 }

@@ -1049,7 +1049,7 @@ async function teacherCargarMapaAlumnosBase(sb, profesorId, extras) {
       porProf.error.message.indexOf("profesor_id") >= 0
     ) {
       console.warn(
-        "[teacher] Falta columna alumno.profesor_id. Ejecuta PARTE A de database/04_crear_maestro.sql"
+        "[teacher] Falta columna alumno.profesor_id. Ejecuta database/01_esquema_y_funciones.sql en Supabase"
       );
     } else if (porProf.error) {
       throw new Error(porProf.error.message);
@@ -1488,6 +1488,34 @@ async function teacherGuardarAsignacionGrupo(grupoId, alumnosMarcados) {
   });
   if (syncRes.error) {
     throw new Error(syncRes.error.message);
+  }
+
+  await teacherCargarAlumnos();
+  if (_teacherNivelesMaestroCargados) {
+    await teacherCargarAlumnosNivelesMaestro();
+  }
+}
+
+// Elimina un alumno y todo su historial (cuenta Auth, partidas, progreso, etc.).
+async function teacherEliminarAlumnoAsync(alumnoDbId) {
+  var sb = await initSupabase();
+  if (!sb) {
+    throw new Error("Sin conexión con el servidor");
+  }
+
+  var perfil = await authCargarPerfil();
+  if (!perfil || perfil.rol !== "MAESTRO") {
+    throw new Error("Solo maestros pueden eliminar alumnos");
+  }
+
+  var id = parseInt(alumnoDbId, 10);
+  if (!id || isNaN(id)) {
+    throw new Error("Alumno no válido");
+  }
+
+  var res = await sb.rpc("eliminar_alumno_maestro", { p_alumno_id: id });
+  if (res.error) {
+    throw new Error(res.error.message);
   }
 
   await teacherCargarAlumnos();

@@ -586,7 +586,17 @@
           })
         )
       );
-      animarCoordenadas(px, py);
+      if (scene.fijo) {
+        c.x = px;
+        c.y = py;
+        try {
+          b.update();
+        } catch (_eFijo) {
+          /* noop */
+        }
+      } else {
+        animarCoordenadas(px, py);
+      }
       return;
     }
 
@@ -695,7 +705,13 @@
       destruirTablero();
       asegurarTablero(BBOX_DEFECTO);
       limpiarCapaDinamica();
-      if (brd) {
+      if (pregunta.jxg && typeof pregunta.jxg === "object") {
+        try {
+          pintarEscena(pregunta.jxg);
+        } catch (_prep) {
+          limpiarCapaDinamica();
+        }
+      } else if (brd) {
         try {
           brd.update();
         } catch (_e) {
@@ -710,6 +726,9 @@
         typeof quizInferEscenaJXGDesdeOpcion !== "function" ||
         !pregunta
       ) {
+        return;
+      }
+      if (pregunta.jxg && pregunta.jxg.fijo) {
         return;
       }
       var qtext = pregunta.q || "";

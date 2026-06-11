@@ -86,7 +86,9 @@
       return;
     }
     hint.textContent =
-      modo === "dificil"
+      pregunta.jxg && pregunta.jxg.fijo
+        ? "Plano de coordenadas — observa el punto y elige la respuesta correcta"
+        : modo === "dificil"
         ? "Plano de coordenadas — se dibujará al confirmar la respuesta correcta"
         : "Plano de coordenadas — elige una opción para verla dibujada";
   }
@@ -1325,6 +1327,22 @@
     });
   }
 
+  // Pinta el pato personalizado en la barra superior del quiz.
+  function pintarPatoQuiz() {
+    var wrap = document.querySelector(".quiz-duck-wrap");
+    if (!wrap) {
+      return;
+    }
+    if (quizModoPreview) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+    if (typeof duckOutfitRefrescarQuiz === "function") {
+      duckOutfitRefrescarQuiz();
+    }
+  }
+
   // Punto de entrada: auth, validaciones, hooks de UI y arranque de la partida.
   async function iniciar() {
     mostrarCargandoTecduckAventura();
@@ -1344,6 +1362,8 @@
         return;
       }
     }
+
+    pintarPatoQuiz();
 
     if (typeof initSupabase === "function") {
       await initSupabase();

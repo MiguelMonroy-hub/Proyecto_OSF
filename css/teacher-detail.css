@@ -280,6 +280,23 @@
   color: #475569;
 }
 
+.teacher-btn-delete-alumno {
+  grid-column: 1;
+  justify-self: start;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.teacher-btn-delete-alumno:hover {
+  background: #fecaca;
+}
+
 .teacher-btn-collapse {
   grid-column: 3;
   justify-self: end;

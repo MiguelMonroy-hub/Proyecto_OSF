@@ -71,6 +71,8 @@ var STRINGS = {
       "No tienes permiso para guardar este cambio. Cierra sesión, vuelve a entrar como maestro e inténtalo.",
     errorEliminarNivel:
       "No se pudo eliminar la práctica. Revisa tu conexión e inténtalo de nuevo.",
+    errorEliminarAlumno:
+      "No se pudo eliminar al alumno. Revisa tu conexión e inténtalo de nuevo.",
     errorCargarNiveles:
       "No se pudieron cargar tus prácticas. Revisa tu conexión y recarga la página.",
     errorCargarPanel:
@@ -119,6 +121,9 @@ function maestroErrorAmigable(err, contexto) {
   function porContexto(defPath, defFallback) {
     if (contexto === "eliminar") {
       return msg("maestro.errorEliminarNivel", defFallback);
+    }
+    if (contexto === "eliminarAlumno") {
+      return msg("maestro.errorEliminarAlumno", defFallback);
     }
     if (contexto === "cargar") {
       return msg("maestro.errorCargarNiveles", defFallback);

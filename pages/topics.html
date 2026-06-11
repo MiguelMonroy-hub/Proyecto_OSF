@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../css/game-bg.css">
   <link rel="stylesheet" href="../css/topics.css">
   <link rel="stylesheet" href="../css/topics-maestro.css">
+  <link rel="stylesheet" href="../css/topics-cambio-maestro.css">
   <link rel="stylesheet" href="../css/ui-toast.css">
   <link rel="stylesheet" href="../css/page-load-overlay.css">
 </head>
@@ -37,6 +38,7 @@
       <h1>Elige tu tema</h1>
       <p class="topics-lead">Vectores en el plano: coordenadas, representación y operaciones. ¡Elige por dónde empezar! El <strong>nivel avanzado</strong> se abre cuando termines el <strong>básico</strong> de ese tema.</p>
       <p id="topics-grupo-banner" class="topics-grupo-banner" hidden></p>
+      <p id="topics-maestro-line" class="topics-maestro-line" hidden></p>
     </div>
     <div class="topics-actions">
       <a class="btn btn-green topics-pill" href="customize.html">Mi pato</a>
@@ -56,6 +58,28 @@
 
   <!-- Tarjetas de niveles personalizados del maestro -->
   <div class="topic-grid topics-maestro-grid" id="topics-maestro-grid"></div>
+
+  <!-- Modal: corregir maestro (1 cambio permitido) -->
+  <div id="topics-modal-maestro" class="topics-modal" hidden aria-modal="true" role="dialog" aria-labelledby="topics-modal-maestro-title">
+    <div class="topics-modal-backdrop" data-close-topics-modal></div>
+    <div class="topics-modal-card">
+      <header class="topics-modal-header">
+        <h2 id="topics-modal-maestro-title">Cambiar maestro</h2>
+        <button type="button" class="topics-modal-close" data-close-topics-modal aria-label="Cerrar">&times;</button>
+      </header>
+      <p class="topics-modal-lead">Si te equivocaste al registrarte, elige al profesor correcto. <strong>Solo puedes hacerlo una vez.</strong></p>
+      <p class="topics-modal-actual">Maestro actual: <strong id="topics-maestro-actual-texto">—</strong></p>
+      <div id="topics-modal-buscar-wrap" class="topics-modal-buscar-wrap" hidden>
+        <input type="search" id="topics-modal-buscar" class="topics-modal-buscar" placeholder="Buscar maestro…" autocomplete="off" />
+      </div>
+      <div id="topics-modal-lista" class="topics-modal-lista" role="radiogroup" aria-label="Selecciona tu maestro"></div>
+      <p id="topics-modal-error" class="topics-modal-error" role="alert" hidden></p>
+      <div class="topics-modal-actions">
+        <button type="button" class="btn topics-logout" data-close-topics-modal>Cancelar</button>
+        <button type="button" class="btn btn-blue" id="btn-confirmar-cambio-maestro">Confirmar cambio</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Scripts: progreso, temas y niveles del maestro -->
   <script src="../js/rutas.js"></script>
@@ -78,6 +102,7 @@
   <script src="../js/partida-actividad.js"></script>
   <script src="../js/topic-progress-data.js"></script>
   <script src="../js/topic-progress-ui.js"></script>
+  <script src="../js/alumno-cambio-maestro.js"></script>
   <script src="../js/topics-entry.js"></script>
   <script src="../js/topics-maestro.js"></script>
   <!-- Al volver con el botón atrás del navegador, refresca los bloqueos de nivel avanzado -->

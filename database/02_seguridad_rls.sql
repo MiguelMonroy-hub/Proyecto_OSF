@@ -3,7 +3,7 @@
 -- =============================================================================
 -- Proyecto NUEVO: ejecutar DESPUÉS de 01_esquema_y_funciones.sql (una sola vez).
 -- Base YA instalada: NO vuelvas a ejecutar este archivo entero salvo problemas
--- de permisos. Para la lista de maestros en registro usa PARTE A de 04_crear_maestro.sql
+-- de permisos al iniciar sesión como maestro o alumno.
 -- =============================================================================
 
 ALTER TABLE public.usuario ENABLE ROW LEVEL SECURITY;

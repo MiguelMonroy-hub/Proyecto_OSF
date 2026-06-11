@@ -129,6 +129,42 @@
     </div>
   </div>
 
+  <!-- Modal: confirmar eliminación de alumno -->
+  <div id="teacher-modal-eliminar-alumno" class="teacher-modal" hidden aria-modal="true" role="dialog" aria-labelledby="modal-eliminar-alumno-title">
+    <div class="teacher-modal-backdrop" data-close-modal-eliminar></div>
+    <div class="teacher-modal-card teacher-modal-card--danger">
+      <header class="teacher-modal-header">
+        <h2 id="modal-eliminar-alumno-title">Eliminar alumno</h2>
+        <button type="button" class="teacher-modal-close" data-close-modal-eliminar aria-label="Cerrar">&times;</button>
+      </header>
+      <p class="teacher-modal-lead teacher-modal-lead--danger">
+        Esta acción es <strong>irreversible</strong>. Se borrarán la cuenta de acceso, partidas, progreso, avatar, inventario y compras del alumno.
+      </p>
+      <p class="teacher-eliminar-alumno-resumen">
+        Alumno: <strong id="eliminar-alumno-nombre"></strong><br>
+        <span class="teacher-eliminar-alumno-email" id="eliminar-alumno-email"></span>
+      </p>
+      <label class="teacher-eliminar-alumno-label" for="eliminar-alumno-confirm-input">
+        Escribe el nombre completo del alumno para confirmar:
+        <span class="teacher-eliminar-alumno-esperado" id="eliminar-alumno-esperado"></span>
+      </label>
+      <input
+        type="text"
+        id="eliminar-alumno-confirm-input"
+        class="teacher-input teacher-eliminar-alumno-input"
+        autocomplete="off"
+        spellcheck="false"
+        placeholder="Nombre exacto del alumno"
+      />
+      <div class="teacher-eliminar-alumno-actions">
+        <button type="button" class="btn teacher-btn-cancelar-eliminar" data-close-modal-eliminar>Cancelar</button>
+        <button type="button" class="btn teacher-btn-confirmar-eliminar" id="btn-confirmar-eliminar-alumno" disabled>
+          Eliminar definitivamente
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Scripts: datos del panel y grupos -->
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

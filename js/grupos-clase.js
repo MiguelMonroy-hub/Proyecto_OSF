@@ -337,6 +337,159 @@ async function alumnoVincularAMaestro(profesorId) {
   };
 }
 
+// Estado del vínculo maestro (¿puede cambiar una vez?).
+async function alumnoEstadoCambioMaestro() {
+  var res = await alumnoResolverEstadoMaestro();
+  if (!res.ok) {
+    return res;
+  }
+  return { ok: true, estado: res.estado };
+}
+
+// Maestro actual + lista para el modal (sin depender solo del RPC estado_cambio_maestro_alumno).
+async function alumnoResolverEstadoMaestro() {
+  var sb = await initSupabase();
+  if (!sb) {
+    return { ok: false, error: "Supabase no está configurado." };
+  }
+  var perfil = await authCargarPerfil();
+  if (!perfil || perfil.rol !== "ALUMNO") {
+    return { ok: false, error: "Debes iniciar sesión como alumno." };
+  }
+
+  var listaRes = await sb.rpc("listar_maestros_registro", {});
+  if (listaRes.error) {
+    return {
+      ok: false,
+      error: listaRes.error.message || "No se pudo cargar la lista de maestros."
+    };
+  }
+  var lista = listaRes.data || [];
+
+  var alumnoRes = await sb
+    .from("alumno")
+    .select("id, profesor_id, cambios_maestro")
+    .maybeSingle();
+
+  if (
+    alumnoRes.error &&
+    String(alumnoRes.error.message || "").indexOf("cambios_maestro") >= 0
+  ) {
+    alumnoRes = await sb.from("alumno").select("id, profesor_id").maybeSingle();
+  }
+
+  if (alumnoRes.error || !alumnoRes.data) {
+    return {
+      ok: false,
+      error: alumnoRes.error
+        ? alumnoRes.error.message
+        : "No se encontró tu perfil de alumno."
+    };
+  }
+
+  var alumno = alumnoRes.data;
+  var profesorId = alumno.profesor_id != null ? alumno.profesor_id : null;
+  var cambios =
+    alumno.cambios_maestro != null ? Number(alumno.cambios_maestro) : 0;
+
+  if (profesorId == null && alumno.id) {
+    var linksRes = await sb
+      .from("alumno_grupo")
+      .select("grupo:grupo_id ( profesor_id, es_sistema )")
+      .eq("alumno_id", alumno.id);
+
+    if (!linksRes.error && linksRes.data && linksRes.data.length) {
+      var pidSistema = null;
+      var pidClase = null;
+      for (var i = 0; i < linksRes.data.length; i++) {
+        var g = linksRes.data[i].grupo;
+        if (!g || g.profesor_id == null) {
+          continue;
+        }
+        if (g.es_sistema) {
+          pidSistema = g.profesor_id;
+        } else if (pidClase == null) {
+          pidClase = g.profesor_id;
+        }
+      }
+      profesorId = pidSistema != null ? pidSistema : pidClase;
+    }
+  }
+
+  var nombreMaestro = null;
+  if (profesorId != null) {
+    for (var j = 0; j < lista.length; j++) {
+      if (String(lista[j].profesor_id) === String(profesorId)) {
+        var row = lista[j];
+        nombreMaestro = String(row.etiqueta || "").trim();
+        if (!nombreMaestro) {
+          nombreMaestro = (
+            String(row.nombre || "").trim() +
+            " " +
+            String(row.apellido || "").trim()
+          ).trim();
+        }
+        break;
+      }
+    }
+  }
+
+  if (!nombreMaestro && profesorId != null) {
+    var rpcEstado = await sb.rpc("estado_cambio_maestro_alumno", {});
+    if (
+      !rpcEstado.error &&
+      rpcEstado.data &&
+      rpcEstado.data[0] &&
+      String(rpcEstado.data[0].nombre_maestro || "").trim()
+    ) {
+      nombreMaestro = String(rpcEstado.data[0].nombre_maestro).trim();
+    }
+  }
+
+  return {
+    ok: true,
+    estado: {
+      puede_cambiar: cambios < 1,
+      cambios_maestro: cambios,
+      profesor_id: profesorId,
+      nombre_maestro: nombreMaestro || null
+    },
+    maestros: lista
+  };
+}
+
+// Cambio único de maestro (modal en Temas).
+async function alumnoCambiarMaestro(profesorId) {
+  var sb = await initSupabase();
+  if (!sb) {
+    return { ok: false, error: "Supabase no está configurado." };
+  }
+  var perfil = await authCargarPerfil();
+  if (!perfil || perfil.rol !== "ALUMNO") {
+    return { ok: false, error: "Debes iniciar sesión como alumno." };
+  }
+  var rpc = await sb.rpc("cambiar_mi_maestro", {
+    p_profesor_id: Number(profesorId)
+  });
+  if (rpc.error) {
+    return {
+      ok: false,
+      error: rpc.error.message || "No se pudo cambiar de maestro."
+    };
+  }
+  var row = rpc.data && rpc.data[0] ? rpc.data[0] : null;
+  return {
+    ok: true,
+    vinculo: row
+      ? {
+          dbId: row.grupo_id,
+          nombreGrupo: row.nombre,
+          vinculadoEn: Date.now()
+        }
+      : null
+  };
+}
+
 // Une al alumno a un grupo con el código de 6 caracteres del maestro.
 async function alumnoVincularPorCodigo(correo, codigo) {
   var c = normalizarCodigoGrupo(codigo);

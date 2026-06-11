@@ -35,6 +35,8 @@
   var elGrupoFilter = document.getElementById("teacher-grupo-filter");
   var elPaginacion = document.getElementById("teacher-pagination");
   var modalGrupos = document.getElementById("teacher-modal-grupos");
+  var modalEliminarAlumno = document.getElementById("teacher-modal-eliminar-alumno");
+  var _alumnoEliminarPendiente = null;
   var elTableWrap = document.querySelector(".teacher-table-wrap");
   var UMBRAL_SCROLL_PRACTICAS = 4;
   var _tableWrapScrollBound = false;
@@ -639,6 +641,14 @@
     };
   }
 
+  function htmlBotonEliminarAlumno(alumno) {
+    return (
+      '<button type="button" class="teacher-btn-delete-alumno" data-eliminar-alumno="' +
+      escHtml(String(alumno.id)) +
+      '">Eliminar alumno</button>'
+    );
+  }
+
   // Panel desplegable para prácticas creadas por el maestro
   function htmlDetalleNiveles(alumno) {
     var vista = vistaDetalleNiveles(alumno);
@@ -783,6 +793,7 @@
       tareasHtml +
       "</tbody></table></div></div>" +
       '<div class="teacher-detail-footer">' +
+      htmlBotonEliminarAlumno(alumno) +
       '<span class="teacher-avg-time">⏱ Promedio en este nivel: ' +
       tiempoNivelActual +
       "s</span>" +
@@ -987,12 +998,130 @@
       tareasHtml +
       "</tbody></table></div></div>" +
       '<div class="teacher-detail-footer">' +
+      htmlBotonEliminarAlumno(alumno) +
       '<span class="teacher-avg-time">⏱ Promedio en este nivel: ' +
       tiempoNivelActual +
       "s</span>" +
       '<button type="button" class="teacher-btn-collapse" data-collapse>Contraer</button>' +
       "</div></div>"
     );
+  }
+
+  function alumnoPorId(id) {
+    var lista = esVistaNiveles()
+      ? typeof teacherAlumnosNivelesEnGrupo === "function"
+        ? teacherAlumnosNivelesEnGrupo(estado.grupoId)
+        : []
+      : typeof teacherAlumnosEnGrupo === "function"
+        ? teacherAlumnosEnGrupo(estado.grupoId)
+        : [];
+    for (var i = 0; i < lista.length; i++) {
+      if (String(lista[i].id) === String(id)) {
+        return lista[i];
+      }
+    }
+    return null;
+  }
+
+  function actualizarBotonConfirmarEliminar() {
+    var btn = document.getElementById("btn-confirmar-eliminar-alumno");
+    var input = document.getElementById("eliminar-alumno-confirm-input");
+    if (!btn || !input || !_alumnoEliminarPendiente) {
+      if (btn) {
+        btn.disabled = true;
+      }
+      return;
+    }
+    var esperado = String(_alumnoEliminarPendiente.nombre || "").trim();
+    btn.disabled = String(input.value || "").trim() !== esperado;
+  }
+
+  function abrirModalEliminarAlumno(alumno) {
+    if (!modalEliminarAlumno || !alumno) {
+      return;
+    }
+    _alumnoEliminarPendiente = alumno;
+    var nombreEl = document.getElementById("eliminar-alumno-nombre");
+    var emailEl = document.getElementById("eliminar-alumno-email");
+    var esperadoEl = document.getElementById("eliminar-alumno-esperado");
+    var input = document.getElementById("eliminar-alumno-confirm-input");
+    if (nombreEl) {
+      nombreEl.textContent = alumno.nombre || "Alumno";
+    }
+    if (emailEl) {
+      emailEl.textContent = alumno.email || "";
+    }
+    if (esperadoEl) {
+      esperadoEl.textContent = alumno.nombre || "";
+    }
+    if (input) {
+      input.value = "";
+    }
+    actualizarBotonConfirmarEliminar();
+    modalEliminarAlumno.hidden = false;
+    modalEliminarAlumno.removeAttribute("hidden");
+    document.body.classList.add("teacher-modal-open");
+    actualizarScrollTopDashboard();
+    if (input) {
+      window.setTimeout(function () {
+        input.focus();
+      }, 50);
+    }
+  }
+
+  function cerrarModalEliminarAlumno() {
+    if (!modalEliminarAlumno) {
+      return;
+    }
+    _alumnoEliminarPendiente = null;
+    modalEliminarAlumno.hidden = true;
+    modalEliminarAlumno.setAttribute("hidden", "");
+    if (!modalGrupos || modalGrupos.hidden) {
+      document.body.classList.remove("teacher-modal-open");
+    }
+    actualizarScrollTopDashboard();
+  }
+
+  async function ejecutarEliminarAlumno() {
+    if (!_alumnoEliminarPendiente) {
+      return;
+    }
+    var alumno = _alumnoEliminarPendiente;
+    var btn = document.getElementById("btn-confirmar-eliminar-alumno");
+    if (btn) {
+      btn.disabled = true;
+    }
+    if (typeof uiMostrarCarga === "function") {
+      uiMostrarCarga("teacher-eliminar-alumno", "Eliminando alumno…");
+    }
+    try {
+      if (typeof teacherEliminarAlumnoAsync !== "function") {
+        throw new Error("No se pudo cargar la acción de eliminación.");
+      }
+      await teacherEliminarAlumnoAsync(alumno.dbId || alumno.id);
+      cerrarModalEliminarAlumno();
+      estado.expandidoId = null;
+      limpiarSeleccionDetalle();
+      pintarTabla();
+      if (typeof uiToastSuccess === "function") {
+        uiToastSuccess("Alumno eliminado correctamente.");
+      }
+    } catch (e) {
+      var msg =
+        typeof maestroErrorAmigable === "function"
+          ? maestroErrorAmigable(e, "eliminarAlumno")
+          : "No se pudo eliminar al alumno.";
+      if (typeof uiToastError === "function") {
+        uiToastError(msg);
+      } else {
+        window.alert(msg);
+      }
+      actualizarBotonConfirmarEliminar();
+    } finally {
+      if (typeof uiOcultarCarga === "function") {
+        uiOcultarCarga("teacher-eliminar-alumno");
+      }
+    }
   }
 
   // Pinta filas de alumnos, barras por tema y la fila expandida si toca
@@ -1559,6 +1688,16 @@
     }
 
     elBody.addEventListener("click", function (ev) {
+      var eliminarBtn = ev.target.closest("[data-eliminar-alumno]");
+      if (eliminarBtn) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var alumnoElim = alumnoPorId(eliminarBtn.getAttribute("data-eliminar-alumno"));
+        if (alumnoElim) {
+          abrirModalEliminarAlumno(alumnoElim);
+        }
+        return;
+      }
       if (ev.target.closest("[data-collapse]")) {
         estado.expandidoId = null;
         limpiarSeleccionDetalle();
@@ -1633,8 +1772,35 @@
       });
     }
 
+    if (modalEliminarAlumno) {
+      modalEliminarAlumno
+        .querySelectorAll("[data-close-modal-eliminar]")
+        .forEach(function (el) {
+          el.addEventListener("click", cerrarModalEliminarAlumno);
+        });
+    }
+
+    var inputConfirmEliminar = document.getElementById("eliminar-alumno-confirm-input");
+    if (inputConfirmEliminar) {
+      inputConfirmEliminar.addEventListener("input", actualizarBotonConfirmarEliminar);
+    }
+
+    var btnConfirmEliminar = document.getElementById("btn-confirmar-eliminar-alumno");
+    if (btnConfirmEliminar) {
+      btnConfirmEliminar.addEventListener("click", function () {
+        ejecutarEliminarAlumno();
+      });
+    }
+
     document.addEventListener("keydown", function (ev) {
-      if (ev.key === "Escape" && modalGrupos && !modalGrupos.hidden) {
+      if (ev.key !== "Escape") {
+        return;
+      }
+      if (modalEliminarAlumno && !modalEliminarAlumno.hidden) {
+        cerrarModalEliminarAlumno();
+        return;
+      }
+      if (modalGrupos && !modalGrupos.hidden) {
         cerrarModalGrupos();
       }
     });

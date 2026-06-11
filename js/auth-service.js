@@ -1,10 +1,16 @@
 /**
- * Capa central de autenticación: Supabase Auth + perfil en tabla usuario.
- * Aquí vive el login, registro, renovación de sesión, guards por rol y la limpieza al salir.
+ * Autenticación central de TecDuck.
+ *
+ * Este archivo conecta la app con Supabase Auth (correo + contraseña) y con la
+ * tabla public.usuario (nombre, rol ALUMNO/MAESTRO, etc.).
+ *
+ * Lo usan login.js, register.js y los guards de páginas protegidas.
  */
-var authPerfilCache = null;
+var authPerfilCache = null; // Perfil del usuario logueado; evita consultarlo en cada pantalla.
 
-// ¿Modo debug? Se activa con ?debug=1 en la URL o tec_duck_auth_debug en localStorage.
+// --- Utilidades y depuración ---
+
+// Modo debug: pon ?debug=1 en la URL o tec_duck_auth_debug=1 en localStorage.
 function authDebugActivo() {
   try {
     if (typeof window !== "undefined" && window.location) {
@@ -21,14 +27,14 @@ function authDebugActivo() {
   return false;
 }
 
-// Solo escribe en consola si el debug está prendido.
+// Mensaje normal en consola (solo si debug está activo).
 function authLog(contexto, detalle) {
   if (authDebugActivo()) {
     console.log("[auth:" + contexto + "]", detalle);
   }
 }
 
-// Siempre registra el error; con debug activo añade message, code, details…
+// Error en consola; con debug muestra también code, details y hint de Supabase.
 function authLogError(contexto, error) {
   console.error("[auth:" + contexto + "]", error);
   if (authDebugActivo() && error && typeof error === "object") {
@@ -41,19 +47,19 @@ function authLogError(contexto, error) {
   }
 }
 
-// Trim + minúsculas para que "Usuario@Mail.COM" y "usuario@mail.com" cuenten igual.
+// Mismo correo siempre igual: sin espacios y en minúsculas.
 function normalizarCorreoAuth(correo) {
   return String(correo || "")
     .trim()
     .toLowerCase();
 }
 
-// Borra el perfil cacheado (tras login, logout o refresh de token).
+// Olvida el perfil guardado en memoria (hay que volver a leerlo de la base).
 function authLimpiarCache() {
   authPerfilCache = null;
 }
 
-// Saca un string legible del objeto error (Supabase, fetch, etc.).
+// Obtiene el texto del error aunque venga en distintos formatos.
 function authExtraerMensaje(error) {
   if (!error) {
     return "Error desconocido";
@@ -73,7 +79,10 @@ function authExtraerMensaje(error) {
   return "Error desconocido";
 }
 
-// Pasa errores crudos a mensajes que el alumno o maestro puedan entender.
+// --- Mensajes de error para el usuario ---
+
+// Convierte errores técnicos de Supabase/red en frases claras en español.
+// contexto: "login" o "registro" para el mensaje genérico del final.
 function authTraducirError(error, contexto) {
   var msg = authExtraerMensaje(error);
   var code = error && error.code ? String(error.code).toLowerCase() : "";
@@ -184,7 +193,7 @@ function authTraducirError(error, contexto) {
     lower.indexOf("infinite recursion") >= 0 ||
     lower.indexOf("recursion detected") >= 0
   ) {
-    return "Error de permisos en la base de datos (solo afecta cuentas de maestro). Ejecuta database/02_seguridad_rls.sql en el SQL Editor de Supabase (ver database/LEEME_INSTALACION.md).";
+    return "Error de permisos en la base de datos (solo afecta cuentas de maestro). Ejecuta database/02_seguridad_rls.sql en el SQL Editor de Supabase.";
   }
 
   if (lower.indexOf("supabase no está configurado") >= 0) {
@@ -204,12 +213,14 @@ function authTraducirError(error, contexto) {
   return "Ocurrió un error. Inténtalo de nuevo.";
 }
 
-// Traduce el error y lo lanza como Error estándar de JS.
+// Traduce el error y lo lanza; login.js y register.js lo muestran en pantalla.
 function authLanzarError(error, contexto) {
   throw new Error(authTraducirError(error, contexto));
 }
 
-// Lee la sesión del cliente
+// --- Sesión (token JWT en el navegador) ---
+
+// Devuelve la sesión guardada en el navegador, o null si no hay nadie logueado.
 async function authObtenerSesion() {
   var sb = await initSupabase();
   if (!sb) {
@@ -222,7 +233,7 @@ async function authObtenerSesion() {
   return res.data.session;
 }
 
-// Valida con el servidor y refresca la sesión
+// Comprueba con Supabase si el token sigue válido; si caducó, pide uno nuevo.
 async function authRenovarSesionSiHaceFalta() {
   var sb = await initSupabase();
   if (!sb) {
@@ -251,7 +262,7 @@ async function authRenovarSesionSiHaceFalta() {
   return refresh.data.session;
 }
 
-// Compara rol del perfil sin importar mayúsculas.
+// ¿El perfil tiene este rol? (ALUMNO o MAESTRO, sin importar mayúsculas).
 function authEsRol(perfil, rol) {
   if (!perfil || !perfil.rol) {
     return false;
@@ -259,7 +270,8 @@ function authEsRol(perfil, rol) {
   return String(perfil.rol).toUpperCase() === String(rol).toUpperCase();
 }
 
-// Trae la fila de usuario por auth_id; usa caché salvo que pidas force.
+// Lee nombre, correo y rol desde public.usuario usando el UUID de Auth.
+// force=true obliga a consultar de nuevo; sesionExplicita evita otra lectura de sesión.
 async function authCargarPerfil(force, sesionExplicita) {
   if (authPerfilCache && !force) {
     return authPerfilCache;
@@ -292,7 +304,9 @@ async function authCargarPerfil(force, sesionExplicita) {
   return authPerfilCache;
 }
 
-// signInWithPassword + validación previa + carga de perfil en tabla usuario.
+// --- Login y registro ---
+
+// Inicia sesión: valida, llama a Supabase signIn y carga el perfil en public.usuario.
 async function authIniciarSesion(correo, contrasena) {
   var sb = await initSupabase();
   if (!sb) {
@@ -335,14 +349,15 @@ async function authIniciarSesion(correo, contrasena) {
   }
 }
 
-// Atajo de registro con rol ALUMNO por defecto.
+// Crea cuenta de alumno (signup.html usa esto con rol ALUMNO).
 async function authRegistrarAlumno(datos) {
   return authRegistrarUsuario(
     Object.assign({}, datos, { rol: datos.rol || "ALUMNO" })
   );
 }
 
-// signUp genérico: alumno o maestro según datos.rol.
+// Crea cuenta en Supabase Auth; el trigger SQL crea usuario, alumno y avatar.
+// register.js llama aquí con rol ALUMNO. Los maestros web no usan esta pantalla.
 async function authRegistrarUsuario(datos) {
   var sb = await initSupabase();
   if (!sb) {
@@ -387,7 +402,7 @@ async function authRegistrarUsuario(datos) {
   }
 }
 
-// Alta de maestro; los errores van sin traducir (lo usan scripts internos).
+// Crea cuenta MAESTRO (scripts internos / SQL); errores sin traducir al usuario.
 async function authRegistrarMaestro(datos) {
   var sb = await initSupabase();
   if (!sb) {
@@ -424,7 +439,9 @@ async function authRegistrarMaestro(datos) {
   return res.data;
 }
 
-// Claves tec_duck_* que borramos al cerrar sesión.
+// --- Cerrar sesión y limpieza local ---
+
+// Lista de datos guardados en el navegador que se borran al salir.
 function authClavesLocalStorageSesion() {
   return [
     "tec_duck_personaje",
@@ -443,7 +460,19 @@ function authClavesLocalStorageSesion() {
   ];
 }
 
-// Vacía cachés en memoria y todo lo de localStorage ligado a la sesión.
+// Copia el outfit de sesión a la portada antes de borrar datos al salir.
+function authPreservarPatoPortada() {
+  try {
+    var raw = localStorage.getItem("tec_duck_personaje");
+    if (raw) {
+      localStorage.setItem("tec_duck_personaje_portada", raw);
+    }
+  } catch (e) {
+    /* noop */
+  }
+}
+
+// Borra progreso, avatar, monedas y demás datos locales de la sesión anterior.
 function authLimpiarDatosLocalesSesion() {
   if (typeof progresoTemasLimpiar === "function") {
     progresoTemasLimpiar();
@@ -460,7 +489,9 @@ function authLimpiarDatosLocalesSesion() {
   if (typeof alumnoSesionLimpiarLocal === "function") {
     alumnoSesionLimpiarLocal();
   }
+  authPreservarPatoPortada();
   try {
+    var preservar = { "tec_duck_personaje_portada": true };
     var claves = authClavesLocalStorageSesion();
     for (var i = 0; i < claves.length; i++) {
       localStorage.removeItem(claves[i]);
@@ -468,7 +499,7 @@ function authLimpiarDatosLocalesSesion() {
     var borrar = [];
     for (var j = 0; j < localStorage.length; j++) {
       var k = localStorage.key(j);
-      if (k && k.indexOf("tec_duck_") === 0) {
+      if (k && k.indexOf("tec_duck_") === 0 && !preservar[k]) {
         borrar.push(k);
       }
     }
@@ -480,7 +511,7 @@ function authLimpiarDatosLocalesSesion() {
   }
 }
 
-// signOut en Supabase y limpieza local.
+// Cierra sesión en Supabase y limpia caché + localStorage.
 async function authCerrarSesion() {
   var sb = getSupabaseSync();
   authLimpiarCache();
@@ -490,7 +521,9 @@ async function authCerrarSesion() {
   }
 }
 
-// ¿JWT válido y perfil con rol MAESTRO?
+// --- Comprobar quién está logueado ---
+
+// true si hay sesión válida y el usuario es MAESTRO.
 async function authSesionMaestroActiva() {
   try {
     var sesion = await authRenovarSesionSiHaceFalta();
@@ -505,7 +538,7 @@ async function authSesionMaestroActiva() {
   }
 }
 
-// ¿JWT válido y perfil con rol ALUMNO?
+// true si hay sesión válida y el usuario es ALUMNO.
 async function authSesionAlumnoActiva() {
   try {
     var sesion = await authRenovarSesionSiHaceFalta();
@@ -520,7 +553,7 @@ async function authSesionAlumnoActiva() {
   }
 }
 
-// Correo del usuario logueado, o cadena vacía si no hay sesión.
+// Correo de quien está logueado; "" si nadie inició sesión.
 async function authEmailActual() {
   var sesion = await authRenovarSesionSiHaceFalta();
   if (!sesion) {
@@ -532,7 +565,9 @@ async function authEmailActual() {
   return "";
 }
 
-// Guard de rutas maestro: si no hay sesión MAESTRO, manda a login.
+// --- Proteger páginas (guards) ---
+
+// Páginas del maestro: si no es MAESTRO, redirige a login.html.
 async function authExigirMaestro() {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -545,7 +580,7 @@ async function authExigirMaestro() {
   return true;
 }
 
-// Guard de rutas alumno: si no hay sesión ALUMNO, manda a login.
+// Páginas del alumno: si no es ALUMNO, redirige a login.html.
 async function authExigirAlumno() {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -563,7 +598,7 @@ async function authExigirAlumno() {
   return true;
 }
 
-// Guarda avatar pendiente, cierra sesión y redirige.
+// Botón «Salir»: guarda avatar si hace falta, cierra sesión y va a index (u otra página).
 async function authSalir(destino) {
   if (typeof initSupabase === "function") {
     await initSupabase();
@@ -580,7 +615,7 @@ async function authSalir(destino) {
   window.location.href = typeof pagina === "function" ? pagina(dest) : dest;
 }
 
-// Engancha el click en [data-auth-logout] sin duplicar listeners.
+// Conecta botones con data-auth-logout para que llamen a authSalir al hacer clic.
 function authEnlazarBotonesSalir(root) {
   var scope = root || document;
   var botones = scope.querySelectorAll("[data-auth-logout]");
@@ -606,12 +641,14 @@ function authEnlazarBotonesSalir(root) {
   }
 }
 
-// Enlaza botones de salir en todo el documento.
+// Busca todos los botones de salir en la página y los enlaza una vez.
 function authInitSalirListeners() {
   authEnlazarBotonesSalir();
 }
 
-// Al volver a la pestaña, intenta renovar el token en segundo plano.
+// --- Arranque automático al cargar cualquier página que incluya este script ---
+
+// Si el usuario vuelve a la pestaña, renueva el token en segundo plano.
 function authInitRenovacionSesion() {
   if (typeof document === "undefined") {
     return;
@@ -629,7 +666,7 @@ function authInitRenovacionSesion() {
   });
 }
 
-// Arranque global: salir, renovación al volver y reacción a cambios de auth.
+// Al cargar la página: botones salir, renovación de sesión y limpiar caché al cambiar auth.
 function authInitListenersAuth() {
   authInitSalirListeners();
   authInitRenovacionSesion();
@@ -656,7 +693,7 @@ function authInitListenersAuth() {
     });
 }
 
-// Monta los listeners en cuanto el DOM esté listo.
+// Ejecuta la inicialización en cuanto el HTML esté listo.
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", authInitListenersAuth);
 } else {

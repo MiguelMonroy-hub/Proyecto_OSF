@@ -159,7 +159,7 @@ body.page-quiz.is-quiz-loading::before {
 
 .quiz-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
   flex: 0 0 auto;
@@ -172,6 +172,8 @@ body.page-quiz.is-quiz-loading::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  flex: 1;
+  min-width: 0;
 }
 
 .quiz-context {
@@ -207,6 +209,52 @@ body.page-quiz.is-quiz-loading::before {
 .quiz-top .hearts {
   letter-spacing: 4px;
   font-size: 1.3rem;
+  flex: 0 0 auto;
+}
+
+.quiz-duck-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.quiz-duck-stack {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+
+.page-quiz .quiz-duck-stack .stack-img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.page-quiz .quiz-duck-stack .z-base {
+  z-index: 1;
+}
+
+.page-quiz .quiz-duck-stack .z-shoes {
+  z-index: 2;
+}
+
+.page-quiz .quiz-duck-stack .z-neck {
+  z-index: 3;
+}
+
+.page-quiz .quiz-duck-stack .z-face {
+  z-index: 4;
+}
+
+.page-quiz .quiz-duck-stack .z-head {
+  z-index: 5;
 }
 
 .quiz-box {

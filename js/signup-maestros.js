@@ -1,14 +1,15 @@
-/**
- * Lista de maestros en signup.html (desplegable al crear cuenta).
- * El alumno elige uno; register.js lo vincula tras el alta con vincular_alumno_a_maestro.
- */
 (function () {
   "use strict";
 
-  var _maestrosCache = null;
-  var _filtroActual = "";
-  var _panelAbierto = false;
+  // --- Estado en memoria ---
 
+  var _maestrosCache = null; // Lista completa que devolvió Supabase.
+  var _filtroActual = ""; // Texto del buscador (filtra por nombre).
+  var _panelAbierto = false; // ¿Está abierto el desplegable de maestros?
+
+  // --- Utilidades ---
+
+  // Evita que nombres con < o " rompan el HTML al pintar la lista.
   function escHtml(s) {
     return String(s || "")
       .replace(/&/g, "&amp;")
@@ -16,6 +17,7 @@
       .replace(/"/g, "&quot;");
   }
 
+  // Nombre que se muestra en cada opción: etiqueta de la BD o nombre + apellido.
   function etiquetaMaestro(row) {
     var txt = String(row.etiqueta || "").trim();
     if (txt) {
@@ -25,6 +27,8 @@
     var apellido = String(row.apellido || "").trim();
     return (nombre + " " + apellido).trim() || "Maestro";
   }
+
+  // --- Referencias a elementos del HTML (signup.html) ---
 
   function fieldsetMaestros() {
     return document.getElementById("signup-maestros-fieldset");
@@ -53,6 +57,8 @@
   function panelMaestros() {
     return document.getElementById("signup-maestros-panel");
   }
+
+  // --- Abrir / cerrar el desplegable ---
 
   function abrirPanel() {
     var panel = panelMaestros();
@@ -92,6 +98,7 @@
     }
   }
 
+  // Actualiza el texto del botón cerrado: «Elige un maestro» o el nombre elegido.
   function actualizarToggleValor() {
     var val = toggleValor();
     var btn = toggleBtn();
@@ -117,6 +124,7 @@
     }
   }
 
+  // Pone HTML en la lista (cargando, error o vacío) y oculta el buscador.
   function pintarEstadoLista(html) {
     var el = contenedorLista();
     if (el) {
@@ -129,6 +137,7 @@
     actualizarToggleValor();
   }
 
+  // Animación de «Cargando maestros…» mientras llega la respuesta de Supabase.
   function htmlSkeleton() {
     return (
       '<div class="signup-maestros-skeleton" role="status" aria-live="polite">' +
@@ -138,6 +147,7 @@
     );
   }
 
+  // Filtra la lista por lo que escribió el alumno en el buscador.
   function filtrarMaestros(lista, termino) {
     var q = String(termino || "")
       .trim()
@@ -150,6 +160,7 @@
     });
   }
 
+  // Marca visualmente la opción del radio que está seleccionada.
   function sincronizarEstadoOpciones() {
     var opciones = document.querySelectorAll(".signup-maestro-option");
     for (var i = 0; i < opciones.length; i++) {
@@ -160,6 +171,7 @@
     actualizarToggleValor();
   }
 
+  // Al elegir un maestro (radio), cierra el panel y actualiza el botón.
   function enlazarEventosLista() {
     var lista = contenedorLista();
     if (!lista) {
@@ -173,6 +185,8 @@
     });
   }
 
+  // Clic en el botón desplegable: abre/cierra la lista.
+  // Clic fuera del fieldset: cierra la lista.
   function enlazarToggle() {
     var btn = toggleBtn();
     if (!btn || btn.getAttribute("data-toggle-listo") === "1") {
@@ -196,6 +210,7 @@
     });
   }
 
+  // Cada tecla en el buscador vuelve a pintar la lista filtrada.
   function enlazarBusqueda() {
     var input = inputBuscar();
     if (!input || input.getAttribute("data-buscar-listo") === "1") {
@@ -210,6 +225,8 @@
     });
   }
 
+  // --- Pintar la lista de maestros en pantalla ---
+
   function pintarMaestros(lista, opts) {
     opts = opts || {};
     var el = contenedorLista();
@@ -218,6 +235,7 @@
     }
     _maestrosCache = lista;
 
+    // Sin maestros en la base: mensaje y botón deshabilitado.
     if (!lista.length) {
       cerrarPanel();
       pintarEstadoLista(
@@ -237,6 +255,7 @@
       btn.disabled = false;
     }
 
+    // Buscador solo si hay 4 o más maestros (si no, no hace falta).
     var tb = toolbarBuscar();
     if (tb) {
       tb.hidden = lista.length < 4;
@@ -260,6 +279,7 @@
       return;
     }
 
+    // Un radio por maestro; name="profesor-id" para que register.js lea el elegido.
     var previo = signupMaestroSeleccionadoId();
     var html = [];
     for (var i = 0; i < visibles.length; i++) {
@@ -283,6 +303,7 @@
     }
     el.innerHTML = html.join("");
 
+    // Si solo hay un maestro, lo preselecciona para ahorrar un clic.
     if (visibles.length === 1 && !document.querySelector('input[name="profesor-id"]:checked')) {
       var unico = el.querySelector('input[name="profesor-id"]');
       if (unico) {
@@ -293,6 +314,8 @@
     sincronizarEstadoOpciones();
     enlazarBusqueda();
   }
+
+  // --- Cargar maestros desde Supabase ---
 
   async function signupCargarMaestros() {
     cerrarPanel();
@@ -316,7 +339,9 @@
       if (!sb) {
         throw new Error("Supabase no configurado");
       }
+      // RPC definido en database/01_esquema_y_funciones.sql
       var res = await sb.rpc("listar_maestros_registro", {});
+      // Si el esquema acaba de actualizarse, espera y reintenta una vez.
       if (res.error && String(res.error.code || "") === "PGRST202") {
         await new Promise(function (r) {
           setTimeout(r, 1500);
@@ -327,7 +352,7 @@
         var detalle = res.error.message || "Error al cargar maestros";
         if (String(res.error.code || "") === "PGRST202") {
           detalle =
-            "Falta ejecutar la PARTE A de database/04_crear_maestro.sql en Supabase. Luego recarga esta página.";
+            "Falta ejecutar database/01_esquema_y_funciones.sql en Supabase. Luego recarga esta página.";
         }
         throw new Error(detalle);
       }
@@ -345,6 +370,9 @@
     }
   }
 
+  // --- API pública (la usa register.js) ---
+
+  // Devuelve el profesor_id del radio marcado, o null.
   function signupMaestroSeleccionadoId() {
     var checked = document.querySelector('input[name="profesor-id"]:checked');
     if (!checked) {
@@ -354,6 +382,7 @@
     return isNaN(id) ? null : id;
   }
 
+  // register.js llama esto antes de crear la cuenta: ¿hay lista y hay elección?
   function signupValidarMaestroSeleccionado() {
     if (!_maestrosCache || !_maestrosCache.length) {
       return {
@@ -368,6 +397,8 @@
     }
     return { ok: true, profesorId: id };
   }
+
+  // --- Arranque al cargar signup.html ---
 
   document.addEventListener("DOMContentLoaded", function () {
     enlazarToggle();

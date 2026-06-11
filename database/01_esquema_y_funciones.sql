@@ -1,8 +1,7 @@
 -- =============================================================================
 -- Tec-Duck — PASO 1 de 2: Esquema + funciones (Supabase SQL Editor)
 -- =============================================================================
--- Proyecto NUEVO: ejecuta este archivo y después database/02_seguridad_rls.sql
--- Instrucciones: database/LEEME_INSTALACION.md
+-- Proyecto NUEVO: ejecuta 01 → 02 → 04_crear_maestro.sql (un 04 por cada maestro)
 -- =============================================================================
 
 -- Tipos enumerados
@@ -58,55 +57,14 @@ CREATE TABLE public.alumno (
   id              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   usuario_id      BIGINT NOT NULL UNIQUE REFERENCES public.usuario (id) ON DELETE CASCADE,
   profesor_id     BIGINT REFERENCES public.profesor (id) ON DELETE SET NULL,
+  cambios_maestro SMALLINT NOT NULL DEFAULT 0 CHECK (cambios_maestro >= 0 AND cambios_maestro <= 1),
   saldo_monedas   INTEGER NOT NULL DEFAULT 0 CHECK (saldo_monedas >= 0),
   creado_en       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_alumno_profesor ON public.alumno (profesor_id);
 
--- Perfil automático al registrarse en Supabase Auth
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_rol       rol_usuario;
-  v_nombre    TEXT;
-  v_apellido  TEXT;
-  v_usuario_id BIGINT;
-  v_alumno_id BIGINT;
-BEGIN
-  v_rol := COALESCE((NEW.raw_user_meta_data ->> 'rol')::rol_usuario, 'ALUMNO');
-  v_nombre := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data ->> 'nombre'), ''), split_part(NEW.email, '@', 1));
-  v_apellido := NULLIF(TRIM(NEW.raw_user_meta_data ->> 'apellido'), '');
-
-  INSERT INTO public.usuario (auth_id, email, rol, nombre, apellido)
-  VALUES (NEW.id, NEW.email, v_rol, v_nombre, v_apellido)
-  RETURNING id INTO v_usuario_id;
-
-  IF v_rol = 'MAESTRO' THEN
-    INSERT INTO public.profesor (usuario_id) VALUES (v_usuario_id);
-    INSERT INTO public.grupo (profesor_id, nombre, codigo, es_sistema)
-    SELECT p.id, 'Todos los alumnos', 'SYST00', TRUE
-    FROM public.profesor p
-    WHERE p.usuario_id = v_usuario_id;
-  ELSE
-    INSERT INTO public.alumno (usuario_id) VALUES (v_usuario_id)
-    RETURNING id INTO v_alumno_id;
-    INSERT INTO public.avatar (alumno_id) VALUES (v_alumno_id);
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
--- Helpers para RLS
+-- Helpers para RLS (solo tablas usuario / profesor / alumno; el resto va tras crear todas las tablas)
 CREATE OR REPLACE FUNCTION public.get_my_usuario_id()
 RETURNS BIGINT
 LANGUAGE sql
@@ -166,138 +124,6 @@ AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.usuario
     WHERE auth_id = auth.uid() AND rol = 'ALUMNO' AND activo = TRUE
-  );
-$$;
-
--- Helpers RLS sin recursión (SECURITY DEFINER evita ciclos grupo ↔ alumno_grupo)
-CREATE OR REPLACE FUNCTION public.grupo_es_de_mi_profesor(p_grupo_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.grupo g
-    JOIN public.profesor p ON p.id = g.profesor_id
-    JOIN public.usuario u ON u.id = p.usuario_id
-    WHERE g.id = p_grupo_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.soy_miembro_grupo(p_grupo_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.alumno_grupo ag
-    JOIN public.alumno a ON a.id = ag.alumno_id
-    JOIN public.usuario u ON u.id = a.usuario_id
-    WHERE ag.grupo_id = p_grupo_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.maestro_puede_ver_alumno_id(p_alumno_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.alumno a
-    JOIN public.profesor p ON p.id = a.profesor_id
-    JOIN public.usuario u ON u.id = p.usuario_id
-    WHERE a.id = p_alumno_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  )
-  OR EXISTS (
-    SELECT 1
-    FROM public.alumno_grupo ag
-    JOIN public.grupo g ON g.id = ag.grupo_id
-    JOIN public.profesor p ON p.id = g.profesor_id
-    JOIN public.usuario u ON u.id = p.usuario_id
-    WHERE ag.alumno_id = p_alumno_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.maestro_puede_ver_usuario_alumno(p_usuario_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.alumno a
-    JOIN public.profesor p ON p.id = a.profesor_id
-    JOIN public.usuario u ON u.id = p.usuario_id
-    WHERE a.usuario_id = p_usuario_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  )
-  OR EXISTS (
-    SELECT 1
-    FROM public.alumno a
-    JOIN public.alumno_grupo ag ON ag.alumno_id = a.id
-    JOIN public.grupo g ON g.id = ag.grupo_id
-    JOIN public.profesor p ON p.id = g.profesor_id
-    JOIN public.usuario u ON u.id = p.usuario_id
-    WHERE a.usuario_id = p_usuario_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.alumno_puede_ver_nivel_maestro(p_nivel_maestro_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.nivel_maestro_grupo nmg
-    JOIN public.alumno_grupo ag ON ag.grupo_id = nmg.grupo_id
-    JOIN public.alumno a ON a.id = ag.alumno_id
-    JOIN public.usuario u ON u.id = a.usuario_id
-    WHERE nmg.nivel_maestro_id = p_nivel_maestro_id
-      AND nmg.visible = TRUE
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
-  );
-$$;
-
-CREATE OR REPLACE FUNCTION public.alumno_en_grupo_nmg(p_grupo_id BIGINT)
-RETURNS BOOLEAN
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.alumno_grupo ag
-    JOIN public.alumno a ON a.id = ag.alumno_id
-    JOIN public.usuario u ON u.id = a.usuario_id
-    WHERE ag.grupo_id = p_grupo_id
-      AND u.auth_id = auth.uid()
-      AND u.activo = TRUE
   );
 $$;
 
@@ -511,6 +337,184 @@ CREATE TABLE public.avatar (
 CREATE TRIGGER trg_avatar_actualizado
   BEFORE UPDATE ON public.avatar
   FOR EACH ROW EXECUTE FUNCTION public.set_actualizado_en();
+
+-- -----------------------------------------------------------------------------
+-- Triggers y helpers RLS (después de todas las tablas)
+-- -----------------------------------------------------------------------------
+
+-- Perfil automático al registrarse en Supabase Auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_rol       rol_usuario;
+  v_nombre    TEXT;
+  v_apellido  TEXT;
+  v_usuario_id BIGINT;
+  v_alumno_id BIGINT;
+BEGIN
+  v_rol := COALESCE((NEW.raw_user_meta_data ->> 'rol')::rol_usuario, 'ALUMNO');
+  v_nombre := COALESCE(NULLIF(TRIM(NEW.raw_user_meta_data ->> 'nombre'), ''), split_part(NEW.email, '@', 1));
+  v_apellido := NULLIF(TRIM(NEW.raw_user_meta_data ->> 'apellido'), '');
+
+  INSERT INTO public.usuario (auth_id, email, rol, nombre, apellido)
+  VALUES (NEW.id, NEW.email, v_rol, v_nombre, v_apellido)
+  RETURNING id INTO v_usuario_id;
+
+  IF v_rol = 'MAESTRO' THEN
+    INSERT INTO public.profesor (usuario_id) VALUES (v_usuario_id);
+    INSERT INTO public.grupo (profesor_id, nombre, codigo, es_sistema)
+    SELECT p.id, 'Todos los alumnos', 'SYST00', TRUE
+    FROM public.profesor p
+    WHERE p.usuario_id = v_usuario_id;
+  ELSE
+    INSERT INTO public.alumno (usuario_id) VALUES (v_usuario_id)
+    RETURNING id INTO v_alumno_id;
+    INSERT INTO public.avatar (alumno_id) VALUES (v_alumno_id);
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Helpers RLS sin recursión (SECURITY DEFINER evita ciclos grupo ↔ alumno_grupo)
+CREATE OR REPLACE FUNCTION public.grupo_es_de_mi_profesor(p_grupo_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.grupo g
+    JOIN public.profesor p ON p.id = g.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE g.id = p_grupo_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.soy_miembro_grupo(p_grupo_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno_grupo ag
+    JOIN public.alumno a ON a.id = ag.alumno_id
+    JOIN public.usuario u ON u.id = a.usuario_id
+    WHERE ag.grupo_id = p_grupo_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.maestro_puede_ver_alumno_id(p_alumno_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.profesor p ON p.id = a.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.id = p_alumno_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.alumno_grupo ag
+    JOIN public.grupo g ON g.id = ag.grupo_id
+    JOIN public.profesor p ON p.id = g.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE ag.alumno_id = p_alumno_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.maestro_puede_ver_usuario_alumno(p_usuario_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.profesor p ON p.id = a.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.usuario_id = p_usuario_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  )
+  OR EXISTS (
+    SELECT 1
+    FROM public.alumno a
+    JOIN public.alumno_grupo ag ON ag.alumno_id = a.id
+    JOIN public.grupo g ON g.id = ag.grupo_id
+    JOIN public.profesor p ON p.id = g.profesor_id
+    JOIN public.usuario u ON u.id = p.usuario_id
+    WHERE a.usuario_id = p_usuario_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.alumno_puede_ver_nivel_maestro(p_nivel_maestro_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.nivel_maestro_grupo nmg
+    JOIN public.alumno_grupo ag ON ag.grupo_id = nmg.grupo_id
+    JOIN public.alumno a ON a.id = ag.alumno_id
+    JOIN public.usuario u ON u.id = a.usuario_id
+    WHERE nmg.nivel_maestro_id = p_nivel_maestro_id
+      AND nmg.visible = TRUE
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.alumno_en_grupo_nmg(p_grupo_id BIGINT)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.alumno_grupo ag
+    JOIN public.alumno a ON a.id = ag.alumno_id
+    JOIN public.usuario u ON u.id = a.usuario_id
+    WHERE ag.grupo_id = p_grupo_id
+      AND u.auth_id = auth.uid()
+      AND u.activo = TRUE
+  );
+$$;
 
 -- Unirse a grupo por código (evita exponer INSERT directo)
 CREATE OR REPLACE FUNCTION public.unirse_a_grupo(p_codigo CHAR(6))
@@ -1207,6 +1211,55 @@ $$;
 GRANT EXECUTE ON FUNCTION public.sincronizar_alumnos_grupo(BIGINT, BIGINT[]) TO authenticated;
 
 -- -----------------------------------------------------------------------------
+-- Eliminar alumno (maestro, borra cuenta Auth y todo su historial)
+-- -----------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.eliminar_alumno_maestro(p_alumno_id BIGINT)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_auth_id UUID;
+  v_rol     VARCHAR;
+BEGIN
+  IF NOT public.is_maestro() THEN
+    RAISE EXCEPTION 'Solo maestros pueden eliminar alumnos';
+  END IF;
+
+  IF p_alumno_id IS NULL OR p_alumno_id <= 0 THEN
+    RAISE EXCEPTION 'Alumno no válido';
+  END IF;
+
+  IF NOT public.maestro_puede_ver_alumno_id(p_alumno_id) THEN
+    RAISE EXCEPTION 'No tienes permiso para eliminar a este alumno';
+  END IF;
+
+  SELECT u.auth_id, u.rol
+  INTO v_auth_id, v_rol
+  FROM public.alumno a
+  JOIN public.usuario u ON u.id = a.usuario_id
+  WHERE a.id = p_alumno_id;
+
+  IF v_auth_id IS NULL THEN
+    RAISE EXCEPTION 'Alumno no encontrado';
+  END IF;
+
+  IF v_rol IS DISTINCT FROM 'ALUMNO' THEN
+    RAISE EXCEPTION 'Solo se pueden eliminar cuentas de alumno';
+  END IF;
+
+  DELETE FROM auth.sessions WHERE user_id = v_auth_id;
+  DELETE FROM auth.refresh_tokens WHERE user_id = v_auth_id::text;
+  DELETE FROM auth.identities WHERE user_id = v_auth_id;
+  DELETE FROM auth.users WHERE id = v_auth_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.eliminar_alumno_maestro(BIGINT) TO authenticated;
+
+-- -----------------------------------------------------------------------------
 -- Registro de alumnos: listar maestros y vincular al elegido
 -- -----------------------------------------------------------------------------
 
@@ -1300,8 +1353,175 @@ BEGIN
 END;
 $$;
 
+-- Estado del vínculo maestro (para el modal «Cambiar maestro» en Temas).
+CREATE OR REPLACE FUNCTION public.estado_cambio_maestro_alumno()
+RETURNS TABLE (
+  puede_cambiar BOOLEAN,
+  cambios_maestro SMALLINT,
+  profesor_id BIGINT,
+  nombre_maestro TEXT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  WITH mi AS (
+    SELECT a.id, a.cambios_maestro, a.profesor_id
+    FROM public.alumno a
+    WHERE a.id = public.get_my_alumno_id()
+  ),
+  resuelto AS (
+    SELECT
+      mi.id,
+      mi.cambios_maestro,
+      COALESCE(
+        mi.profesor_id,
+        (
+          SELECT g.profesor_id
+          FROM public.alumno_grupo ag
+          JOIN public.grupo g ON g.id = ag.grupo_id AND g.es_sistema = TRUE
+          WHERE ag.alumno_id = mi.id
+          ORDER BY ag.vinculado_en DESC
+          LIMIT 1
+        ),
+        (
+          SELECT g.profesor_id
+          FROM public.alumno_grupo ag
+          JOIN public.grupo g ON g.id = ag.grupo_id AND g.es_sistema = FALSE
+          WHERE ag.alumno_id = mi.id
+          ORDER BY ag.vinculado_en DESC
+          LIMIT 1
+        )
+      ) AS profesor_id_efectivo
+    FROM mi
+  )
+  SELECT
+    (r.cambios_maestro < 1) AS puede_cambiar,
+    r.cambios_maestro,
+    r.profesor_id_efectivo AS profesor_id,
+    NULLIF(
+      trim(
+        u.nombre || CASE
+          WHEN u.apellido IS NOT NULL AND trim(u.apellido) <> '' THEN ' ' || u.apellido
+          ELSE ''
+        END
+      ),
+      ''
+    )::TEXT AS nombre_maestro
+  FROM resuelto r
+  LEFT JOIN public.profesor p ON p.id = r.profesor_id_efectivo
+  LEFT JOIN public.usuario u ON u.id = p.usuario_id;
+$$;
+
+-- Un solo cambio de maestro por alumno (no cuenta el alta en registro).
+CREATE OR REPLACE FUNCTION public.cambiar_mi_maestro(p_profesor_id BIGINT)
+RETURNS TABLE (
+  grupo_id BIGINT,
+  nombre VARCHAR(80)
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_alumno_id BIGINT;
+  v_cambios SMALLINT;
+  v_actual BIGINT;
+  v_grupo public.grupo%ROWTYPE;
+BEGIN
+  v_alumno_id := public.get_my_alumno_id();
+  IF v_alumno_id IS NULL THEN
+    RAISE EXCEPTION 'Solo alumnos autenticados pueden cambiar de maestro';
+  END IF;
+
+  SELECT a.cambios_maestro,
+    COALESCE(
+      a.profesor_id,
+      (
+        SELECT g.profesor_id
+        FROM public.alumno_grupo ag
+        JOIN public.grupo g ON g.id = ag.grupo_id AND g.es_sistema = TRUE
+        WHERE ag.alumno_id = v_alumno_id
+        ORDER BY ag.vinculado_en DESC
+        LIMIT 1
+      ),
+      (
+        SELECT g.profesor_id
+        FROM public.alumno_grupo ag
+        JOIN public.grupo g ON g.id = ag.grupo_id AND g.es_sistema = FALSE
+        WHERE ag.alumno_id = v_alumno_id
+        ORDER BY ag.vinculado_en DESC
+        LIMIT 1
+      )
+    )
+  INTO v_cambios, v_actual
+  FROM public.alumno a
+  WHERE a.id = v_alumno_id;
+
+  IF v_cambios >= 1 THEN
+    RAISE EXCEPTION 'Ya usaste tu único cambio de maestro';
+  END IF;
+
+  IF p_profesor_id IS NULL THEN
+    RAISE EXCEPTION 'Selecciona un maestro';
+  END IF;
+
+  IF v_actual IS NOT NULL AND v_actual = p_profesor_id THEN
+    RAISE EXCEPTION 'Selecciona un maestro distinto al actual';
+  END IF;
+
+  SELECT * INTO v_grupo
+  FROM public.grupo g
+  WHERE g.profesor_id = p_profesor_id
+    AND g.es_sistema = TRUE
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Maestro no encontrado';
+  END IF;
+
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.es_sistema = TRUE
+    AND g_old.profesor_id <> p_profesor_id;
+
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.es_sistema = FALSE
+    AND g_old.profesor_id <> p_profesor_id;
+
+  DELETE FROM public.alumno_grupo ag
+  USING public.grupo g_old
+  WHERE ag.alumno_id = v_alumno_id
+    AND g_old.id = ag.grupo_id
+    AND g_old.profesor_id = p_profesor_id
+    AND g_old.es_sistema = FALSE;
+
+  UPDATE public.alumno
+  SET profesor_id = p_profesor_id,
+      cambios_maestro = cambios_maestro + 1
+  WHERE id = v_alumno_id;
+
+  INSERT INTO public.alumno_grupo (alumno_id, grupo_id, codigo_usado)
+  VALUES (v_alumno_id, v_grupo.id, v_grupo.codigo)
+  ON CONFLICT ON CONSTRAINT alumno_grupo_alumno_id_grupo_id_key DO UPDATE
+    SET codigo_usado = EXCLUDED.codigo_usado,
+        vinculado_en = NOW();
+
+  RETURN QUERY
+  SELECT v_grupo.id, v_grupo.nombre;
+END;
+$$;
+
 GRANT EXECUTE ON FUNCTION public.listar_maestros_registro() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.vincular_alumno_a_maestro(BIGINT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.estado_cambio_maestro_alumno() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cambiar_mi_maestro(BIGINT) TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- DATOS INICIALES

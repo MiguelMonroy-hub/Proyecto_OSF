@@ -1,0 +1,174 @@
+/* Modal cambiar maestro (Temas) — estilo similar al modal de grupos del maestro */
+body.page-topics > #topics-modal-maestro.topics-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  margin: 0;
+}
+
+body.page-topics > #topics-modal-maestro.topics-modal[hidden] {
+  display: none;
+}
+
+body.page-topics.topics-modal-open {
+  overflow: hidden;
+}
+
+.topics-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(1.5px);
+}
+
+.topics-modal-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.topics-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.topics-modal-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #1e4d7b;
+}
+
+.topics-modal-close {
+  border: none;
+  background: #f1f5f9;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.topics-modal-lead {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.topics-modal-actual {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #0c4a6e;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+}
+
+.topics-modal-actual strong {
+  font-weight: 800;
+}
+
+.topics-modal-buscar-wrap {
+  margin-bottom: 10px;
+}
+
+.topics-modal-buscar-wrap[hidden] {
+  display: none;
+}
+
+.topics-modal-buscar {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.95rem;
+}
+
+.topics-modal-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+
+.topics-modal-opcion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.topics-modal-opcion:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+.topics-modal-opcion.is-selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.topics-modal-opcion input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+}
+
+.topics-modal-nombre {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.topics-modal-error {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: #b91c1c;
+}
+
+.topics-modal-error[hidden] {
+  display: none;
+}
+
+.topics-modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.topics-modal-actions .btn {
+  min-width: 120px;
+}
+
+.topics-modal-empty,
+.topics-modal-loading {
+  margin: 0 0 14px;
+  font-size: 0.9rem;
+  color: #64748b;
+  text-align: center;
+  padding: 16px 8px;
+}

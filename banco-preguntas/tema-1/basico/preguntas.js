@@ -10,6 +10,7 @@
   {
     id: "T1F01",
     q: "¿En qué coordenadas está el punto?",
+    jxg: { tipo: "puntoProyecciones", x: 3, y: 2, fijo: true },
     opts: [
       {
         t: "A) (2, 3)",
@@ -782,7 +783,7 @@
   },
   {
     id: "T1F32",
-    q: "¿Qué punto tiene la misma coordenada y que (4, 7)?",
+    q: "Si el punto es (4, 7), ¿cuál de los siguientes puntos comparte su coordenada 'y'?",
     opts: [
       {
         t: "A) (4, 5)",

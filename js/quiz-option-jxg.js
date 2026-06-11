@@ -206,6 +206,9 @@
     if ((tema !== "1" && tema !== "2") || !pregunta) {
       return false;
     }
+    if (pregunta.jxg && typeof pregunta.jxg === "object") {
+      return true;
+    }
     var opts = pregunta.opts || [];
     var q = pregunta.q || "";
     for (var i = 0; i < opts.length; i++) {

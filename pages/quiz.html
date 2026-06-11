@@ -65,12 +65,21 @@
       <span class="quiz-loading-bar" aria-hidden="true"><span class="quiz-loading-bar-fill"></span></span>
     </div>
   </div>
-  <!-- Barra superior: contexto, avance, monedas y vidas -->
+  <!-- Barra superior: contexto, avance, monedas, pato y vidas -->
   <div class="quiz-top">
     <div class="quiz-top-left">
       <span id="quiz-context" class="quiz-context"></span>
       <span id="quiz-progress" class="progress">—</span>
       <span id="quiz-saldo" class="quiz-saldo" aria-live="polite"></span>
+    </div>
+    <div class="quiz-duck-wrap" aria-hidden="true">
+      <div class="duck-stack quiz-duck-stack" id="quiz-duck-stack">
+        <img id="quiz-img-base" class="stack-img z-base" src="../MAIN DUCK/DUCK/MAIN DUCK.png" alt="">
+        <img id="quiz-img-shoes" class="stack-img z-shoes" alt="" hidden>
+        <img id="quiz-img-neck" class="stack-img z-neck" alt="" hidden>
+        <img id="quiz-img-face" class="stack-img z-face" alt="" hidden>
+        <img id="quiz-img-head" class="stack-img z-head" alt="" hidden>
+      </div>
     </div>
     <span id="quiz-hearts" class="hearts" aria-label="Vidas">❤️❤️❤️</span>
   </div>
@@ -116,6 +125,8 @@
   <script src="../js/ui-toast.js"></script>
   <script src="../js/page-load-overlay.js"></script>
   <script src="../js/duck-catalog.js"></script>
+  <script src="../js/duck-outfit.js"></script>
+  <script src="../js/duck-avatar-sync.js"></script>
   <script src="../js/duck-economia-sync.js"></script>
   <script src="../js/grupos-clase.js"></script>
   <script src="../js/teacher-niveles.js"></script>

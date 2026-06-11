@@ -3,6 +3,7 @@
  * La sincronización con Supabase vive en duck-avatar-sync.js.
  */
 var DUCK_OUTFIT_STORAGE_KEY = "tec_duck_personaje";
+var DUCK_OUTFIT_PORTADA_KEY = "tec_duck_personaje_portada";
 
 // Outfit vacío; usa duck-catalog si ya cargó.
 function duckOutfitDefecto() {
@@ -57,17 +58,32 @@ function duckOutfitLeerLocal() {
 // Persiste el outfit en localStorage del navegador.
 function duckOutfitGuardarLocal(outfit, guardadoEn) {
   var o = duckOutfitNormalizar(outfit);
-  localStorage.setItem(
-    DUCK_OUTFIT_STORAGE_KEY,
-    JSON.stringify({
-      base: o.base,
-      face: o.face,
-      head: o.head,
-      neck: o.neck,
-      shoes: o.shoes,
-      guardadoEn: guardadoEn || Date.now()
-    })
-  );
+  var payload = JSON.stringify({
+    base: o.base,
+    face: o.face,
+    head: o.head,
+    neck: o.neck,
+    shoes: o.shoes,
+    guardadoEn: guardadoEn || Date.now()
+  });
+  localStorage.setItem(DUCK_OUTFIT_STORAGE_KEY, payload);
+  localStorage.setItem(DUCK_OUTFIT_PORTADA_KEY, payload);
+}
+
+// Outfit mostrado en la portada (persiste tras cerrar sesión o el navegador).
+function duckOutfitLeerPortada() {
+  var raw =
+    localStorage.getItem(DUCK_OUTFIT_PORTADA_KEY) ||
+    localStorage.getItem(DUCK_OUTFIT_STORAGE_KEY);
+  if (!raw) {
+    return duckOutfitDefecto();
+  }
+  try {
+    var o = JSON.parse(raw);
+    return duckOutfitNormalizar(o);
+  } catch (e) {
+    return duckOutfitDefecto();
+  }
 }
 
 // Serializa el outfit para comparar si hubo cambios.
@@ -160,10 +176,37 @@ var DUCK_OUTFIT_IDS_CUSTOMIZE = {
   shoes: "img-shoes"
 };
 
+var DUCK_OUTFIT_IDS_QUIZ = {
+  base: "quiz-img-base",
+  face: "quiz-img-face",
+  head: "quiz-img-head",
+  neck: "quiz-img-neck",
+  shoes: "quiz-img-shoes"
+};
+
+// Repinta el pato en la barra del quiz.
+function duckOutfitRefrescarQuiz() {
+  if (!document.getElementById(DUCK_OUTFIT_IDS_QUIZ.base)) {
+    return;
+  }
+  var outfit = duckOutfitLeerLocal();
+  if (typeof duckOutfitAjustarAlInventario === "function") {
+    outfit = duckOutfitAjustarAlInventario(outfit);
+  }
+  duckOutfitPintarEnIds(DUCK_OUTFIT_IDS_QUIZ, outfit);
+}
+
+// Arranca el refresco del pato en el quiz.
+function duckOutfitIniciarQuiz() {
+  duckOutfitRefrescarQuiz();
+  window.addEventListener("pageshow", duckOutfitRefrescarQuiz);
+  window.addEventListener("alumno-guard-ready", duckOutfitRefrescarQuiz);
+}
+
 // Repinta el pato en la pantalla de inicio si está el contenedor.
 function duckOutfitRefrescarPortada() {
   if (document.getElementById(DUCK_OUTFIT_IDS_PORTADA.base)) {
-    duckOutfitPintarEnIds(DUCK_OUTFIT_IDS_PORTADA);
+    duckOutfitPintarEnIds(DUCK_OUTFIT_IDS_PORTADA, duckOutfitLeerPortada());
   }
 }
 
@@ -178,4 +221,8 @@ function duckOutfitIniciarPortada() {
 
 if (document.getElementById(DUCK_OUTFIT_IDS_PORTADA.base)) {
   duckOutfitIniciarPortada();
+}
+
+if (document.getElementById(DUCK_OUTFIT_IDS_QUIZ.base)) {
+  duckOutfitIniciarQuiz();
 }

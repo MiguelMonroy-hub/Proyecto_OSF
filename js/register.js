@@ -1,8 +1,4 @@
-/**
- * Lógica de signup.html: crea la cuenta en Supabase y redirige.
- * Solo alumnos: elige maestro, se vincula a él y luego va a ingresar el código de clase.
- */
-
+// Pone el botón «Registrarse» en modo cargando o lo restaura.
 function registerEstadoBoton(btn, cargando) {
   if (!btn) {
     return;
@@ -19,10 +15,14 @@ function registerEstadoBoton(btn, cargando) {
   }
 }
 
+// Texto traducible desde strings.js, o el fallback en español.
 function registerMsg(path, fallback) {
   return typeof str === "function" ? str(path, fallback) : fallback;
 }
 
+// --- Vinculación con el maestro y redirección ---
+
+// Si Supabase no devolvió sesión al registrarse, hace login manual y vincula al maestro.
 async function registerEntrarTrasCrear(email, password, profesorId) {
   if (typeof authIniciarSesion !== "function") {
     return false;
@@ -46,6 +46,7 @@ async function registerEntrarTrasCrear(email, password, profesorId) {
   return true;
 }
 
+// Llama al RPC vincular_alumno_a_maestro (grupo «Todos los alumnos» del profesor).
 async function registerVincularMaestroTrasAlta(profesorId) {
   if (!profesorId || typeof alumnoVincularAMaestro !== "function") {
     return { ok: true };
@@ -53,7 +54,7 @@ async function registerVincularMaestroTrasAlta(profesorId) {
   return alumnoVincularAMaestro(profesorId);
 }
 
-// Tras el alta: join-group si aún no tiene código de clase; si no, temas.
+// Después del alta: join-group si falta código de clase; si ya lo tiene, temas.
 async function registerRedirigirAlumno(email) {
   if (typeof redirigirAlumnoTrasLogin === "function") {
     await redirigirAlumnoTrasLogin(email);
@@ -63,11 +64,15 @@ async function registerRedirigirAlumno(email) {
     typeof pagina === "function" ? pagina("join-group.html") : "join-group.html";
 }
 
+// --- Arranque: preparar Supabase al cargar signup.html ---
+
 document.addEventListener("DOMContentLoaded", function () {
   if (typeof initSupabase === "function") {
     initSupabase();
   }
 });
+
+// --- Función principal (onclick="crearCuenta()" en signup.html) ---
 
 async function crearCuenta() {
   var nombreEl = document.getElementById("nombre");
@@ -77,6 +82,7 @@ async function crearCuenta() {
   var btn = document.querySelector(".btn-submit");
   var errBox = document.getElementById("signup-error");
 
+  // Muestra el error en #signup-error o, si no existe, en un alert.
   function mostrarError(msg) {
     if (!errBox) {
       if (msg) {
@@ -100,6 +106,7 @@ async function crearCuenta() {
 
   mostrarError("");
 
+  // Paso 1: el maestro es obligatorio (signup-maestros.js).
   if (typeof signupValidarMaestroSeleccionado === "function") {
     var valMaestro = signupValidarMaestroSeleccionado();
     if (!valMaestro.ok) {
@@ -112,6 +119,7 @@ async function crearCuenta() {
   }
   var profesorId = valMaestro.profesorId;
 
+  // Paso 2: nombre, apellido, correo y contraseña fuerte (auth-validacion.js).
   if (typeof authValidarFormularioRegistro !== "function") {
     if (!nombre || !apellido || !email || password.length < 8) {
       mostrarError(
@@ -140,6 +148,8 @@ async function crearCuenta() {
   try {
     if (typeof authRegistrarUsuario === "function") {
       await initSupabase();
+
+      // Paso 3: signUp en Supabase Auth; el trigger SQL crea usuario + alumno + avatar.
       var data = await authRegistrarUsuario({
         nombre: nombre,
         apellido: apellido,
@@ -148,6 +158,7 @@ async function crearCuenta() {
         rol: "ALUMNO"
       });
 
+      // Correo ya registrado: identities vacío (no es un usuario nuevo).
       if (
         data &&
         data.user &&
@@ -167,6 +178,7 @@ async function crearCuenta() {
         alumnoSesionGuardar(email);
       }
 
+      // Paso 4a: Supabase devolvió sesión → vincular maestro y redirigir.
       if (data && data.session) {
         var vinSesion = await registerVincularMaestroTrasAlta(profesorId);
         if (!vinSesion.ok) {
@@ -178,6 +190,7 @@ async function crearCuenta() {
         return;
       }
 
+      // Paso 4b: sin sesión automática → login manual y luego vincular.
       try {
         await registerEntrarTrasCrear(email, password, profesorId);
         return;

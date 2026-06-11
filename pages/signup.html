@@ -3,15 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Rutas relativas desde /pages/ (ej. login.html, index.html) -->
   <base href="/pages/">
   <title>Crear cuenta</title>
+  <!-- Estilos: botón volver, campo contraseña con ojo, y diseño de esta pantalla -->
   <link rel="stylesheet" href="../css/base.css">
   <link rel="stylesheet" href="../css/auth-back.css">
   <link rel="stylesheet" href="../css/auth-password.css">
   <link rel="stylesheet" href="../css/signup.css">
 </head>
 <body class="page-signup-new">
-  <!-- Volver al inicio -->
+
+  <!-- Enlace para volver a la portada sin registrarse -->
   <nav class="auth-nav" aria-label="Navegación">
     <a class="auth-back" href="index.html">
       <span class="auth-back-icon" aria-hidden="true">←</span>
@@ -19,9 +22,18 @@
     </a>
   </nav>
 
-  <!-- Formulario de registro: datos personales, correo y contraseña -->
+  <!--
+    Tarjeta principal del formulario.
+    No usa <form> con submit nativo: el botón llama a crearCuenta() en register.js.
+  -->
   <div class="modal-signup">
     <h1>Crear cuenta</h1>
+
+    <!--
+      --- Datos personales y acceso ---
+      Los id (nombre, apellido, email, pass) los lee register.js.
+      El asterisco * indica campo obligatorio.
+    -->
 
     <label for="nombre">Nombre <span class="auth-required" aria-hidden="true">*</span></label>
     <input type="text" id="nombre" name="nombre" autocomplete="given-name" required>
@@ -32,14 +44,32 @@
     <label for="email">Correo <span class="auth-required" aria-hidden="true">*</span></label>
     <input type="email" id="email" name="email" autocomplete="email" placeholder="tu@correo.com" required>
 
+    <!--
+      Contraseña: mínimo 8 caracteres con mayúscula, minúscula, número y símbolo.
+      auth-password-toggle.js añade el botón del ojo dentro de .auth-password-wrap.
+      La validación exacta está en auth-validacion.js.
+    -->
     <label for="pass">Contraseña <span class="auth-required" aria-hidden="true">*</span></label>
     <div class="auth-password-wrap">
       <input type="password" id="pass" name="pass" placeholder="••••••••" autocomplete="new-password" minlength="8" required aria-describedby="signup-pass-hint">
     </div>
     <p id="signup-pass-hint" class="signup-pass-hint">Mínimo 8 caracteres, con mayúscula, minúscula, número y carácter especial.</p>
 
+    <!--
+      --- Elegir maestro (obligatorio) ---
+      La lista no va en el HTML: signup-maestros.js la carga desde Supabase
+      (función listar_maestros_registro) y la pinta dentro de #signup-maestros-list.
+
+      Flujo visual:
+      - El alumno abre el desplegable (#signup-maestros-toggle).
+      - Ve maestros en #signup-maestros-list (como botones tipo radio).
+      - Puede buscar por nombre si hay muchos (#signup-maestros-buscar).
+      - Al registrarse, register.js pide el id del maestro con signupValidarMaestroSeleccionado().
+    -->
     <fieldset class="signup-maestros" id="signup-maestros-fieldset">
       <legend class="signup-maestros-legend">Mi maestro <span class="auth-required" aria-hidden="true">*</span></legend>
+
+      <!-- Botón que abre/cierra la lista; el texto cambia al elegir un maestro -->
       <button
         type="button"
         id="signup-maestros-toggle"
@@ -50,8 +80,12 @@
         <span id="signup-maestros-toggle-valor" class="signup-maestros-toggle-valor">Elige un maestro</span>
         <span class="signup-maestros-toggle-chevron" aria-hidden="true"></span>
       </button>
+
+      <!-- Panel oculto al inicio (hidden); signup-maestros.js lo muestra al abrir -->
       <div id="signup-maestros-panel" class="signup-maestros-panel" hidden>
         <p class="signup-maestros-hint">Elige al profesor de tu clase.</p>
+
+        <!-- Barra de búsqueda: solo visible cuando hay varios maestros -->
         <div id="signup-maestros-toolbar" class="signup-maestros-toolbar" hidden>
           <label class="signup-maestros-buscar-label" for="signup-maestros-buscar">
             <span class="signup-maestros-buscar-icon" aria-hidden="true">⌕</span>
@@ -65,6 +99,8 @@
             />
           </label>
         </div>
+
+        <!-- Aquí se insertan los maestros; el skeleton es la animación de «cargando» -->
         <div id="signup-maestros-list" class="signup-maestros-list" role="radiogroup" aria-label="Selecciona tu maestro">
           <div class="signup-maestros-skeleton" role="status" aria-live="polite">
             <span class="signup-maestros-skeleton-row"></span>
@@ -74,14 +110,30 @@
       </div>
     </fieldset>
 
+    <!-- Mensajes de error (correo duplicado, falta maestro, etc.); register.js escribe aquí -->
     <p id="signup-error" class="signup-error" hidden></p>
 
+    <!-- type="button" evita enviar el formulario; crearCuenta() está en register.js -->
     <button type="button" class="btn-submit" onclick="crearCuenta()">Registrarse</button>
 
     <p class="switch">¿Ya tienes cuenta? <a href="login.html">Iniciar sesión</a></p>
   </div>
 
-  <!-- Scripts: auth, Supabase y registro -->
+  <!--
+    Scripts en orden (cada uno depende de los anteriores):
+
+    1. rutas.js          — función pagina() para armar URLs.
+    2. supabase-config.js — URL y clave pública de Supabase.
+    3. @supabase/supabase-js — librería oficial desde CDN.
+    4. supabase-client.js — crea el cliente y initSupabase().
+    5. strings.js        — textos traducibles (str()).
+    6. auth-service.js   — registrar, iniciar sesión, errores de auth.
+    7. auth-validacion.js — validar nombre, apellido, correo y contraseña.
+    8. auth-password-toggle.js — botón para ver/ocultar contraseña.
+    9. grupos-clase.js   — vincular alumno al maestro (RPC en Supabase).
+    10. signup-maestros.js — cargar lista de maestros y manejar el desplegable.
+    11. register.js      — lógica principal al pulsar «Registrarse».
+  -->
   <script src="../js/rutas.js"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

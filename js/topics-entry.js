@@ -103,13 +103,15 @@
     }
 
     try {
-      var banner = document.getElementById("topics-grupo-banner");
-      if (banner) {
-        var v =
-          typeof alumnoObtenerGrupoVinculadoAsync === "function"
-            ? await alumnoObtenerGrupoVinculadoAsync(email)
-            : null;
-        if (v && v.nombreGrupo) {
+      var v =
+        typeof alumnoObtenerGrupoVinculadoAsync === "function"
+          ? await alumnoObtenerGrupoVinculadoAsync(email)
+          : null;
+      if (typeof alumnoPintarBannerGrupoAsync === "function") {
+        await alumnoPintarBannerGrupoAsync(v ? v.nombreGrupo : null);
+      } else {
+        var banner = document.getElementById("topics-grupo-banner");
+        if (banner && v && v.nombreGrupo) {
           banner.textContent = "Tu grupo: " + v.nombreGrupo;
           banner.hidden = false;
         }

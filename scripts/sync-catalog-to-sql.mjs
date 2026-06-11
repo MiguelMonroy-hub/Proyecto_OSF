@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Genera snippet SQL INSERT para item desde js/duck-catalog.js (DUCK_CATALOG).
  * Uso: node scripts/sync-catalog-to-sql.mjs
